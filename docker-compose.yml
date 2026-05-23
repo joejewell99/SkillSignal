@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: skillsignal-postgres
+    environment:
+      POSTGRES_DB: skillsignal
+      POSTGRES_USER: skillsignal
+      POSTGRES_PASSWORD: skillsignal
+    ports:
+      - "5432:5432"
+    volumes:
+      - skillsignal-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  skillsignal-postgres-data:
