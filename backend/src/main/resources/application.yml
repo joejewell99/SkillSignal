@@ -1,0 +1,25 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/skillsignal}
+    username: ${DB_USERNAME:skillsignal}
+    password: ${DB_PASSWORD:skillsignal}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:skillsignal-development-secret-key-change-this-before-production}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  cors:
+    allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
+  admin:
+    email: ${SKILLSIGNAL_ADMIN_EMAIL:admin@skillsignal.dev}
+    password: ${SKILLSIGNAL_ADMIN_PASSWORD:Admin123!}
