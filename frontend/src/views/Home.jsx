@@ -1,65 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, UserCircle } from 'lucide-react';
+import { apiRequest } from '../api/client.js';
 import { useAuth } from '../state/AuthContext.jsx';
-
-const developers = [
-  {
-    name: 'Maya Patel',
-    role: 'Junior Backend Developer',
-    photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=240&q=80',
-    skills: ['Python', 'SQL', 'Spring Boot', 'REST APIs'],
-    proof: 'Built an API dashboard with PostgreSQL reporting and JWT auth.',
-  },
-  {
-    name: 'Daniel Okafor',
-    role: 'Full-stack Developer',
-    photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80',
-    skills: ['React', 'Spring Boot', 'PostgreSQL', 'Docker'],
-    proof: 'Shipped protected React routes backed by Spring Security endpoints.',
-  },
-  {
-    name: 'Sofia Nguyen',
-    role: 'Data-focused Developer',
-    photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=240&q=80',
-    skills: ['Python', 'SQL', 'Dashboards', 'APIs'],
-    proof: 'Created analytics screens that turn API data into employer-ready proof.',
-  },
-  {
-    name: 'Ethan Brooks',
-    role: 'Junior Rails Developer',
-    photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=240&q=80',
-    skills: ['Ruby', 'SQL', 'Authentication', 'Deployment'],
-    proof: 'Deployed a Ruby app with user accounts, database models, and admin tools.',
-  },
-];
-
-const opportunities = [
-  {
-    company: 'Northstar Analytics',
-    need: 'Junior developer for SQL dashboards and Python API work',
-    image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=240&q=80',
-    skills: ['Python', 'SQL', 'APIs'],
-  },
-  {
-    company: 'BrightLayer Software',
-    need: 'React developer who can build protected routes and admin screens',
-    image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=240&q=80',
-    skills: ['React', 'Authentication', 'Dashboards'],
-  },
-  {
-    company: 'Harbour Cloud',
-    need: 'Spring Boot project help with JWT authentication and PostgreSQL',
-    image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=240&q=80',
-    skills: ['Spring Boot', 'PostgreSQL', 'JWT'],
-  },
-  {
-    company: 'RailsDesk',
-    need: 'Ruby developer for account flows, database models, and deployment',
-    image: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=240&q=80',
-    skills: ['Ruby', 'SQL', 'Deployment'],
-  },
-];
 
 const popularSkills = ['Python', 'Ruby', 'SQL', 'Spring Boot', 'React', 'APIs'];
 const profileFilters = [
@@ -68,59 +11,42 @@ const profileFilters = [
   { label: 'Employers', value: 'EMPLOYER' },
 ];
 
-function includesSearch(values, search) {
-  return values.join(' ').toLowerCase().includes(search);
-}
-
-const profiles = [
-  ...developers.map((developer) => ({
-    type: 'DEVELOPER',
-    name: developer.name,
-    title: developer.role,
-    image: developer.photo,
-    skills: developer.skills,
-    summary: developer.proof,
-  })),
-  ...opportunities.map((opportunity) => ({
-    type: 'EMPLOYER',
-    name: opportunity.company,
-    title: 'Hiring need',
-    image: opportunity.image,
-    skills: opportunity.skills,
-    summary: opportunity.need,
-  })),
-];
-
 export default function Home() {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [nameQuery, setNameQuery] = useState('');
   const [filter, setFilter] = useState('ALL');
+  const [profiles, setProfiles] = useState([]);
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
+  const [profileError, setProfileError] = useState('');
 
-  const filteredProfiles = useMemo(() => {
-    const search = query.trim().toLowerCase();
-    const nameSearch = nameQuery.trim().toLowerCase();
-
-    return profiles.filter((profile) =>
-      (filter === 'ALL' || profile.type === filter) &&
-      (!search || includesSearch([profile.name, profile.title, profile.summary, ...profile.skills], search)) &&
-      (!nameSearch || profile.name.toLowerCase().includes(nameSearch))
-    );
-  }, [filter, nameQuery, query]);
-
-  const nameSuggestions = useMemo(() => {
-    const search = nameQuery.trim().toLowerCase();
-    if (!search) {
-      return [];
+  useEffect(() => {
+    const searchParams = new URLSearchParams();
+    if (query.trim()) {
+      searchParams.set('query', query.trim());
+    }
+    if (nameQuery.trim()) {
+      searchParams.set('name', nameQuery.trim());
+    }
+    if (filter !== 'ALL') {
+      searchParams.set('type', filter);
     }
 
-    return profiles
-      .filter((profile) =>
-        (filter === 'ALL' || profile.type === filter) &&
-        profile.name.toLowerCase().includes(search)
-      )
-      .slice(0, 5);
-  }, [filter, nameQuery]);
+    setIsLoadingProfiles(true);
+    setProfileError('');
+
+    apiRequest(`/api/profiles?${searchParams.toString()}`)
+      .then(setProfiles)
+      .catch((err) => {
+        setProfiles([]);
+        setProfileError(err.message);
+      })
+      .finally(() => setIsLoadingProfiles(false));
+  }, [filter, nameQuery, query]);
+
+  const nameSuggestions = useMemo(() => (
+    nameQuery.trim() ? profiles.slice(0, 5) : []
+  ), [nameQuery, profiles]);
 
   return (
     <main className="public-page">
@@ -176,7 +102,7 @@ export default function Home() {
         <div className="section-heading">
           <div>
             <p className="eyebrow">Profiles</p>
-            <h2>{filteredProfiles.length} profiles found</h2>
+            <h2>{isLoadingProfiles ? 'Searching profiles...' : `${profiles.length} profiles found`}</h2>
           </div>
           <div className="segmented-control" aria-label="Filter profiles">
             {profileFilters.map((option) => (
@@ -215,8 +141,10 @@ export default function Home() {
           )}
         </div>
 
+        {profileError && <p className="error">{profileError}</p>}
+
         <div className="profile-grid">
-          {filteredProfiles.map((profile) => (
+          {profiles.map((profile) => (
             <article className="profile-card" key={`${profile.type}-${profile.name}`}>
               {profile.image ? (
                 <img src={profile.image} alt={profile.name} />
