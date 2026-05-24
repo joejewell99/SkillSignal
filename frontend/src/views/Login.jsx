@@ -7,14 +7,22 @@ export default function Login() {
   const [email, setEmail] = useState('admin@skillsignal.dev');
   const [password, setPassword] = useState('Admin123!');
   const [error, setError] = useState('');
+  const [status, setStatus] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
+    setStatus('Signing in...');
+    setIsSubmitting(true);
     try {
       await login(email, password);
+      setStatus('Signed in. Taking you to your dashboard...');
     } catch (err) {
       setError(err.message);
+      setStatus('');
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -36,8 +44,11 @@ export default function Login() {
             Password
             <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required />
           </label>
+          {status && <p className="success">{status}</p>}
           {error && <p className="error">{error}</p>}
-          <button className="primary-button" type="submit">Sign in</button>
+          <button className="primary-button" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Signing in...' : 'Sign in'}
+          </button>
         </form>
 
         <p className="switch-link">
