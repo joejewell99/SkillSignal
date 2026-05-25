@@ -1,172 +1,91 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Search, UserCircle } from 'lucide-react';
-import { apiRequest } from '../api/client.js';
-import { useAuth } from '../state/AuthContext.jsx';
+import { BrainCircuit, CheckCircle2, Search, ShieldCheck } from 'lucide-react';
+import PublicHeader from '../ui/PublicHeader.jsx';
 
-const popularSkills = ['Python', 'Ruby', 'SQL', 'Spring Boot', 'React', 'APIs'];
-const profileFilters = [
-  { label: 'All', value: 'ALL' },
-  { label: 'Developers', value: 'DEVELOPER' },
-  { label: 'Employers', value: 'EMPLOYER' },
+const proofPoints = [
+  {
+    icon: BrainCircuit,
+    title: 'Employers describe real work',
+    copy: 'Spring Security maintenance, slow dashboards, Docker day-to-day, PostgreSQL reports, production fixes.',
+  },
+  {
+    icon: Search,
+    title: 'SkillSignal extracts hiring signals',
+    copy: 'The brief becomes skills, problem types, evidence to check, gaps, and interview prompts.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Junior developers are matched by proof',
+    copy: 'Matches are ranked by project evidence instead of generic keywords or polished resume claims.',
+  },
 ];
 
 export default function Home() {
-  const { user } = useAuth();
-  const [query, setQuery] = useState('');
-  const [nameQuery, setNameQuery] = useState('');
-  const [filter, setFilter] = useState('ALL');
-  const [profiles, setProfiles] = useState([]);
-  const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
-  const [profileError, setProfileError] = useState('');
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams();
-    if (query.trim()) {
-      searchParams.set('query', query.trim());
-    }
-    if (nameQuery.trim()) {
-      searchParams.set('name', nameQuery.trim());
-    }
-    if (filter !== 'ALL') {
-      searchParams.set('type', filter);
-    }
-
-    setIsLoadingProfiles(true);
-    setProfileError('');
-
-    apiRequest(`/api/profiles?${searchParams.toString()}`)
-      .then(setProfiles)
-      .catch((err) => {
-        setProfiles([]);
-        setProfileError(err.message);
-      })
-      .finally(() => setIsLoadingProfiles(false));
-  }, [filter, nameQuery, query]);
-
-  const nameSuggestions = useMemo(() => (
-    nameQuery.trim() ? profiles.slice(0, 5) : []
-  ), [nameQuery, profiles]);
-
   return (
     <main className="public-page">
-      <header className="site-header">
-        <Link className="site-brand" to="/">
-          <span className="brand-mark">SS</span>
-          <strong>SkillSignal</strong>
-        </Link>
+      <PublicHeader />
 
-        <nav className="site-nav" aria-label="Primary navigation">
-          <Link className="account-link" to={user ? '/dashboard' : '/login'}>
-            <UserCircle size={18} />
-            <span>Account</span>
-          </Link>
-        </nav>
-      </header>
-
-      <section className="home-hero">
+      <section className="landing-hero">
         <div className="hero-copy">
-          <p className="eyebrow">Proof-based hiring</p>
-          <h1>Build a meaningful profile and get your projects noticed.</h1>
+          <p className="eyebrow">Proof-based junior hiring</p>
+          <h1>Match junior developers to real software work by proof, not keywords.</h1>
           <p>
-            Search skills, project proof, and employer needs in one place. Developers show what they can build, and employers find people by the work they need done.
+            SkillSignal helps employers describe the problem they need solved, then ranks junior developers by project evidence, strengths, gaps, and useful interview questions.
           </p>
-        </div>
-
-        <div className="search-panel universal-search">
-          <label htmlFor="marketplace-search">Search SkillSignal</label>
-          <div className="search-box">
-            <Search size={20} />
-            <input
-              id="marketplace-search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Try Python, SQL, Spring Boot, React, dashboards"
-            />
-          </div>
-          <div className="skill-chips" aria-label="Popular skill searches">
-            {popularSkills.map((skill) => (
-              <button key={skill} type="button" onClick={() => setQuery(skill)}>
-                {skill}
-              </button>
-            ))}
-          </div>
           <div className="hero-actions">
-            <Link className="primary-button" to="/register">Create account</Link>
-            <Link className="secondary-button" to="/login">Sign in</Link>
+            <Link className="primary-button" to="/match">Try AI match</Link>
+            <Link className="secondary-button" to="/profiles">Browse profiles</Link>
           </div>
         </div>
       </section>
 
-      <section className="results-section">
+      <section className="landing-section">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Profiles</p>
-            <h2>{isLoadingProfiles ? 'Searching profiles...' : `${profiles.length} profiles found`}</h2>
-          </div>
-          <div className="segmented-control" aria-label="Filter profiles">
-            {profileFilters.map((option) => (
-              <button
-                className={filter === option.value ? 'active' : ''}
-                key={option.value}
-                type="button"
-                onClick={() => setFilter(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
+            <p className="eyebrow">How it works</p>
+            <h2>One workflow for both sides of the junior hiring problem</h2>
           </div>
         </div>
 
-        <div className="name-search-panel">
-          <label htmlFor="name-search">Search by name</label>
-          <div className="search-box">
-            <Search size={20} />
-            <input
-              id="name-search"
-              value={nameQuery}
-              onChange={(event) => setNameQuery(event.target.value)}
-              placeholder="Start typing a name, e.g. Ma, Daniel, North"
-            />
+        <div className="audience-grid proof-grid">
+          {proofPoints.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article className="audience-panel" key={item.title}>
+                <Icon size={24} />
+                <h2>{item.title}</h2>
+                <p>{item.copy}</p>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="landing-section">
+        <article className="workspace-panel landing-callout">
+          <div>
+            <p className="eyebrow">For junior developers</p>
+            <h2>Show what you can actually handle</h2>
+            <p className="subtle">
+              Profiles are built around projects, evidence links, stack choices, tradeoffs, and clear explanations of what you personally built.
+            </p>
           </div>
-          {nameSuggestions.length > 0 && (
-            <div className="name-suggestions" aria-label="Name suggestions">
-              {nameSuggestions.map((profile) => (
-                <button key={`${profile.type}-${profile.name}`} type="button" onClick={() => setNameQuery(profile.name)}>
-                  <span>{profile.name}</span>
-                  <small>{profile.type === 'DEVELOPER' ? 'Developer' : 'Employer'}</small>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {profileError && <p className="error">{profileError}</p>}
-
-        <div className="profile-grid">
-          {profiles.map((profile) => (
-            <article className="profile-card" key={`${profile.type}-${profile.name}`}>
-              {profile.image ? (
-                <img src={profile.image} alt={profile.name} />
-              ) : (
-                <div className="profile-placeholder">{profile.name.slice(0, 2).toUpperCase()}</div>
-              )}
-              <div className="profile-card-heading">
-                <span className={`profile-type ${profile.type.toLowerCase()}`}>
-                  {profile.type === 'DEVELOPER' ? 'Developer' : 'Employer'}
-                </span>
-                <h3>{profile.name}</h3>
-                <p>{profile.title}</p>
-              </div>
-              <div className="skill-list">
-                {profile.skills.map((skill) => (
-                  <span key={skill}>{skill}</span>
-                ))}
-              </div>
-              <p className="proof-text">{profile.summary}</p>
-            </article>
-          ))}
-        </div>
+          <ul className="feature-list">
+            <li>
+              <CheckCircle2 size={18} />
+              <span>Turn projects into hiring evidence</span>
+            </li>
+            <li>
+              <CheckCircle2 size={18} />
+              <span>Understand which roles you are close to</span>
+            </li>
+            <li>
+              <CheckCircle2 size={18} />
+              <span>Get matched to employer problems, not vague job titles</span>
+            </li>
+          </ul>
+        </article>
       </section>
     </main>
   );

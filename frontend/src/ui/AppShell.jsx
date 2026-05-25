@@ -1,7 +1,8 @@
 import React from 'react';
-import { BriefcaseBusiness, Code2, Home, LogOut, Search, ShieldCheck } from 'lucide-react';
+import { BrainCircuit, BriefcaseBusiness, Code2, Home, LogOut, Search, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext.jsx';
+import ThemeToggle from './ThemeToggle.jsx';
 
 const roleIcon = {
   DEVELOPER: Code2,
@@ -29,9 +30,13 @@ export default function AppShell({ children }) {
             <Home size={18} />
             <span>Home</span>
           </Link>
-          <Link className="nav-item" to="/#search">
+          <Link className="nav-item" to="/match">
+            <BrainCircuit size={18} />
+            <span>AI match</span>
+          </Link>
+          <Link className="nav-item" to="/profiles">
             <Search size={18} />
-            <span>Search skills</span>
+            <span>Profiles</span>
           </Link>
           <button className="nav-item active" type="button">
             <Icon size={18} />
@@ -55,8 +60,10 @@ export default function AppShell({ children }) {
             <strong>SkillSignal</strong>
           </Link>
           <nav className="site-nav" aria-label="Dashboard navigation">
+            <ThemeToggle />
             <Link to="/">Home</Link>
-            <Link to="/#search">Search skills</Link>
+            <Link to="/match">AI match</Link>
+            <Link to="/profiles">Profiles</Link>
             <button className="account-link" type="button" onClick={logout}>
               <LogOut size={16} />
               <span>Sign out</span>

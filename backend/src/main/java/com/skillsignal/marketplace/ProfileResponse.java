@@ -12,7 +12,7 @@ public record ProfileResponse(
         List<String> skills,
         boolean featured
 ) {
-    static ProfileResponse from(MarketplaceProfile profile) {
+    public static ProfileResponse from(MarketplaceProfile profile) {
         return new ProfileResponse(
                 profile.getId(),
                 profile.getType().name(),
@@ -25,4 +25,3 @@ public record ProfileResponse(
         );
     }
 }
-
