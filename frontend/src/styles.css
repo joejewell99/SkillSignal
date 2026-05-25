@@ -1039,7 +1039,7 @@ textarea:focus {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100vh;
 }
 
@@ -1102,9 +1102,9 @@ textarea:focus {
   display: flex;
   gap: 18px;
   justify-content: space-between;
-  margin: -36px -36px 32px;
+  margin: -24px -32px 32px;
   min-height: 72px;
-  padding: 14px 36px;
+  padding: 14px 32px;
 }
 
 .dashboard-topbar .site-nav button {
@@ -1118,7 +1118,7 @@ textarea:focus {
 }
 
 .main-view {
-  padding: 36px;
+  padding: 24px 32px 36px;
 }
 
 .dashboard {
@@ -1320,6 +1320,114 @@ textarea:focus {
 .project-form textarea {
   min-height: 132px;
   resize: vertical;
+}
+
+.feed-toolbar,
+.feed-composer {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  padding: 22px;
+}
+
+.feed-toolbar .panel-heading-row h2 {
+  margin: 0;
+}
+
+.feed-composer {
+  gap: 16px;
+}
+
+.post-form {
+  display: grid;
+  gap: 12px;
+}
+
+.post-form textarea {
+  min-height: 138px;
+  resize: vertical;
+}
+
+.post-form .primary-button {
+  justify-self: end;
+}
+
+.composer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.feed-list {
+  display: grid;
+  gap: 14px;
+}
+
+.feed-post {
+  display: grid;
+  gap: 14px;
+}
+
+.feed-post-header,
+.feed-author {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.feed-post-header {
+  justify-content: space-between;
+}
+
+.feed-author img,
+.feed-author .profile-placeholder {
+  border-radius: 6px;
+  height: 44px;
+  width: 44px;
+}
+
+.feed-author .profile-placeholder {
+  font-size: 1rem;
+}
+
+.feed-author strong {
+  display: block;
+}
+
+.feed-author span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.feed-post p {
+  color: var(--ink);
+  line-height: 1.65;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.empty-feed {
+  align-items: center;
+  border-style: dashed;
+  color: var(--muted);
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  min-height: 180px;
+  text-align: center;
+}
+
+.empty-feed svg {
+  color: var(--primary);
+}
+
+.empty-feed p {
+  line-height: 1.55;
+  margin: 0;
+  max-width: 520px;
 }
 
 .panel-heading-row {
@@ -1537,6 +1645,15 @@ textarea:focus {
   gap: 16px;
 }
 
+.project-showcase .section-heading > div {
+  display: grid;
+  gap: 4px;
+}
+
+.project-add-button {
+  white-space: nowrap;
+}
+
 .empty-state {
   align-items: center;
   background: var(--surface);
@@ -1671,10 +1788,10 @@ textarea:focus {
 
 .profile-detail-shell {
   display: grid;
-  gap: 22px;
+  gap: 24px;
   margin: 0 auto;
-  max-width: 1120px;
-  padding: 56px clamp(18px, 5vw, 56px) 72px;
+  max-width: 1440px;
+  padding: 40px clamp(18px, 4vw, 48px) 72px;
 }
 
 .profile-detail-header {
@@ -1704,18 +1821,85 @@ textarea:focus {
 
 .profile-detail-grid {
   display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  align-items: start;
+}
+
+.profile-detail-main {
+  display: grid;
   gap: 18px;
+}
+
+.profile-feed-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  position: sticky;
+  top: 92px;
+}
+
+.profile-feed-panel .panel-heading-row svg {
+  color: var(--primary);
+}
+
+.public-feed-list {
+  display: grid;
+  gap: 14px;
+}
+
+.public-feed-post {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.public-feed-post:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.public-feed-post p {
+  color: var(--ink);
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 .public-project-list {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .public-project-card {
   border: 1px solid var(--line);
   border-radius: 8px;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.42fr) minmax(0, 1fr);
   overflow: hidden;
+}
+
+.public-project-card .project-images {
+  align-content: stretch;
+  height: 100%;
+}
+
+.public-project-card .project-images img {
+  height: 100%;
+}
+
+.public-project-card .project-card-body {
+  align-content: start;
+  padding: 22px;
+}
+
+.public-project-card .project-card-body > p {
+  font-size: 1rem;
+  line-height: 1.72;
 }
 
 pre {
@@ -1772,7 +1956,11 @@ ol {
 :root[data-theme="dark"] .project-card,
 :root[data-theme="dark"] .public-project-card,
 :root[data-theme="dark"] .profile-detail-header,
+:root[data-theme="dark"] .profile-feed-panel,
+:root[data-theme="dark"] .feed-toolbar,
+:root[data-theme="dark"] .feed-composer,
 :root[data-theme="dark"] .empty-state,
+:root[data-theme="dark"] .empty-feed,
 :root[data-theme="dark"] .audience-panel,
 :root[data-theme="dark"] .name-search-panel,
 :root[data-theme="dark"] .opportunity-card,
@@ -1804,6 +1992,14 @@ ol {
 :root[data-theme="dark"] .match-card ul,
 :root[data-theme="dark"] .feature-list li {
   color: #a9b7c1;
+}
+
+:root[data-theme="dark"] .feed-post p {
+  color: #e8eef2;
+}
+
+:root[data-theme="dark"] .public-feed-post p {
+  color: #e8eef2;
 }
 
 :root[data-theme="dark"] input,
@@ -1951,9 +2147,15 @@ ol {
   .work-grid,
   .dashboard-cards,
   .profile-detail-header,
+  .profile-detail-grid,
+  .public-project-card,
   .developer-layout,
   .project-grid {
     grid-template-columns: 1fr;
+  }
+
+  .profile-feed-panel {
+    position: static;
   }
 
   .developer-header,

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ExternalLink, Github, Star } from 'lucide-react';
+import { ExternalLink, Github, MessageSquareText, Star } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { apiRequest } from '../api/client.js';
 import { useAuth } from '../state/AuthContext.jsx';
@@ -34,10 +34,24 @@ function readStoredDeveloperProfile(user) {
       image: storedProfile.photo,
       skills: storedProfile.skills ?? [],
       projects: normalizeProjects(storedProfile.projects ?? []),
+      posts: storedProfile.posts ?? [],
     };
   } catch {
     return null;
   }
+}
+
+function formatPostDate(dateValue) {
+  if (!dateValue) {
+    return 'Recently';
+  }
+
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(dateValue));
 }
 
 export default function ProfileDetail() {
@@ -48,6 +62,7 @@ export default function ProfileDetail() {
   const [error, setError] = useState('');
   const projects = normalizeProjects(profile?.projects ?? []);
   const skills = profile?.skills ?? [];
+  const posts = profile?.posts ?? [];
 
   useEffect(() => {
     let isMounted = true;
@@ -82,6 +97,7 @@ export default function ProfileDetail() {
         const isOwnProfile = ownProfile && String(ownProfile.id) === String(id);
         const storedProfile = isOwnProfile ? readStoredDeveloperProfile(user) : null;
         const shouldUseStoredProjects = storedProfile?.projects?.length > 0 && (ownProfile?.projects ?? []).length === 0;
+        const shouldUseStoredPosts = storedProfile?.posts?.length > 0 && (ownProfile?.posts ?? []).length === 0;
         const nextProfile = isOwnProfile
           ? {
               ...ownProfile,
@@ -90,8 +106,9 @@ export default function ProfileDetail() {
               image: ownProfile.image || storedProfile?.image,
               skills: ownProfile.skills?.length > 0 ? ownProfile.skills : storedProfile?.skills ?? [],
               projects: normalizeProjects(shouldUseStoredProjects ? storedProfile.projects : ownProfile.projects ?? []),
+              posts: shouldUseStoredPosts ? storedProfile.posts : ownProfile.posts ?? [],
             }
-          : publicProfile ? { ...publicProfile, projects: normalizeProjects(publicProfile.projects ?? []) } : null;
+          : publicProfile ? { ...publicProfile, projects: normalizeProjects(publicProfile.projects ?? []), posts: publicProfile.posts ?? [] } : null;
 
         if (!nextProfile) {
           throw new Error('Profile not found.');
@@ -156,62 +173,89 @@ export default function ProfileDetail() {
           </header>
 
           <section className="profile-detail-grid">
-            <article className="workspace-panel">
-              <h2>About</h2>
-              <p className="subtle">{profile.summary}</p>
-            </article>
+            <div className="profile-detail-main">
+              <article className="workspace-panel">
+                <h2>About</h2>
+                <p className="subtle">{profile.summary}</p>
+              </article>
 
-            <article className="workspace-panel">
-              <h2>Project proof</h2>
-              {projects.length === 0 ? (
-                <p className="subtle">This developer has not published project proof yet.</p>
+              <article className="workspace-panel">
+                <h2>Project proof</h2>
+                {projects.length === 0 ? (
+                  <p className="subtle">This developer has not published project proof yet.</p>
+                ) : (
+                  <div className="public-project-list">
+                    {projects.map((project, projectIndex) => (
+                      <article className="public-project-card" key={project.name}>
+                        {(project.images ?? []).length > 0 && (
+                          <div className="project-images">
+                            {(project.images ?? []).slice(0, 3).map((image, index) => (
+                              <img key={`${project.name}-${projectIndex}-${index}`} src={image} alt={`${project.name} screenshot ${index + 1}`} />
+                            ))}
+                          </div>
+                        )}
+                        <div className="project-card-body">
+                          <div className="project-title-stack">
+                            <h3>{project.name}</h3>
+                            {project.featured && (
+                              <span className="featured-badge">
+                                <Star size={14} />
+                                Featured
+                              </span>
+                            )}
+                          </div>
+                          <p>{project.description}</p>
+                          <div className="skill-list">
+                            {(project.skills ?? []).map((skill) => (
+                              <span key={skill}>{skill}</span>
+                            ))}
+                          </div>
+                          <div className="project-links">
+                            {project.githubUrl && (
+                              <a href={project.githubUrl} target="_blank" rel="noreferrer">
+                                <Github size={16} />
+                                <span>Code</span>
+                              </a>
+                            )}
+                            {project.liveUrl && (
+                              <a href={project.liveUrl} target="_blank" rel="noreferrer">
+                                <ExternalLink size={16} />
+                                <span>Live</span>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </article>
+            </div>
+
+            <aside className="profile-feed-panel">
+              <div className="panel-heading-row">
+                <h2>Feed</h2>
+                <MessageSquareText size={20} />
+              </div>
+              {posts.length === 0 ? (
+                <p className="subtle">This developer has not posted feed updates yet.</p>
               ) : (
-                <div className="public-project-list">
-                  {projects.map((project, projectIndex) => (
-                    <article className="public-project-card" key={project.name}>
-                      {(project.images ?? []).length > 0 && (
-                        <div className="project-images">
-                          {(project.images ?? []).slice(0, 3).map((image, index) => (
-                            <img key={`${project.name}-${projectIndex}-${index}`} src={image} alt={`${project.name} screenshot ${index + 1}`} />
-                          ))}
-                        </div>
-                      )}
-                      <div className="project-card-body">
-                        <div className="project-title-stack">
-                          <h3>{project.name}</h3>
-                          {project.featured && (
-                            <span className="featured-badge">
-                              <Star size={14} />
-                              Featured
-                            </span>
-                          )}
-                        </div>
-                        <p>{project.description}</p>
-                        <div className="skill-list">
-                          {(project.skills ?? []).map((skill) => (
-                            <span key={skill}>{skill}</span>
-                          ))}
-                        </div>
-                        <div className="project-links">
-                          {project.githubUrl && (
-                            <a href={project.githubUrl} target="_blank" rel="noreferrer">
-                              <Github size={16} />
-                              <span>Code</span>
-                            </a>
-                          )}
-                          {project.liveUrl && (
-                            <a href={project.liveUrl} target="_blank" rel="noreferrer">
-                              <ExternalLink size={16} />
-                              <span>Live</span>
-                            </a>
-                          )}
+                <div className="public-feed-list">
+                  {posts.map((post) => (
+                    <article className="public-feed-post" key={post.id ?? post.createdAt}>
+                      <div className="feed-author">
+                        {profile.image ? <img src={profile.image} alt={`${profile.name} avatar`} /> : <div className="profile-placeholder">{profile.name?.[0] ?? 'D'}</div>}
+                        <div>
+                          <strong>{profile.name}</strong>
+                          <span>{formatPostDate(post.createdAt)}</span>
                         </div>
                       </div>
+                      <p>{post.body}</p>
                     </article>
                   ))}
                 </div>
               )}
-            </article>
+            </aside>
           </section>
         </section>
       )}

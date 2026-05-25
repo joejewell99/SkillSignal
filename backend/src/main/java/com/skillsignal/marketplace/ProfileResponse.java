@@ -12,13 +12,18 @@ public record ProfileResponse(
         List<String> skills,
         boolean featured,
         boolean displayed,
-        List<ProfileProjectResponse> projects
+        List<ProfileProjectResponse> projects,
+        List<ProfilePostResponse> posts
 ) {
     public static ProfileResponse from(MarketplaceProfile profile) {
-        return from(profile, List.of());
+        return from(profile, List.of(), List.of());
     }
 
     public static ProfileResponse from(MarketplaceProfile profile, List<ProfileProjectResponse> projects) {
+        return from(profile, projects, List.of());
+    }
+
+    public static ProfileResponse from(MarketplaceProfile profile, List<ProfileProjectResponse> projects, List<ProfilePostResponse> posts) {
         return new ProfileResponse(
                 profile.getId(),
                 profile.getType().name(),
@@ -29,7 +34,8 @@ public record ProfileResponse(
                 profile.getSkills(),
                 profile.isFeatured(),
                 profile.isDisplayed(),
-                projects
+                projects,
+                posts
         );
     }
 }

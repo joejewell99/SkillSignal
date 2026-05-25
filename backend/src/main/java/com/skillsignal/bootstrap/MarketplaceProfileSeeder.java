@@ -95,6 +95,7 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
         jdbcTemplate.execute("alter table marketplace_profiles add column if not exists displayed boolean not null default true");
         jdbcTemplate.execute("alter table marketplace_profiles add column if not exists user_id bigint");
         jdbcTemplate.execute("alter table marketplace_profiles add column if not exists projects_json text not null default '[]'");
+        jdbcTemplate.execute("alter table marketplace_profiles add column if not exists posts_json text not null default '[]'");
         jdbcTemplate.execute("alter table marketplace_profiles alter column image type text");
         jdbcTemplate.execute("create unique index if not exists idx_marketplace_profiles_user_id on marketplace_profiles(user_id) where user_id is not null");
     }

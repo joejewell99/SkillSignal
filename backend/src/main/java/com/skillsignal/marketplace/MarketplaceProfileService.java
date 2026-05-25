@@ -33,7 +33,7 @@ public class MarketplaceProfileService {
                 .filter(profile -> normalizedQuery.isBlank() || matchesQuery(profile, normalizedQuery))
                 .filter(profile -> normalizedName.isBlank() || profile.getName().toLowerCase(Locale.ROOT).contains(normalizedName))
                 .sorted(Comparator.comparing(MarketplaceProfile::getDisplayOrder))
-                .map(profile -> ProfileResponse.from(profile, readProjects(profile)))
+                .map(profile -> toResponse(profile))
                 .toList();
     }
 
@@ -41,13 +41,13 @@ public class MarketplaceProfileService {
         MarketplaceProfile profile = profileRepository.findById(id)
                 .filter(MarketplaceProfile::isDisplayed)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found."));
-        return ProfileResponse.from(profile, readProjects(profile));
+        return toResponse(profile);
     }
 
     public ProfileResponse findDeveloperProfile(Long userId, String name) {
         MarketplaceProfile profile = profileRepository.findByUserId(userId)
                 .orElseGet(() -> profileRepository.save(MarketplaceProfile.forDeveloperUser(userId, name)));
-        return ProfileResponse.from(profile, readProjects(profile));
+        return toResponse(profile);
     }
 
     public ProfileResponse updateDeveloperVisibility(Long userId, String name, boolean displayed) {
@@ -55,7 +55,7 @@ public class MarketplaceProfileService {
                 .orElseGet(() -> profileRepository.save(MarketplaceProfile.forDeveloperUser(userId, name)));
         profile.setDisplayed(displayed);
         MarketplaceProfile savedProfile = profileRepository.save(profile);
-        return ProfileResponse.from(savedProfile, readProjects(savedProfile));
+        return toResponse(savedProfile);
     }
 
     public ProfileResponse updateDeveloperProfile(
@@ -66,6 +66,7 @@ public class MarketplaceProfileService {
             String image,
             List<String> skills,
             List<ProfileProjectResponse> projects,
+            List<ProfilePostResponse> posts,
             boolean displayed
     ) {
         MarketplaceProfile profile = profileRepository.findByUserId(userId)
@@ -75,9 +76,10 @@ public class MarketplaceProfileService {
         profile.setImage(image == null ? "" : image);
         profile.setSkills(skills == null ? new ArrayList<>() : skills.stream().map(String::trim).filter(skill -> !skill.isBlank()).toList());
         profile.setProjectsJson(writeProjects(projects));
+        profile.setPostsJson(writePosts(posts));
         profile.setDisplayed(displayed);
         MarketplaceProfile savedProfile = profileRepository.save(profile);
-        return ProfileResponse.from(savedProfile, readProjects(savedProfile));
+        return toResponse(savedProfile);
     }
 
     public MarketplaceProfile createDeveloperProfile(Long userId, String name) {
@@ -103,6 +105,10 @@ public class MarketplaceProfileService {
         return value == null || value.isBlank() ? fallback : value.trim();
     }
 
+    private ProfileResponse toResponse(MarketplaceProfile profile) {
+        return ProfileResponse.from(profile, readProjects(profile), readPosts(profile));
+    }
+
     private List<ProfileProjectResponse> readProjects(MarketplaceProfile profile) {
         try {
             List<ProfileProjectResponse> projects = objectMapper.readValue(profile.getProjectsJson(), new TypeReference<>() {});
@@ -119,6 +125,25 @@ public class MarketplaceProfileService {
             return objectMapper.writeValueAsString(projects == null ? List.of() : projects);
         } catch (JsonProcessingException exception) {
             throw new IllegalArgumentException("Project data could not be saved.");
+        }
+    }
+
+    private List<ProfilePostResponse> readPosts(MarketplaceProfile profile) {
+        try {
+            List<ProfilePostResponse> posts = objectMapper.readValue(profile.getPostsJson(), new TypeReference<>() {});
+            return posts.stream()
+                    .sorted(Comparator.comparing(ProfilePostResponse::createdAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
+                    .toList();
+        } catch (JsonProcessingException exception) {
+            return List.of();
+        }
+    }
+
+    private String writePosts(List<ProfilePostResponse> posts) {
+        try {
+            return objectMapper.writeValueAsString(posts == null ? List.of() : posts);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("Feed data could not be saved.");
         }
     }
 }

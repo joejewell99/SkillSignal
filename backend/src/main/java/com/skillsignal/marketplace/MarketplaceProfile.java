@@ -42,6 +42,9 @@ public class MarketplaceProfile {
     @Column(nullable = false, columnDefinition = "text")
     private String projectsJson = "[]";
 
+    @Column(nullable = false, columnDefinition = "text")
+    private String postsJson = "[]";
+
     @Column(unique = true)
     private Long userId;
 
@@ -79,6 +82,7 @@ public class MarketplaceProfile {
         this.summary = summary;
         this.image = image;
         this.projectsJson = "[]";
+        this.postsJson = "[]";
         this.skills = new ArrayList<>(skills);
         this.featured = featured;
         this.displayed = true;
@@ -147,6 +151,14 @@ public class MarketplaceProfile {
 
     public void setProjectsJson(String projectsJson) {
         this.projectsJson = projectsJson == null || projectsJson.isBlank() ? "[]" : projectsJson;
+    }
+
+    public String getPostsJson() {
+        return postsJson;
+    }
+
+    public void setPostsJson(String postsJson) {
+        this.postsJson = postsJson == null || postsJson.isBlank() ? "[]" : postsJson;
     }
 
     public List<String> getSkills() {

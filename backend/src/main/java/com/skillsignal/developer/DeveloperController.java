@@ -39,6 +39,7 @@ public class DeveloperController {
                 request.image(),
                 request.skills(),
                 request.projects(),
+                request.posts(),
                 request.displayed()
         );
     }

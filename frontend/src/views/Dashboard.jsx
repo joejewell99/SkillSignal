@@ -8,8 +8,10 @@ import {
   ExternalLink,
   Github,
   ImagePlus,
+  MessageSquareText,
   Plus,
   Search,
+  Send,
   ShieldCheck,
   Star,
   Trash2,
@@ -25,6 +27,7 @@ const defaultDeveloperProfile = {
   isDisplayed: false,
   skills: ['React', 'Spring Boot', 'PostgreSQL'],
   projects: [],
+  posts: [],
 };
 
 const emptyProject = {
@@ -61,10 +64,20 @@ function readStoredDeveloperProfile(storageKey) {
       ...parsedProfile,
       isDisplayed: parsedProfile.isDisplayed ?? parsedProfile.isPublished ?? false,
       projects: normalizeProjects(parsedProfile.projects ?? []),
+      posts: parsedProfile.posts ?? [],
     };
   } catch {
     return defaultDeveloperProfile;
   }
+}
+
+function formatPostDate(dateValue) {
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(dateValue));
 }
 
 function toProfilePayload(profile, displayed = profile.isDisplayed) {
@@ -81,6 +94,11 @@ function toProfilePayload(profile, displayed = profile.isDisplayed) {
       skills: project.skills ?? [],
       images: project.images ?? [],
       featured: Boolean(project.featured),
+    })),
+    posts: (profile.posts ?? []).map((post) => ({
+      id: post.id,
+      body: post.body,
+      createdAt: post.createdAt,
     })),
     displayed,
   };
@@ -227,6 +245,9 @@ function DeveloperDashboard({ user, token }) {
   const [backendData, setBackendData] = useState(null);
   const [error, setError] = useState('');
   const [skillInput, setSkillInput] = useState('');
+  const [postInput, setPostInput] = useState('');
+  const [isComposingPost, setIsComposingPost] = useState(false);
+  const [isAddingProject, setIsAddingProject] = useState(false);
   const [projectForm, setProjectForm] = useState(emptyProject);
   const [profile, setProfile] = useState(() => readStoredDeveloperProfile(storageKey));
 
@@ -240,7 +261,9 @@ function DeveloperDashboard({ user, token }) {
         setBackendData(profileData);
         const storedProfile = readStoredDeveloperProfile(storageKey);
         const backendProjects = normalizeProjects(profileData.projects);
+        const backendPosts = profileData.posts ?? [];
         const shouldSyncStoredProjects = storedProfile.projects.length > 0 && backendProjects.length === 0;
+        const shouldSyncStoredPosts = storedProfile.posts.length > 0 && backendPosts.length === 0;
         const nextProfile = {
           ...storedProfile,
           isDisplayed: profileData.displayed,
@@ -249,12 +272,13 @@ function DeveloperDashboard({ user, token }) {
           photo: storedProfile.photo || profileData.image,
           skills: storedProfile.skills.length > 0 ? storedProfile.skills : profileData.skills,
           projects: shouldSyncStoredProjects ? storedProfile.projects : backendProjects,
+          posts: shouldSyncStoredPosts ? storedProfile.posts : backendPosts,
         };
         setProfile((current) => ({
           ...current,
           ...nextProfile,
         }));
-        if (shouldSyncStoredProjects) {
+        if (shouldSyncStoredProjects || shouldSyncStoredPosts) {
           apiRequest('/api/developer/profile', {
             token,
             method: 'PATCH',
@@ -302,6 +326,48 @@ function DeveloperDashboard({ user, token }) {
     );
   }
 
+  async function addPost(event) {
+    event.preventDefault();
+    const body = postInput.trim();
+    if (!body) {
+      return;
+    }
+    const nextProfile = {
+      ...profile,
+      posts: [
+        {
+          id: crypto.randomUUID(),
+          body,
+          createdAt: new Date().toISOString(),
+        },
+        ...(profile.posts ?? []),
+      ],
+    };
+    setProfile(nextProfile);
+    setPostInput('');
+    setIsComposingPost(false);
+    try {
+      await saveDeveloperProfile(nextProfile);
+    } catch (err) {
+      setProfile(profile);
+      setError(err.message);
+    }
+  }
+
+  async function removePost(postId) {
+    const nextProfile = {
+      ...profile,
+      posts: (profile.posts ?? []).filter((post) => post.id !== postId),
+    };
+    setProfile(nextProfile);
+    try {
+      await saveDeveloperProfile(nextProfile);
+    } catch (err) {
+      setProfile(profile);
+      setError(err.message);
+    }
+  }
+
   function updateProjectField(field, value) {
     setProjectForm((current) => ({ ...current, [field]: value }));
   }
@@ -335,6 +401,7 @@ function DeveloperDashboard({ user, token }) {
       ...current,
       isDisplayed: profileData.displayed,
       projects: normalizeProjects(profileData.projects),
+      posts: profileData.posts ?? [],
     }));
     return profileData;
   }
@@ -362,6 +429,7 @@ function DeveloperDashboard({ user, token }) {
     const nextProfile = { ...profile, projects: sortProjects([project, ...profile.projects]) };
     setProfile(nextProfile);
     setProjectForm(emptyProject);
+    setIsAddingProject(false);
     try {
       await saveDeveloperProfile(nextProfile);
     } catch (err) {
@@ -419,6 +487,7 @@ function DeveloperDashboard({ user, token }) {
     { label: 'Projects', complete: profile.projects.length > 0 },
   ];
   const completion = Math.round((completionItems.filter((item) => item.complete).length / completionItems.length) * 100);
+  const posts = profile.posts ?? [];
 
   return (
     <section className="dashboard developer-dashboard">
@@ -457,10 +526,90 @@ function DeveloperDashboard({ user, token }) {
 
       <section className="developer-layout">
         <div className="developer-main">
+          <section className="feed-toolbar">
+            <div className="panel-heading-row">
+              <div>
+                <p className="eyebrow">Feed</p>
+                <h2>Activity</h2>
+              </div>
+              <button className="primary-button" type="button" onClick={() => setIsComposingPost((current) => !current)}>
+                <Plus size={18} />
+                <span>Post</span>
+              </button>
+            </div>
+          </section>
+
+          {isComposingPost && (
+            <section className="workspace-panel feed-composer">
+              <form className="post-form" onSubmit={addPost}>
+                <textarea
+                  value={postInput}
+                  onChange={(event) => setPostInput(event.target.value)}
+                  placeholder="Working on my new React project, currently in development..."
+                />
+                <div className="composer-actions">
+                  <button className="secondary-button" type="button" onClick={() => setIsComposingPost(false)}>
+                    Cancel
+                  </button>
+                  <button className="primary-button" type="submit">
+                    <Send size={17} />
+                    <span>Post</span>
+                  </button>
+                </div>
+              </form>
+            </section>
+          )}
+
+          <section className="feed-list">
+            {posts.length === 0 ? (
+              <article className="workspace-panel empty-feed">
+                <MessageSquareText size={28} />
+                <p>Post project progress, learning notes, goals, and what you are building next.</p>
+              </article>
+            ) : (
+              posts.map((post) => (
+                <article className="workspace-panel feed-post" key={post.id}>
+                  <div className="feed-post-header">
+                    <div className="feed-author">
+                      {profile.photo ? <img src={profile.photo} alt={`${user.name} avatar`} /> : <div className="profile-placeholder">{user.name?.[0] ?? 'D'}</div>}
+                      <div>
+                        <strong>{user.name}</strong>
+                        <span>{formatPostDate(post.createdAt)}</span>
+                      </div>
+                    </div>
+                    <button className="delete-button" type="button" onClick={() => removePost(post.id)} aria-label="Remove post">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  <p>{post.body}</p>
+                </article>
+              ))
+            )}
+          </section>
+        </div>
+
+        <aside className="developer-preview">
+          <section className="workspace-panel">
+            <h2>Profile preview</h2>
+            <div className="preview-card">
+              {profile.photo ? <img src={profile.photo} alt={`${user.name} preview`} /> : <div className="profile-placeholder">{user.name?.[0] ?? 'D'}</div>}
+              <div>
+                <h3>{user.name}</h3>
+                <p>{profile.title}</p>
+              </div>
+              <p>{profile.summary || 'Add a summary so employers understand the kind of work you can take on.'}</p>
+              <div className="skill-list">
+                {profile.skills.map((skill) => (
+                  <span key={skill}>{skill}</span>
+                ))}
+              </div>
+            </div>
+          </section>
+
           <section className="workspace-panel profile-editor">
-            <h2>Profile employers see</h2>
+            <h2>Profile summary</h2>
             <label htmlFor="developer-summary">
-              Short professional summary
+              Summary
               <textarea
                 id="developer-summary"
                 value={profile.summary}
@@ -495,8 +644,64 @@ function DeveloperDashboard({ user, token }) {
             </div>
           </section>
 
+          <section className="workspace-panel">
+            <div className="publication-panel">
+              <div>
+                <h2>Profile visibility</h2>
+                <p className="subtle">
+                  {profile.isDisplayed
+                    ? 'Your profile is visible in the public developer profiles.'
+                    : 'Your profile is hidden from public developer profiles.'}
+                </p>
+              </div>
+              <label className="visibility-toggle" htmlFor="profile-publication">
+                <input
+                  id="profile-publication"
+                  type="checkbox"
+                  checked={profile.isDisplayed}
+                  onChange={(event) => updateDisplayStatus(event.target.checked)}
+                />
+                <span>{profile.isDisplayed ? 'Displayed' : 'Hidden'}</span>
+              </label>
+              <Link className="secondary-button" to="/profiles">
+                View profiles
+              </Link>
+            </div>
+          </section>
+
+          <section className="workspace-panel">
+            <h2>Checklist</h2>
+            <ul className="feature-list">
+              {completionItems.map((item) => (
+                <li key={item.label}>
+                  <CheckCircle2 size={18} className={item.complete ? 'complete' : ''} />
+                  <span>{item.label}</span>
+                </li>
+              ))}
+            </ul>
+            {error && <p className="error">{error}</p>}
+            {backendData && (
+              <p className="info-message">
+                Database profile is {backendData.displayed ? 'displayed publicly' : 'hidden from public profiles'}.
+              </p>
+            )}
+          </section>
+        </aside>
+      </section>
+
+      <section className="project-showcase">
+        <div className="section-heading">
+          <div>
+            <h2>Project portfolio</h2>
+            <span>{profile.projects.length} projects</span>
+          </div>
+          <button className="primary-button project-add-button" type="button" onClick={() => setIsAddingProject((current) => !current)} aria-label="Add project">
+            <Plus size={18} />
+            <span>Project</span>
+          </button>
+        </div>
+        {isAddingProject && (
           <section className="workspace-panel project-builder">
-            <h2>Add project proof</h2>
             <form className="project-form" onSubmit={addProject}>
               <div className="two-column-fields">
                 <label htmlFor="project-name">
@@ -579,76 +784,7 @@ function DeveloperDashboard({ user, token }) {
               </button>
             </form>
           </section>
-        </div>
-
-        <aside className="developer-preview">
-          <section className="workspace-panel">
-            <h2>Employer preview</h2>
-            <div className="preview-card">
-              {profile.photo ? <img src={profile.photo} alt={`${user.name} preview`} /> : <div className="profile-placeholder">{user.name?.[0] ?? 'D'}</div>}
-              <div>
-                <h3>{user.name}</h3>
-                <p>{profile.title}</p>
-              </div>
-              <p>{profile.summary || 'Add a summary so employers understand the kind of work you can take on.'}</p>
-              <div className="skill-list">
-                {profile.skills.map((skill) => (
-                  <span key={skill}>{skill}</span>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className="workspace-panel">
-            <div className="publication-panel">
-              <div>
-                <h2>Profile visibility</h2>
-                <p className="subtle">
-                  {profile.isDisplayed
-                    ? 'Your profile is visible in the public developer profiles.'
-                    : 'Your profile is hidden from public developer profiles.'}
-                </p>
-              </div>
-              <label className="visibility-toggle" htmlFor="profile-publication">
-                <input
-                  id="profile-publication"
-                  type="checkbox"
-                  checked={profile.isDisplayed}
-                  onChange={(event) => updateDisplayStatus(event.target.checked)}
-                />
-                <span>{profile.isDisplayed ? 'Displayed' : 'Hidden'}</span>
-              </label>
-              <Link className="secondary-button" to="/profiles">
-                View profiles
-              </Link>
-            </div>
-          </section>
-
-          <section className="workspace-panel">
-            <h2>Checklist</h2>
-            <ul className="feature-list">
-              {completionItems.map((item) => (
-                <li key={item.label}>
-                  <CheckCircle2 size={18} className={item.complete ? 'complete' : ''} />
-                  <span>{item.label}</span>
-                </li>
-              ))}
-            </ul>
-            {error && <p className="error">{error}</p>}
-            {backendData && (
-              <p className="info-message">
-                Database profile is {backendData.displayed ? 'displayed publicly' : 'hidden from public profiles'}.
-              </p>
-            )}
-          </section>
-        </aside>
-      </section>
-
-      <section className="project-showcase">
-        <div className="section-heading">
-          <h2>Project portfolio</h2>
-          <span>{profile.projects.length} projects</span>
-        </div>
+        )}
         {profile.projects.length === 0 ? (
           <div className="empty-state">
             <Code2 size={28} />
