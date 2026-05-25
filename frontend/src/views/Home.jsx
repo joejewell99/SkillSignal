@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BrainCircuit, CheckCircle2, Search, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BrainCircuit, CheckCircle2, Search, ShieldCheck } from 'lucide-react';
 import PublicHeader from '../ui/PublicHeader.jsx';
 
 const proofPoints = [
@@ -36,6 +36,36 @@ export default function Home() {
           <div className="hero-actions">
             <Link className="primary-button" to="/match">Try AI match</Link>
             <Link className="secondary-button" to="/profiles">Browse profiles</Link>
+          </div>
+        </div>
+
+        <div className="signal-board" aria-hidden="true">
+          <div className="signal-board-header">
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="signal-flow">
+            <div className="signal-node active">
+              <small>Employer brief</small>
+              <strong>Slow Spring dashboard</strong>
+            </div>
+            <ArrowRight size={18} />
+            <div className="signal-node">
+              <small>Extracted signals</small>
+              <strong>Security · Docker · SQL</strong>
+            </div>
+            <ArrowRight size={18} />
+            <div className="signal-node active">
+              <small>Best evidence</small>
+              <strong>96% profile match</strong>
+            </div>
+          </div>
+          <div className="signal-bars">
+            <span style={{ '--signal-width': '92%' }} />
+            <span style={{ '--signal-width': '74%' }} />
+            <span style={{ '--signal-width': '64%' }} />
+            <span style={{ '--signal-width': '48%' }} />
           </div>
         </div>
       </section>

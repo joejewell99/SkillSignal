@@ -11,6 +11,7 @@ import {
   Plus,
   Search,
   ShieldCheck,
+  Star,
   Trash2,
   UserRound,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ const defaultDeveloperProfile = {
   title: 'Junior full-stack developer',
   summary: '',
   photo: '',
+  isDisplayed: false,
   skills: ['React', 'Spring Boot', 'PostgreSQL'],
   projects: [],
 };
@@ -32,7 +34,57 @@ const emptyProject = {
   liveUrl: '',
   skills: '',
   images: [],
+  featured: false,
 };
+
+function normalizeProjects(projects = []) {
+  return projects
+    .map((project) => ({
+      ...project,
+      id: project.id ?? crypto.randomUUID(),
+      skills: project.skills ?? [],
+      images: project.images ?? [],
+      featured: Boolean(project.featured),
+    }))
+    .sort((first, second) => Number(Boolean(second.featured)) - Number(Boolean(first.featured)));
+}
+
+function readStoredDeveloperProfile(storageKey) {
+  const storedProfile = localStorage.getItem(storageKey);
+  if (!storedProfile) {
+    return defaultDeveloperProfile;
+  }
+  try {
+    const parsedProfile = JSON.parse(storedProfile);
+    return {
+      ...defaultDeveloperProfile,
+      ...parsedProfile,
+      isDisplayed: parsedProfile.isDisplayed ?? parsedProfile.isPublished ?? false,
+      projects: normalizeProjects(parsedProfile.projects ?? []),
+    };
+  } catch {
+    return defaultDeveloperProfile;
+  }
+}
+
+function toProfilePayload(profile, displayed = profile.isDisplayed) {
+  return {
+    title: profile.title,
+    summary: profile.summary,
+    image: profile.photo,
+    skills: profile.skills,
+    projects: profile.projects.map((project) => ({
+      name: project.name,
+      description: project.description,
+      githubUrl: project.githubUrl,
+      liveUrl: project.liveUrl,
+      skills: project.skills ?? [],
+      images: project.images ?? [],
+      featured: Boolean(project.featured),
+    })),
+    displayed,
+  };
+}
 
 const roleConfig = {
   DEVELOPER: {
@@ -176,27 +228,44 @@ function DeveloperDashboard({ user, token }) {
   const [error, setError] = useState('');
   const [skillInput, setSkillInput] = useState('');
   const [projectForm, setProjectForm] = useState(emptyProject);
-  const [profile, setProfile] = useState(() => {
-    const storedProfile = localStorage.getItem(storageKey);
-    if (!storedProfile) {
-      return defaultDeveloperProfile;
-    }
-    try {
-      return { ...defaultDeveloperProfile, ...JSON.parse(storedProfile) };
-    } catch {
-      return defaultDeveloperProfile;
-    }
-  });
+  const [profile, setProfile] = useState(() => readStoredDeveloperProfile(storageKey));
 
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(profile));
-  }, [profile, storageKey]);
+    localStorage.setItem(storageKey, JSON.stringify({ ...profile, name: user.name, email: user.email }));
+  }, [profile, storageKey, user.email, user.name]);
 
   useEffect(() => {
     apiRequest('/api/developer/profile', { token })
-      .then(setBackendData)
+      .then((profileData) => {
+        setBackendData(profileData);
+        const storedProfile = readStoredDeveloperProfile(storageKey);
+        const backendProjects = normalizeProjects(profileData.projects);
+        const shouldSyncStoredProjects = storedProfile.projects.length > 0 && backendProjects.length === 0;
+        const nextProfile = {
+          ...storedProfile,
+          isDisplayed: profileData.displayed,
+          title: storedProfile.title || profileData.title,
+          summary: storedProfile.summary || profileData.summary,
+          photo: storedProfile.photo || profileData.image,
+          skills: storedProfile.skills.length > 0 ? storedProfile.skills : profileData.skills,
+          projects: shouldSyncStoredProjects ? storedProfile.projects : backendProjects,
+        };
+        setProfile((current) => ({
+          ...current,
+          ...nextProfile,
+        }));
+        if (shouldSyncStoredProjects) {
+          apiRequest('/api/developer/profile', {
+            token,
+            method: 'PATCH',
+            body: JSON.stringify(toProfilePayload(nextProfile, profileData.displayed)),
+          })
+            .then(setBackendData)
+            .catch((err) => setError(err.message));
+        }
+      })
       .catch((err) => setError(err.message));
-  }, [token]);
+  }, [storageKey, token]);
 
   function updateProfile(field, value) {
     setProfile((current) => ({ ...current, [field]: value }));
@@ -250,7 +319,27 @@ function DeveloperDashboard({ user, token }) {
     event.target.value = '';
   }
 
-  function addProject(event) {
+  function sortProjects(projects) {
+    return [...projects].sort((first, second) => Number(Boolean(second.featured)) - Number(Boolean(first.featured)));
+  }
+
+  async function saveDeveloperProfile(nextProfile, displayed = nextProfile.isDisplayed) {
+    setError('');
+    const profileData = await apiRequest('/api/developer/profile', {
+      token,
+      method: 'PATCH',
+      body: JSON.stringify(toProfilePayload(nextProfile, displayed)),
+    });
+    setBackendData(profileData);
+    setProfile((current) => ({
+      ...current,
+      isDisplayed: profileData.displayed,
+      projects: normalizeProjects(profileData.projects),
+    }));
+    return profileData;
+  }
+
+  async function addProject(event) {
     event.preventDefault();
     const name = projectForm.name.trim();
     const description = projectForm.description.trim();
@@ -264,20 +353,64 @@ function DeveloperDashboard({ user, token }) {
       description,
       githubUrl: projectForm.githubUrl.trim(),
       liveUrl: projectForm.liveUrl.trim(),
+      featured: Boolean(projectForm.featured),
       skills: projectForm.skills
         .split(',')
         .map((skill) => skill.trim())
         .filter(Boolean),
     };
-    updateProfile('projects', [project, ...profile.projects]);
+    const nextProfile = { ...profile, projects: sortProjects([project, ...profile.projects]) };
+    setProfile(nextProfile);
     setProjectForm(emptyProject);
+    try {
+      await saveDeveloperProfile(nextProfile);
+    } catch (err) {
+      setProfile(profile);
+      setError(err.message);
+    }
   }
 
-  function removeProject(projectId) {
-    updateProfile(
-      'projects',
-      profile.projects.filter((project) => project.id !== projectId)
-    );
+  async function removeProject(projectId) {
+    const nextProfile = {
+      ...profile,
+      projects: profile.projects.filter((project) => project.id !== projectId),
+    };
+    setProfile(nextProfile);
+    try {
+      await saveDeveloperProfile(nextProfile);
+    } catch (err) {
+      setProfile(profile);
+      setError(err.message);
+    }
+  }
+
+  async function toggleFeaturedProject(projectId) {
+    const nextProfile = {
+      ...profile,
+      projects: sortProjects(
+        profile.projects.map((project) => (
+          project.id === projectId ? { ...project, featured: !project.featured } : project
+        ))
+      ),
+    };
+    setProfile(nextProfile);
+    try {
+      await saveDeveloperProfile(nextProfile);
+    } catch (err) {
+      setProfile(profile);
+      setError(err.message);
+    }
+  }
+
+  async function updateDisplayStatus(displayed) {
+    const nextProfile = { ...profile, isDisplayed: displayed };
+    setProfile(nextProfile);
+    try {
+      await saveDeveloperProfile(nextProfile, displayed);
+    } catch (err) {
+      setProfile(profile);
+      setError(err.message);
+    }
   }
 
   const completionItems = [
@@ -416,6 +549,18 @@ function DeveloperDashboard({ user, token }) {
                   />
                 </label>
               </div>
+              <label className="featured-project-toggle" htmlFor="project-featured">
+                <input
+                  id="project-featured"
+                  type="checkbox"
+                  checked={projectForm.featured}
+                  onChange={(event) => updateProjectField('featured', event.target.checked)}
+                />
+                <span>
+                  <Star size={16} />
+                  Feature this project
+                </span>
+              </label>
               <label className="screenshot-upload" htmlFor="project-images">
                 <ImagePlus size={18} />
                 <span>Upload project screenshots</span>
@@ -455,6 +600,31 @@ function DeveloperDashboard({ user, token }) {
           </section>
 
           <section className="workspace-panel">
+            <div className="publication-panel">
+              <div>
+                <h2>Profile visibility</h2>
+                <p className="subtle">
+                  {profile.isDisplayed
+                    ? 'Your profile is visible in the public developer profiles.'
+                    : 'Your profile is hidden from public developer profiles.'}
+                </p>
+              </div>
+              <label className="visibility-toggle" htmlFor="profile-publication">
+                <input
+                  id="profile-publication"
+                  type="checkbox"
+                  checked={profile.isDisplayed}
+                  onChange={(event) => updateDisplayStatus(event.target.checked)}
+                />
+                <span>{profile.isDisplayed ? 'Displayed' : 'Hidden'}</span>
+              </label>
+              <Link className="secondary-button" to="/profiles">
+                View profiles
+              </Link>
+            </div>
+          </section>
+
+          <section className="workspace-panel">
             <h2>Checklist</h2>
             <ul className="feature-list">
               {completionItems.map((item) => (
@@ -465,7 +635,11 @@ function DeveloperDashboard({ user, token }) {
               ))}
             </ul>
             {error && <p className="error">{error}</p>}
-            {backendData && <p className="info-message">{backendData.message}</p>}
+            {backendData && (
+              <p className="info-message">
+                Database profile is {backendData.displayed ? 'displayed publicly' : 'hidden from public profiles'}.
+              </p>
+            )}
           </section>
         </aside>
       </section>
@@ -493,10 +667,23 @@ function DeveloperDashboard({ user, token }) {
                 )}
                 <div className="project-card-body">
                   <div className="panel-heading-row">
-                    <h3>{project.name}</h3>
-                    <button className="delete-button" type="button" onClick={() => removeProject(project.id)} aria-label={`Remove ${project.name}`}>
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="project-title-stack">
+                      <h3>{project.name}</h3>
+                      {project.featured && <span className="featured-badge">Featured</span>}
+                    </div>
+                    <div className="project-actions">
+                      <button
+                        className={`delete-button ${project.featured ? 'active-feature' : ''}`}
+                        type="button"
+                        onClick={() => toggleFeaturedProject(project.id)}
+                        aria-label={`${project.featured ? 'Unfeature' : 'Feature'} ${project.name}`}
+                      >
+                        <Star size={16} />
+                      </button>
+                      <button className="delete-button" type="button" onClick={() => removeProject(project.id)} aria-label={`Remove ${project.name}`}>
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                   <p>{project.description}</p>
                   <div className="skill-list">

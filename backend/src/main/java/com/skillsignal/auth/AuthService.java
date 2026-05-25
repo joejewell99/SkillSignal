@@ -2,6 +2,7 @@ package com.skillsignal.auth;
 
 import com.skillsignal.security.JwtService;
 import com.skillsignal.security.UserPrincipal;
+import com.skillsignal.marketplace.MarketplaceProfileService;
 import com.skillsignal.user.AppUser;
 import com.skillsignal.user.Role;
 import com.skillsignal.user.UserRepository;
@@ -16,17 +17,20 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final MarketplaceProfileService marketplaceProfileService;
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager,
-            JwtService jwtService
+            JwtService jwtService,
+            MarketplaceProfileService marketplaceProfileService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.marketplaceProfileService = marketplaceProfileService;
     }
 
     public AuthResponse register(RegisterRequest request) {
@@ -45,6 +49,9 @@ public class AuthService {
                 request.role()
         );
         AppUser savedUser = userRepository.save(user);
+        if (savedUser.getRole() == Role.DEVELOPER) {
+            marketplaceProfileService.createDeveloperProfile(savedUser.getId(), savedUser.getName());
+        }
         return toAuthResponse(savedUser);
     }
 

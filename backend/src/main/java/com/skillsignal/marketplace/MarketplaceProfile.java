@@ -36,8 +36,14 @@ public class MarketplaceProfile {
     @Column(nullable = false, length = 800)
     private String summary;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "text")
     private String image;
+
+    @Column(nullable = false, columnDefinition = "text")
+    private String projectsJson = "[]";
+
+    @Column(unique = true)
+    private Long userId;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "marketplace_profile_skills", joinColumns = @JoinColumn(name = "profile_id"))
@@ -47,6 +53,9 @@ public class MarketplaceProfile {
 
     @Column(nullable = false)
     private boolean featured;
+
+    @Column(nullable = false)
+    private boolean displayed = true;
 
     @Column(nullable = false)
     private int displayOrder;
@@ -69,9 +78,27 @@ public class MarketplaceProfile {
         this.title = title;
         this.summary = summary;
         this.image = image;
+        this.projectsJson = "[]";
         this.skills = new ArrayList<>(skills);
         this.featured = featured;
+        this.displayed = true;
         this.displayOrder = displayOrder;
+    }
+
+    public static MarketplaceProfile forDeveloperUser(Long userId, String name) {
+        MarketplaceProfile profile = new MarketplaceProfile(
+                ProfileType.DEVELOPER,
+                name,
+                "Junior developer",
+                "Project-backed developer profile.",
+                "",
+                List.of("React", "Spring Boot", "PostgreSQL"),
+                false,
+                1000
+        );
+        profile.userId = userId;
+        profile.displayed = false;
+        return profile;
     }
 
     public Long getId() {
@@ -90,24 +117,59 @@ public class MarketplaceProfile {
         return title;
     }
 
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
     public String getSummary() {
         return summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
     }
 
     public String getImage() {
         return image;
     }
 
+    public void setImage(String image) {
+        this.image = image;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public String getProjectsJson() {
+        return projectsJson;
+    }
+
+    public void setProjectsJson(String projectsJson) {
+        this.projectsJson = projectsJson == null || projectsJson.isBlank() ? "[]" : projectsJson;
+    }
+
     public List<String> getSkills() {
         return skills;
+    }
+
+    public void setSkills(List<String> skills) {
+        this.skills = new ArrayList<>(skills);
     }
 
     public boolean isFeatured() {
         return featured;
     }
 
+    public boolean isDisplayed() {
+        return displayed;
+    }
+
+    public void setDisplayed(boolean displayed) {
+        this.displayed = displayed;
+    }
+
     public int getDisplayOrder() {
         return displayOrder;
     }
 }
-

@@ -3,6 +3,13 @@ import { BrainCircuit, Sparkles } from 'lucide-react';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import { apiRequest } from '../api/client.js';
 
+const exampleBriefs = [
+  'Spring Security + Docker',
+  'Slow finance dashboard',
+  'React admin screens',
+  'PostgreSQL reporting',
+];
+
 export default function Match() {
   const [aiBrief, setAiBrief] = useState('We use Spring Boot, Spring Security, Docker, PostgreSQL, and React. Our finance dashboard is slow, and we need a junior developer who can help maintain auth and improve database queries safely.');
   const [aiResults, setAiResults] = useState(null);
@@ -54,6 +61,13 @@ export default function Match() {
             placeholder="Example: We use Spring Security and Docker every day. Our dashboard is slow and we need someone careful with PostgreSQL and production fixes."
             rows={8}
           />
+          <div className="prompt-chips" aria-label="Example briefs">
+            {exampleBriefs.map((brief) => (
+              <button key={brief} type="button" onClick={() => setAiBrief(`${aiBrief}\n${brief}`)}>
+                {brief}
+              </button>
+            ))}
+          </div>
           <button className="primary-button ai-submit" disabled={isAiLoading} type="submit">
             <Sparkles size={18} />
             <span>{isAiLoading ? 'Finding matches...' : 'Find evidence-backed matches'}</span>
