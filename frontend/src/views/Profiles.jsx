@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { ExternalLink, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import { apiRequest } from '../api/client.js';
 
@@ -57,6 +58,20 @@ export default function Profiles() {
           <p>
             Search developers and employer needs by skills, names, project evidence, and technical focus.
           </p>
+        </div>
+        <div className="directory-metrics" aria-label="Profile directory metrics">
+          <div>
+            <strong>22</strong>
+            <span>seed profiles</span>
+          </div>
+          <div>
+            <strong>AI</strong>
+            <span>match ready</span>
+          </div>
+          <div>
+            <strong>Proof</strong>
+            <span>first ranking</span>
+          </div>
         </div>
       </section>
 
@@ -148,6 +163,12 @@ export default function Profiles() {
                 ))}
               </div>
               <p className="proof-text">{profile.summary}</p>
+              {profile.type === 'DEVELOPER' && (
+                <Link className="secondary-button profile-view-link" to={`/profiles/${profile.id}`}>
+                  <ExternalLink size={16} />
+                  <span>View profile</span>
+                </Link>
+              )}
             </article>
           ))}
         </div>

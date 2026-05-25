@@ -10,9 +10,15 @@ public record ProfileResponse(
         String summary,
         String image,
         List<String> skills,
-        boolean featured
+        boolean featured,
+        boolean displayed,
+        List<ProfileProjectResponse> projects
 ) {
     public static ProfileResponse from(MarketplaceProfile profile) {
+        return from(profile, List.of());
+    }
+
+    public static ProfileResponse from(MarketplaceProfile profile, List<ProfileProjectResponse> projects) {
         return new ProfileResponse(
                 profile.getId(),
                 profile.getType().name(),
@@ -21,7 +27,9 @@ public record ProfileResponse(
                 profile.getSummary(),
                 profile.getImage(),
                 profile.getSkills(),
-                profile.isFeatured()
+                profile.isFeatured(),
+                profile.isDisplayed(),
+                projects
         );
     }
 }

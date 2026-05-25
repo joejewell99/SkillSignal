@@ -1439,6 +1439,95 @@ textarea:focus {
   margin: 0;
 }
 
+.publication-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.publication-panel h2 {
+  margin-bottom: 6px;
+}
+
+.visibility-toggle {
+  align-items: center;
+  background: var(--surface-strong);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  font-weight: 800;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 10px 12px;
+}
+
+.visibility-toggle input {
+  appearance: none;
+  background: var(--line-strong);
+  border: 0;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  height: 26px;
+  min-height: 26px;
+  padding: 0;
+  position: relative;
+  width: 48px;
+}
+
+.visibility-toggle input::before {
+  background: #ffffff;
+  border-radius: 50%;
+  content: "";
+  height: 20px;
+  left: 3px;
+  position: absolute;
+  top: 3px;
+  transition: transform 160ms ease;
+  width: 20px;
+}
+
+.visibility-toggle input:checked {
+  background: var(--signal);
+}
+
+.visibility-toggle input:checked::before {
+  transform: translateX(22px);
+}
+
+.featured-project-toggle {
+  align-items: center;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 10px 12px;
+}
+
+.featured-project-toggle input {
+  accent-color: var(--primary);
+  flex: 0 0 auto;
+  min-height: 18px;
+  width: 18px;
+}
+
+.featured-project-toggle span {
+  align-items: center;
+  color: var(--ink);
+  display: inline-flex;
+  font-weight: 800;
+  gap: 8px;
+}
+
+.featured-project-toggle svg,
+.featured-badge svg {
+  color: var(--primary);
+}
+
 .feature-list svg.complete {
   color: var(--signal);
 }
@@ -1510,10 +1599,36 @@ textarea:focus {
   font-size: 1.12rem;
 }
 
+.project-title-stack {
+  display: grid;
+  gap: 7px;
+}
+
+.featured-badge {
+  align-items: center;
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--primary) 32%, var(--line));
+  border-radius: 999px;
+  color: var(--primary);
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 900;
+  gap: 6px;
+  justify-self: start;
+  min-height: 28px;
+  padding: 5px 9px;
+  text-transform: uppercase;
+}
+
 .project-card p {
   color: var(--muted);
   line-height: 1.58;
   margin: 0;
+}
+
+.project-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .delete-button {
@@ -1526,6 +1641,11 @@ textarea:focus {
   height: 36px;
   justify-content: center;
   width: 36px;
+}
+
+.delete-button.active-feature {
+  border-color: color-mix(in srgb, var(--primary) 44%, var(--line));
+  color: var(--primary);
 }
 
 .project-links {
@@ -1543,6 +1663,59 @@ textarea:focus {
   gap: 8px;
   min-height: 38px;
   padding: 8px 11px;
+}
+
+.profile-view-link {
+  width: 100%;
+}
+
+.profile-detail-shell {
+  display: grid;
+  gap: 22px;
+  margin: 0 auto;
+  max-width: 1120px;
+  padding: 56px clamp(18px, 5vw, 56px) 72px;
+}
+
+.profile-detail-header {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+  padding: 22px;
+}
+
+.profile-detail-header img,
+.profile-detail-header .profile-placeholder {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  object-fit: cover;
+  width: 100%;
+}
+
+.profile-detail-header p:not(.eyebrow) {
+  color: var(--muted);
+  font-size: 1.08rem;
+  margin-bottom: 16px;
+}
+
+.profile-detail-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.public-project-list {
+  display: grid;
+  gap: 16px;
+}
+
+.public-project-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 pre {
@@ -1597,6 +1770,8 @@ ol {
 :root[data-theme="dark"] .developer-card,
 :root[data-theme="dark"] .developer-header,
 :root[data-theme="dark"] .project-card,
+:root[data-theme="dark"] .public-project-card,
+:root[data-theme="dark"] .profile-detail-header,
 :root[data-theme="dark"] .empty-state,
 :root[data-theme="dark"] .audience-panel,
 :root[data-theme="dark"] .name-search-panel,
@@ -1641,6 +1816,8 @@ ol {
 :root[data-theme="dark"] .ghost-button,
 :root[data-theme="dark"] .photo-frame,
 :root[data-theme="dark"] .screenshot-upload,
+:root[data-theme="dark"] .featured-project-toggle,
+:root[data-theme="dark"] .visibility-toggle,
 :root[data-theme="dark"] .delete-button,
 :root[data-theme="dark"] .project-links a {
   background: #0d1216;
@@ -1670,7 +1847,8 @@ ol {
 }
 
 :root[data-theme="dark"] .profile-type.developer,
-:root[data-theme="dark"] .nav-item {
+:root[data-theme="dark"] .nav-item,
+:root[data-theme="dark"] .featured-badge {
   background: #101f36;
   border-color: #284a78;
   color: #9fc4ff;
@@ -1772,6 +1950,7 @@ ol {
 
   .work-grid,
   .dashboard-cards,
+  .profile-detail-header,
   .developer-layout,
   .project-grid {
     grid-template-columns: 1fr;

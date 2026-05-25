@@ -7,6 +7,7 @@ import AppShell from './ui/AppShell.jsx';
 import Home from './views/Home.jsx';
 import Login from './views/Login.jsx';
 import Match from './views/Match.jsx';
+import ProfileDetail from './views/ProfileDetail.jsx';
 import Profiles from './views/Profiles.jsx';
 import Register from './views/Register.jsx';
 import Dashboard from './views/Dashboard.jsx';
@@ -31,6 +32,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="/" element={<Home />} />
             <Route path="/match" element={<Match />} />
             <Route path="/profiles" element={<Profiles />} />
+            <Route path="/profiles/:id" element={<ProfileDetail />} />
             <Route
               path="/login"
               element={
