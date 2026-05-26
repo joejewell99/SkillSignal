@@ -1,8 +1,8 @@
 package com.skillsignal.bootstrap;
 
-import com.skillsignal.user.AppUser;
-import com.skillsignal.user.Role;
-import com.skillsignal.user.UserRepository;
+import com.skillsignal.user.model.AppUser;
+import com.skillsignal.user.model.Role;
+import com.skillsignal.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;

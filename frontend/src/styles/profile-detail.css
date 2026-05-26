@@ -1,0 +1,172 @@
+.profile-detail-shell {
+  display: grid;
+  gap: 24px;
+  margin: 0 auto;
+  max-width: 1440px;
+  padding: 40px clamp(18px, 4vw, 48px) 72px;
+}
+
+.profile-detail-header {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+  padding: 22px;
+}
+
+.profile-detail-header img,
+.profile-detail-header .profile-placeholder {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  object-fit: cover;
+  width: 100%;
+}
+
+.profile-detail-header p:not(.eyebrow) {
+  color: var(--muted);
+  font-size: 1.08rem;
+  margin-bottom: 16px;
+}
+
+.profile-detail-grid {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  align-items: start;
+}
+
+.profile-detail-main {
+  display: grid;
+  gap: 18px;
+}
+
+.profile-feed-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  position: sticky;
+  top: 92px;
+}
+
+.profile-feed-panel .panel-heading-row svg {
+  color: var(--primary);
+}
+
+.public-feed-list {
+  display: grid;
+  gap: 14px;
+}
+
+.public-feed-post {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.public-feed-post:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.public-feed-post p {
+  color: var(--ink);
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.public-project-list {
+  display: grid;
+  gap: 18px;
+}
+
+.public-project-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.42fr) minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.public-project-card .project-images {
+  align-content: stretch;
+  height: 100%;
+  min-height: 280px;
+}
+
+.public-project-card .project-images img {
+  height: 100%;
+  min-height: 280px;
+}
+
+.public-project-card .project-card-body {
+  align-content: start;
+  padding: 22px;
+}
+
+.public-project-card .project-card-body > p {
+  font-size: 1rem;
+  line-height: 1.72;
+}
+
+.hiring-need-list {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hiring-need-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.hiring-need-card h3 {
+  font-size: 1.08rem;
+  margin: 10px 0 8px;
+}
+
+.hiring-need-card p {
+  color: var(--muted);
+  line-height: 1.58;
+  margin: 0;
+}
+
+.hiring-need-meta {
+  display: grid;
+  gap: 14px;
+}
+
+.hiring-need-meta h4 {
+  color: var(--ink);
+  font-size: 0.82rem;
+  letter-spacing: 0;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+pre {
+  background: #11181d;
+  border-radius: 6px;
+  color: #d9f7ef;
+  margin: 0;
+  overflow: auto;
+  padding: 18px;
+}
+
+ol {
+  color: var(--muted);
+  line-height: 1.8;
+  margin-bottom: 0;
+  padding-left: 20px;
+}
+

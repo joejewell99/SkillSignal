@@ -1,0 +1,170 @@
+:root[data-theme="dark"] .public-page,
+:root[data-theme="dark"] .auth-page {
+  background: #0d1216;
+}
+
+:root[data-theme="dark"] .site-header,
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .dashboard-topbar {
+  background: rgba(17, 24, 29, 0.96);
+  border-color: #26323a;
+}
+
+:root[data-theme="dark"] .site-brand,
+:root[data-theme="dark"] .site-nav a,
+:root[data-theme="dark"] .theme-toggle,
+:root[data-theme="dark"] .account-link,
+:root[data-theme="dark"] .secondary-button,
+:root[data-theme="dark"] .ghost-button,
+:root[data-theme="dark"] .name-suggestions button,
+:root[data-theme="dark"] .profile-card h3,
+:root[data-theme="dark"] .match-profile h3,
+:root[data-theme="dark"] .brand strong,
+:root[data-theme="dark"] label,
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2 {
+  color: #e8eef2;
+}
+
+:root[data-theme="dark"] .search-panel,
+:root[data-theme="dark"] .ai-search-panel,
+:root[data-theme="dark"] .ai-brief-summary,
+:root[data-theme="dark"] .match-card,
+:root[data-theme="dark"] .profile-card,
+:root[data-theme="dark"] .developer-card,
+:root[data-theme="dark"] .developer-header,
+:root[data-theme="dark"] .project-card,
+:root[data-theme="dark"] .public-project-card,
+:root[data-theme="dark"] .profile-detail-header,
+:root[data-theme="dark"] .profile-feed-panel,
+:root[data-theme="dark"] .feed-toolbar,
+:root[data-theme="dark"] .feed-composer,
+:root[data-theme="dark"] .empty-state,
+:root[data-theme="dark"] .empty-feed,
+:root[data-theme="dark"] .audience-panel,
+:root[data-theme="dark"] .name-search-panel,
+:root[data-theme="dark"] .opportunity-card,
+:root[data-theme="dark"] .auth-panel,
+:root[data-theme="dark"] .register-form-panel,
+:root[data-theme="dark"] .workspace-panel,
+:root[data-theme="dark"] .role-choice,
+:root[data-theme="dark"] .segmented-control {
+  background: #11181d;
+  border-color: #26323a;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.24);
+}
+
+:root[data-theme="dark"] .hero-copy p:not(.eyebrow),
+:root[data-theme="dark"] .profiles-hero p,
+:root[data-theme="dark"] .ai-panel-heading p,
+:root[data-theme="dark"] .ai-brief-summary p,
+:root[data-theme="dark"] .profile-card p,
+:root[data-theme="dark"] .developer-card p,
+:root[data-theme="dark"] .match-profile p,
+:root[data-theme="dark"] .subtle,
+:root[data-theme="dark"] .page-header p,
+:root[data-theme="dark"] .switch-link,
+:root[data-theme="dark"] .brand span,
+:root[data-theme="dark"] .account-panel small,
+:root[data-theme="dark"] .name-suggestions small,
+:root[data-theme="dark"] .match-score span,
+:root[data-theme="dark"] ol,
+:root[data-theme="dark"] .match-card ul,
+:root[data-theme="dark"] .feature-list li {
+  color: #a9b7c1;
+}
+
+:root[data-theme="dark"] .feed-post p {
+  color: #e8eef2;
+}
+
+:root[data-theme="dark"] .public-feed-post p {
+  color: #e8eef2;
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] .search-box,
+:root[data-theme="dark"] .theme-toggle,
+:root[data-theme="dark"] .account-link,
+:root[data-theme="dark"] .secondary-button,
+:root[data-theme="dark"] .ghost-button,
+:root[data-theme="dark"] .photo-frame,
+:root[data-theme="dark"] .screenshot-upload,
+:root[data-theme="dark"] .featured-project-toggle,
+:root[data-theme="dark"] .visibility-toggle,
+:root[data-theme="dark"] .delete-button,
+:root[data-theme="dark"] .project-links a {
+  background: #0d1216;
+  border-color: #33424c;
+  color: #e8eef2;
+}
+
+:root[data-theme="dark"] .candidate-card {
+  background: #0d1216;
+  border-color: #33424c;
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: #7f909b;
+}
+
+:root[data-theme="dark"] .brand-mark,
+:root[data-theme="dark"] .profile-placeholder,
+:root[data-theme="dark"] pre {
+  background: #05080a;
+  color: #e8eef2;
+}
+
+:root[data-theme="dark"] .skill-chips button,
+:root[data-theme="dark"] .skill-list span,
+:root[data-theme="dark"] .editable-skill-list button,
+:root[data-theme="dark"] .profile-type.employer {
+  background: #102720;
+  border-color: #235445;
+  color: #70e0c5;
+}
+
+:root[data-theme="dark"] .profile-type.developer,
+:root[data-theme="dark"] .nav-item,
+:root[data-theme="dark"] .featured-badge {
+  background: #101f36;
+  border-color: #284a78;
+  color: #9fc4ff;
+}
+
+:root[data-theme="dark"] .segmented-control button {
+  color: #a9b7c1;
+}
+
+:root[data-theme="dark"] .segmented-control button.active,
+:root[data-theme="dark"] .primary-button {
+  background: #4f8cff;
+  border-color: #4f8cff;
+  color: #071017;
+}
+
+:root[data-theme="dark"] .proof-text {
+  border-color: #26323a;
+}
+
+:root[data-theme="dark"] .error {
+  background: #331512;
+  border-color: #7a2a22;
+  color: #ffb5ad;
+}
+
+:root[data-theme="dark"] .success {
+  background: #10271b;
+  border-color: #245b3a;
+  color: #8de0ad;
+}
+
+:root[data-theme="dark"] .info-message {
+  background: #101f2b;
+  border-color: #29445a;
+  color: #bdd2df;
+}
+
