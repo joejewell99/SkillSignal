@@ -384,6 +384,70 @@
   margin: 0 0 10px;
 }
 
+.connection-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.connection-request-list {
+  display: grid;
+  gap: 12px;
+}
+
+.connection-request-card {
+  align-items: center;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  padding: 14px;
+}
+
+.connection-request-card img,
+.connection-request-card .profile-placeholder {
+  border-radius: 6px;
+  height: 64px;
+  object-fit: cover;
+  width: 64px;
+}
+
+.connection-request-card h3 {
+  font-size: 1rem;
+  margin: 0 0 4px;
+}
+
+.connection-request-card p {
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+
+.connection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.connection-feed-list .feed-post {
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.proof-signal-card {
+  align-items: flex-start;
+}
+
+.proof-signal-card strong {
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
 .panel-heading-row {
   align-items: center;
   display: flex;

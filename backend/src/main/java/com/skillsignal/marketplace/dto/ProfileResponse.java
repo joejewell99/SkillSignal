@@ -13,6 +13,7 @@ public record ProfileResponse(
         List<String> skills,
         boolean featured,
         boolean displayed,
+        boolean acceptsConnections,
         List<ProfileProjectResponse> projects,
         List<ProfilePostResponse> posts
 ) {
@@ -35,6 +36,7 @@ public record ProfileResponse(
                 profile.getSkills(),
                 profile.isFeatured(),
                 profile.isDisplayed(),
+                profile.getType().name().equals("DEVELOPER") && profile.getUserId() != null,
                 projects,
                 posts
         );
