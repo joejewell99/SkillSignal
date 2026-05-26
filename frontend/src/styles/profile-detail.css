@@ -31,6 +31,36 @@
   margin-bottom: 16px;
 }
 
+.profile-action-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.profile-action-row p {
+  margin: 0;
+}
+
+.connection-toast {
+  background: #dff7ea;
+  border: 1px solid #8fd8ad;
+  border-radius: 6px;
+  color: #126b35;
+  font-size: 0.88rem;
+  font-weight: 900;
+  opacity: 1;
+  padding: 9px 12px;
+  transform: translateY(0);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.connection-toast.leaving {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
 .profile-detail-grid {
   display: grid;
   gap: 22px;
@@ -56,6 +86,29 @@
 
 .profile-feed-panel .panel-heading-row svg {
   color: var(--primary);
+}
+
+.proof-signal-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.proof-signal-form {
+  display: grid;
+  gap: 12px;
+}
+
+.proof-signal-form label {
+  color: var(--ink);
+  display: grid;
+  font-size: 0.88rem;
+  font-weight: 800;
+  gap: 7px;
+}
+
+.proof-signal-form textarea {
+  min-height: 116px;
+  resize: vertical;
 }
 
 .public-feed-list {
