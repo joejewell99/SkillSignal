@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillsignal.marketplace.MarketplaceProfile;
 import com.skillsignal.marketplace.MarketplaceProfileRepository;
+import com.skillsignal.marketplace.ProfilePostResponse;
 import com.skillsignal.marketplace.ProfileProjectResponse;
 import com.skillsignal.marketplace.ProfileType;
 import java.util.List;
@@ -35,8 +36,9 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
                     .forEach(profile -> {
                         profile.setDisplayed(true);
                         profileRepository.save(profile);
-                    });
+            });
             supplementJoePortfolio();
+            supplementStockEmployerProfiles();
             return;
         }
 
@@ -65,6 +67,7 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
                 developer("Kai Bennett", "Cloud-ready Developer", "Prepared applications for deployment with environment config, Docker, and database setup.", "https://images.unsplash.com/photo-1463453091185-61582044d556?auto=format&fit=crop&w=240&q=80", List.of("Deployment", "Docker", "PostgreSQL", "Environment Config"), false, 22)
         ));
         supplementJoePortfolio();
+        supplementStockEmployerProfiles();
     }
 
     private MarketplaceProfile developer(
@@ -118,6 +121,148 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
                 });
     }
 
+    private void supplementStockEmployerProfiles() {
+        profileRepository.findAll().stream()
+                .filter(profile -> profile.getType() == ProfileType.EMPLOYER)
+                .filter(profile -> profile.getUserId() == null)
+                .forEach(profile -> {
+                    EmployerSeed employerSeed = employerSeedFor(profile.getName());
+                    if (employerSeed == null) {
+                        return;
+                    }
+
+                    List<ProfileProjectResponse> existingNeeds = readProjects(profile.getProjectsJson());
+                    List<ProfileProjectResponse> newNeeds = employerSeed.needs().stream()
+                            .filter(need -> existingNeeds.stream().noneMatch(existingNeed -> sameProject(existingNeed, need)))
+                            .toList();
+                    List<ProfilePostResponse> existingPosts = readPosts(profile.getPostsJson());
+                    List<ProfilePostResponse> newPosts = employerSeed.posts().stream()
+                            .filter(post -> existingPosts.stream().noneMatch(existingPost -> samePost(existingPost, post)))
+                            .toList();
+
+                    profile.setTitle(employerSeed.title());
+                    profile.setSummary(employerSeed.summary());
+                    profile.setSkills(employerSeed.skills());
+                    if (!newNeeds.isEmpty()) {
+                        profile.setProjectsJson(writeProjects(
+                                java.util.stream.Stream.concat(existingNeeds.stream(), newNeeds.stream()).toList()
+                        ));
+                    }
+                    if (!newPosts.isEmpty()) {
+                        profile.setPostsJson(writePosts(
+                                java.util.stream.Stream.concat(existingPosts.stream(), newPosts.stream()).toList()
+                        ));
+                    }
+                    profileRepository.save(profile);
+                });
+    }
+
+    private EmployerSeed employerSeedFor(String name) {
+        return switch (normalizeProjectName(name)) {
+            case "northstar analytics" -> new EmployerSeed(
+                    "Analytics team hiring junior data product help",
+                    "Northstar Analytics builds reporting tools for small operations teams. We are looking for a junior developer who can turn messy business data into clear SQL-backed dashboards, lightweight Python API endpoints, and practical views that non-technical managers can trust.",
+                    List.of("Python", "SQL", "APIs", "Dashboards", "Data cleanup"),
+                    List.of(
+                            hiringNeed(
+                                    "Customer Retention Dashboard",
+                                    "We need a junior developer to build a dashboard that shows customer churn risk, recent account activity, and simple retention trends. The work involves writing SQL queries, shaping API responses in Python, and presenting the results in readable charts and tables for account managers.",
+                                    List.of("Python", "SQL", "REST APIs", "Dashboards", "Data Visualization"),
+                                    true
+                            ),
+                            hiringNeed(
+                                    "CSV Import Quality Check",
+                                    "A recurring client upload process needs validation screens that flag missing fields, duplicate rows, and suspicious values before data reaches production reports. This is a good fit for someone who can write careful validation logic and explain edge cases.",
+                                    List.of("Python", "SQL", "Validation", "Data cleanup"),
+                                    false
+                            )
+                    ),
+                    List.of(
+                            post("northstar-feed-dashboard", "Actively looking for a junior developer who can combine SQL fundamentals with clean dashboard UI. Project proof with charts, filters, or API-backed tables would be ideal.", "2026-05-26T08:45:00.000Z"),
+                            post("northstar-feed-data-cleanup", "Current pain point: client data arrives in inconsistent CSV formats. We need someone who can build validation checks and make errors easy for non-technical users to understand.", "2026-05-24T14:20:00.000Z")
+                    )
+            );
+            case "brightlayer software" -> new EmployerSeed(
+                    "Product team hiring React dashboard support",
+                    "BrightLayer Software builds internal tools for service businesses. We are looking for a junior React developer who can build protected routes, admin screens, form workflows, and clear error states while working from existing API contracts.",
+                    List.of("React", "Authentication", "Dashboards", "Forms", "REST APIs"),
+                    List.of(
+                            hiringNeed(
+                                    "Admin Access Control Screens",
+                                    "We need a junior developer to create React screens for inviting users, assigning roles, and protecting admin-only routes. The work should include form validation, loading states, failed-request handling, and clear UI feedback for permission changes.",
+                                    List.of("React", "Authentication", "Protected Routes", "Forms", "API Error States"),
+                                    true
+                            ),
+                            hiringNeed(
+                                    "Operations Dashboard Polish",
+                                    "Our dashboard needs better empty states, filter controls, and reusable card components so managers can scan open tasks faster. This would suit someone with strong component habits and attention to UI details.",
+                                    List.of("React", "Dashboards", "Component Design", "CSS"),
+                                    false
+                            )
+                    ),
+                    List.of(
+                            post("brightlayer-feed-react", "Looking for React project proof: protected routes, admin screens, forms, or dashboard components. Screenshots and GitHub links matter more than years of experience.", "2026-05-26T10:05:00.000Z"),
+                            post("brightlayer-feed-auth", "Upcoming work is focused on role-based UI. A junior dev who can reason through permissions and explain edge cases would be very useful.", "2026-05-23T16:10:00.000Z")
+                    )
+            );
+            case "harbour cloud" -> new EmployerSeed(
+                    "Cloud platform team hiring Spring Boot support",
+                    "Harbour Cloud supports small SaaS teams with backend platform work. We are looking for a junior developer who can help with Spring Boot APIs, JWT authentication, PostgreSQL persistence, and practical backend documentation.",
+                    List.of("Spring Boot", "PostgreSQL", "JWT", "REST APIs", "Backend documentation"),
+                    List.of(
+                            hiringNeed(
+                                    "JWT Authentication Cleanup",
+                                    "We need a junior developer to improve a Spring Boot authentication flow by tightening validation, documenting protected endpoints, and making login/register errors clearer for the frontend team.",
+                                    List.of("Spring Boot", "JWT", "Spring Security", "REST APIs", "Validation"),
+                                    true
+                            ),
+                            hiringNeed(
+                                    "PostgreSQL Audit Trail API",
+                                    "A client admin panel needs an audit trail for important account changes. The task includes designing a small PostgreSQL table, exposing read-only endpoints, and returning results with sensible pagination.",
+                                    List.of("Spring Boot", "PostgreSQL", "API Design", "Pagination"),
+                                    false
+                            )
+                    ),
+                    List.of(
+                            post("harbour-feed-jwt", "Hiring focus this week: Spring Boot JWT auth, PostgreSQL, and clean controller/service structure. We like candidates who can explain why an endpoint should be protected.", "2026-05-25T09:35:00.000Z"),
+                            post("harbour-feed-docs", "A strong junior applicant would show backend proof with README notes, endpoint examples, and screenshots from Postman or a connected frontend.", "2026-05-22T13:15:00.000Z")
+                    )
+            );
+            case "railsdesk" -> new EmployerSeed(
+                    "Rails team hiring account workflow support",
+                    "RailsDesk builds account-management tools for growing support teams. We are looking for a junior Ruby/Rails developer who can work on user account flows, database-backed CRUD screens, and deployment-ready fixes.",
+                    List.of("Ruby", "Rails", "SQL", "Authentication", "Deployment"),
+                    List.of(
+                            hiringNeed(
+                                    "Customer Account Request Flow",
+                                    "We need a junior Rails developer to build a request workflow where customers can update account details, staff can review changes, and admins can approve or reject updates with clear status history.",
+                                    List.of("Ruby", "Rails", "SQL", "CRUD", "Authentication"),
+                                    true
+                            ),
+                            hiringNeed(
+                                    "Deployment Health Checklist",
+                                    "Our small Rails app needs environment setup documentation, seed data checks, and a simple health page so support staff know whether the app is ready after deployment.",
+                                    List.of("Ruby", "Deployment", "Environment Config", "Documentation"),
+                                    false
+                            )
+                    ),
+                    List.of(
+                            post("railsdesk-feed-account-flow", "Looking for Rails proof around account flows, CRUD models, authentication, or deployment. A tidy GitHub README would make a junior candidate stand out.", "2026-05-26T11:25:00.000Z"),
+                            post("railsdesk-feed-sql", "Current need: someone comfortable enough with SQL relationships to model customer requests, approvals, and status history without overcomplicating it.", "2026-05-24T10:50:00.000Z")
+                    )
+            );
+            default -> null;
+        };
+    }
+
+    private ProfileProjectResponse hiringNeed(String name, String description, List<String> skills, boolean featured) {
+        return new ProfileProjectResponse(name, description, "", "", skills, List.of(), featured);
+    }
+
+    private ProfilePostResponse post(String id, String body, String createdAt) {
+        return new ProfilePostResponse(id, body, createdAt);
+    }
+
     private boolean isJoeProfile(String name) {
         String normalizedName = name == null ? "" : name.toLowerCase();
         return normalizedName.contains("joe") || normalizedName.contains("joseph");
@@ -159,6 +304,10 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
         return normalizeProjectName(firstProject.name()).equals(normalizeProjectName(secondProject.name()));
     }
 
+    private boolean samePost(ProfilePostResponse firstPost, ProfilePostResponse secondPost) {
+        return normalizeProjectName(firstPost.id()).equals(normalizeProjectName(secondPost.id()));
+    }
+
     private String normalizeProjectName(String name) {
         return name == null ? "" : name.trim().toLowerCase();
     }
@@ -180,5 +329,33 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
         } catch (JsonProcessingException exception) {
             return "[]";
         }
+    }
+
+    private List<ProfilePostResponse> readPosts(String postsJson) {
+        if (postsJson == null || postsJson.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(postsJson, new TypeReference<>() {});
+        } catch (JsonProcessingException exception) {
+            return List.of();
+        }
+    }
+
+    private String writePosts(List<ProfilePostResponse> posts) {
+        try {
+            return objectMapper.writeValueAsString(posts);
+        } catch (JsonProcessingException exception) {
+            return "[]";
+        }
+    }
+
+    private record EmployerSeed(
+            String title,
+            String summary,
+            List<String> skills,
+            List<ProfileProjectResponse> needs,
+            List<ProfilePostResponse> posts
+    ) {
     }
 }

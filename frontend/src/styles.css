@@ -724,7 +724,28 @@ a {
 
 .proof-text {
   border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
   padding-top: 12px;
+}
+
+.proof-text p {
+  margin-bottom: 0;
+}
+
+.text-button {
+  background: transparent;
+  border: 0;
+  color: var(--primary);
+  cursor: pointer;
+  font-weight: 900;
+  justify-self: start;
+  padding: 0;
+}
+
+.text-button:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
 }
 
 .prompt-chips {
@@ -1430,6 +1451,58 @@ textarea:focus {
   max-width: 520px;
 }
 
+.candidate-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.candidate-panel .panel-heading-row {
+  align-items: flex-start;
+}
+
+.candidate-panel .panel-heading-row p {
+  margin: 6px 0 0;
+}
+
+.candidate-list {
+  display: grid;
+  gap: 12px;
+}
+
+.candidate-card {
+  align-items: center;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 72px minmax(0, 1fr);
+  padding: 14px;
+}
+
+.candidate-card img,
+.candidate-card .profile-placeholder {
+  border-radius: 6px;
+  height: 72px;
+  object-fit: cover;
+  width: 72px;
+}
+
+.candidate-card .profile-placeholder {
+  font-size: 1.35rem;
+}
+
+.candidate-card h3 {
+  font-size: 1rem;
+  margin: 0 0 4px;
+}
+
+.candidate-card p {
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 0 0 10px;
+}
+
 .panel-heading-row {
   align-items: center;
   display: flex;
@@ -1691,19 +1764,24 @@ textarea:focus {
 }
 
 .project-images {
+  background: var(--surface-strong);
   display: grid;
-  gap: 1px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
+  overflow: hidden;
 }
 
 .project-images img {
   aspect-ratio: 16 / 10;
+  background: var(--surface-strong);
+  border: 0;
+  height: 100%;
   object-fit: cover;
+  object-position: top center;
   width: 100%;
 }
 
-.project-images img:first-child {
-  grid-column: span 2;
+.project-images img:not(:first-child) {
+  display: none;
 }
 
 .project-card-body {
@@ -1886,10 +1964,12 @@ textarea:focus {
 .public-project-card .project-images {
   align-content: stretch;
   height: 100%;
+  min-height: 280px;
 }
 
 .public-project-card .project-images img {
   height: 100%;
+  min-height: 280px;
 }
 
 .public-project-card .project-card-body {
@@ -1900,6 +1980,44 @@ textarea:focus {
 .public-project-card .project-card-body > p {
   font-size: 1rem;
   line-height: 1.72;
+}
+
+.hiring-need-list {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hiring-need-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.hiring-need-card h3 {
+  font-size: 1.08rem;
+  margin: 10px 0 8px;
+}
+
+.hiring-need-card p {
+  color: var(--muted);
+  line-height: 1.58;
+  margin: 0;
+}
+
+.hiring-need-meta {
+  display: grid;
+  gap: 14px;
+}
+
+.hiring-need-meta h4 {
+  color: var(--ink);
+  font-size: 0.82rem;
+  letter-spacing: 0;
+  margin: 0 0 8px;
+  text-transform: uppercase;
 }
 
 pre {
@@ -2019,6 +2137,11 @@ ol {
   background: #0d1216;
   border-color: #33424c;
   color: #e8eef2;
+}
+
+:root[data-theme="dark"] .candidate-card {
+  background: #0d1216;
+  border-color: #33424c;
 }
 
 :root[data-theme="dark"] input::placeholder,
@@ -2149,6 +2272,7 @@ ol {
   .profile-detail-header,
   .profile-detail-grid,
   .public-project-card,
+  .hiring-need-list,
   .developer-layout,
   .project-grid {
     grid-template-columns: 1fr;
@@ -2156,6 +2280,10 @@ ol {
 
   .profile-feed-panel {
     position: static;
+  }
+
+  .public-project-card .project-images {
+    min-height: 0;
   }
 
   .developer-header,
