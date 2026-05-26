@@ -109,6 +109,7 @@ public class MarketplaceProfileService {
             String summary,
             String image,
             List<String> skills,
+            List<ProfileProjectResponse> projects,
             List<ProfilePostResponse> posts,
             boolean displayed
     ) {
@@ -118,6 +119,7 @@ public class MarketplaceProfileService {
         profile.setSummary(defaultIfBlank(summary, "Employer profile."));
         profile.setImage(image == null ? "" : image);
         profile.setSkills(skills == null ? new ArrayList<>() : skills.stream().map(String::trim).filter(skill -> !skill.isBlank()).toList());
+        profile.setProjectsJson(writeProjects(projects));
         profile.setPostsJson(writePosts(posts));
         profile.setDisplayed(displayed);
         MarketplaceProfile savedProfile = profileRepository.save(profile);

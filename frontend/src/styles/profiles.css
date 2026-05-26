@@ -16,6 +16,11 @@
   transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
 
+.profile-card {
+  align-content: start;
+  grid-template-rows: auto auto auto auto 1fr;
+}
+
 .profile-card:hover,
 .developer-card:hover,
 .match-card:hover {
@@ -149,6 +154,7 @@
 }
 
 .proof-text {
+  align-self: start;
   border-top: 1px solid var(--line);
   display: grid;
   gap: 8px;
@@ -157,6 +163,10 @@
 
 .proof-text p {
   margin-bottom: 0;
+}
+
+.profile-card .profile-view-link {
+  align-self: end;
 }
 
 .text-button {
