@@ -1,0 +1,258 @@
+.developer-grid,
+.profile-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.developer-card,
+.profile-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.profile-card:hover,
+.developer-card:hover,
+.match-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--line));
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.developer-card img,
+.profile-card img,
+.profile-placeholder {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  width: 100%;
+}
+
+.developer-card img,
+.profile-card img {
+  object-fit: cover;
+}
+
+.profile-placeholder {
+  align-items: center;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 72%, #000000), color-mix(in srgb, var(--signal) 72%, #000000));
+  color: #ffffff;
+  display: grid;
+  font-size: 2rem;
+  font-weight: 900;
+  justify-content: center;
+}
+
+.developer-card h3,
+.profile-card h3 {
+  font-size: 1.08rem;
+  margin: 0 0 4px;
+}
+
+.developer-card p,
+.profile-card p {
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 0;
+}
+
+.profile-card-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.profile-type {
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  justify-self: start;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.profile-type.developer {
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
+}
+
+.profile-type.employer {
+  background: var(--signal-soft);
+  color: var(--signal);
+}
+
+.segmented-control {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  display: inline-grid;
+  gap: 4px;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 4px;
+}
+
+.segmented-control button {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  font-weight: 800;
+  min-height: 36px;
+  padding: 7px 12px;
+}
+
+.segmented-control button.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.name-search-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.name-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.name-suggestions button {
+  align-items: center;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  display: inline-flex;
+  gap: 8px;
+  min-height: 36px;
+  padding: 7px 12px;
+}
+
+.name-suggestions small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.skill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.proof-text {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.proof-text p {
+  margin-bottom: 0;
+}
+
+.text-button {
+  background: transparent;
+  border: 0;
+  color: var(--primary);
+  cursor: pointer;
+  font-weight: 900;
+  justify-self: start;
+  padding: 0;
+}
+
+.text-button:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+.prompt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.prompt-chips button {
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+  min-height: 34px;
+  padding: 7px 10px;
+}
+
+.prompt-chips button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.directory-metrics {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 720px;
+}
+
+.directory-metrics div {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+}
+
+.directory-metrics strong {
+  color: var(--primary);
+  font-size: 1.45rem;
+}
+
+.directory-metrics span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.opportunities-section {
+  padding-top: 0;
+}
+
+.opportunity-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.opportunity-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.opportunity-card h3 {
+  font-size: 1.1rem;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.company-name {
+  color: var(--signal);
+  font-size: 0.88rem;
+  font-weight: 800;
+  margin-bottom: 0;
+}
+

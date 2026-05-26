@@ -11,7 +11,7 @@ import ProfileDetail from './views/ProfileDetail.jsx';
 import Profiles from './views/Profiles.jsx';
 import Register from './views/Register.jsx';
 import Dashboard from './views/Dashboard.jsx';
-import './styles.css';
+import './styles/index.css';
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();

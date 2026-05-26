@@ -1,6 +1,6 @@
 package com.skillsignal.security;
 
-import com.skillsignal.user.AppUser;
+import com.skillsignal.user.model.AppUser;
 import java.util.Collection;
 import java.util.List;
 import org.springframework.security.core.GrantedAuthority;

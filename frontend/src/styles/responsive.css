@@ -1,0 +1,104 @@
+@media (max-width: 800px) {
+  .site-header,
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .site-nav {
+    flex-wrap: wrap;
+  }
+
+  .search-hero,
+  .home-hero,
+  .landing-hero,
+  .tool-hero,
+  .proof-grid,
+  .landing-callout,
+  .signal-flow,
+  .directory-metrics,
+  .match-grid,
+  .match-columns,
+  .developer-grid,
+  .profile-grid,
+  .opportunity-grid,
+  .role-choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .search-hero {
+    padding-top: 42px;
+  }
+
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-bottom: 1px solid var(--line);
+    border-right: 0;
+  }
+
+  .landing-hero {
+    min-height: auto;
+    padding-top: 54px;
+  }
+
+  .signal-flow svg {
+    display: none;
+  }
+
+  .main-view {
+    padding: 22px;
+  }
+
+  .dashboard-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    margin: -22px -22px 24px;
+    padding: 14px 22px;
+  }
+
+  .work-grid,
+  .dashboard-cards,
+  .profile-detail-header,
+  .profile-detail-grid,
+  .public-project-card,
+  .hiring-need-list,
+  .developer-layout,
+  .project-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-feed-panel {
+    position: static;
+  }
+
+  .public-project-card .project-images {
+    min-height: 0;
+  }
+
+  .developer-header,
+  .developer-identity {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .developer-header {
+    flex-direction: column;
+  }
+
+  .photo-frame {
+    width: min(100%, 220px);
+  }
+
+  .profile-readiness {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .two-column-fields,
+  .screenshot-strip {
+    grid-template-columns: 1fr;
+  }
+}
