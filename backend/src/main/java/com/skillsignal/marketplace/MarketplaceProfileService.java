@@ -50,9 +50,23 @@ public class MarketplaceProfileService {
         return toResponse(profile);
     }
 
+    public ProfileResponse findEmployerProfile(Long userId, String name) {
+        MarketplaceProfile profile = profileRepository.findByUserId(userId)
+                .orElseGet(() -> profileRepository.save(MarketplaceProfile.forEmployerUser(userId, name)));
+        return toResponse(profile);
+    }
+
     public ProfileResponse updateDeveloperVisibility(Long userId, String name, boolean displayed) {
         MarketplaceProfile profile = profileRepository.findByUserId(userId)
                 .orElseGet(() -> profileRepository.save(MarketplaceProfile.forDeveloperUser(userId, name)));
+        profile.setDisplayed(displayed);
+        MarketplaceProfile savedProfile = profileRepository.save(profile);
+        return toResponse(savedProfile);
+    }
+
+    public ProfileResponse updateEmployerVisibility(Long userId, String name, boolean displayed) {
+        MarketplaceProfile profile = profileRepository.findByUserId(userId)
+                .orElseGet(() -> profileRepository.save(MarketplaceProfile.forEmployerUser(userId, name)));
         profile.setDisplayed(displayed);
         MarketplaceProfile savedProfile = profileRepository.save(profile);
         return toResponse(savedProfile);
@@ -82,9 +96,36 @@ public class MarketplaceProfileService {
         return toResponse(savedProfile);
     }
 
+    public ProfileResponse updateEmployerProfile(
+            Long userId,
+            String name,
+            String title,
+            String summary,
+            String image,
+            List<String> skills,
+            List<ProfilePostResponse> posts,
+            boolean displayed
+    ) {
+        MarketplaceProfile profile = profileRepository.findByUserId(userId)
+                .orElseGet(() -> profileRepository.save(MarketplaceProfile.forEmployerUser(userId, name)));
+        profile.setTitle(defaultIfBlank(title, "Hiring team"));
+        profile.setSummary(defaultIfBlank(summary, "Employer profile."));
+        profile.setImage(image == null ? "" : image);
+        profile.setSkills(skills == null ? new ArrayList<>() : skills.stream().map(String::trim).filter(skill -> !skill.isBlank()).toList());
+        profile.setPostsJson(writePosts(posts));
+        profile.setDisplayed(displayed);
+        MarketplaceProfile savedProfile = profileRepository.save(profile);
+        return toResponse(savedProfile);
+    }
+
     public MarketplaceProfile createDeveloperProfile(Long userId, String name) {
         return profileRepository.findByUserId(userId)
                 .orElseGet(() -> profileRepository.save(MarketplaceProfile.forDeveloperUser(userId, name)));
+    }
+
+    public MarketplaceProfile createEmployerProfile(Long userId, String name) {
+        return profileRepository.findByUserId(userId)
+                .orElseGet(() -> profileRepository.save(MarketplaceProfile.forEmployerUser(userId, name)));
     }
 
     private boolean matchesQuery(MarketplaceProfile profile, String query) {

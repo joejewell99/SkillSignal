@@ -54,6 +54,51 @@ function formatPostDate(dateValue) {
   }).format(new Date(dateValue));
 }
 
+function idealJuniorDevFor(need) {
+  const needName = (need.name ?? '').toLowerCase();
+  const skills = (need.skills ?? []).join(' ').toLowerCase();
+
+  if (needName.includes('customer retention dashboard')) {
+    return 'Someone who can ask what each metric means, check the SQL behind the numbers, and turn retention data into a dashboard account managers can act on.';
+  }
+  if (needName.includes('csv import quality check')) {
+    return 'Someone patient with messy data, careful about validation rules, and able to make upload problems clear without blaming the user.';
+  }
+  if (needName.includes('admin access control')) {
+    return 'Someone who understands that permissions affect real users, can test role edge cases, and writes React screens that make access changes feel obvious.';
+  }
+  if (needName.includes('operations dashboard')) {
+    return 'Someone with a good eye for small UI improvements, reusable components, and dashboard states that help busy managers scan work quickly.';
+  }
+  if (needName.includes('jwt authentication')) {
+    return 'Someone careful with security flow, comfortable tracing login errors, and willing to document how protected endpoints should behave.';
+  }
+  if (needName.includes('postgresql audit trail')) {
+    return 'Someone who can model simple history data, think through pagination, and keep backend responses predictable for admin screens.';
+  }
+  if (needName.includes('customer account request')) {
+    return 'Someone who can follow a multi-step account workflow, keep status changes understandable, and avoid overcomplicating the Rails models.';
+  }
+  if (needName.includes('deployment health checklist')) {
+    return 'Someone who likes practical polish: environment checks, simple documentation, and small health signals that make deployments less stressful.';
+  }
+
+  if (skills.includes('react')) {
+    return 'Someone who learns fast, communicates UI decisions clearly, and can turn rough workflow notes into tidy, reusable React screens.';
+  }
+  if (skills.includes('spring') || skills.includes('jwt')) {
+    return 'Someone who is careful with backend flow, asks good questions about edge cases, and can document protected API behavior clearly.';
+  }
+  if (skills.includes('ruby') || skills.includes('rails')) {
+    return 'Someone who can understand existing Rails patterns quickly, keep database changes simple, and explain account-flow tradeoffs.';
+  }
+  if (skills.includes('sql') || skills.includes('python')) {
+    return 'Someone who can work patiently through messy data, validate assumptions, and present findings in a way non-technical users understand.';
+  }
+
+  return 'Someone curious, reliable, quick to learn, and comfortable showing progress through small, well-explained improvements.';
+}
+
 export default function ProfileDetail() {
   const { id } = useParams();
   const { user, token } = useAuth();
@@ -63,6 +108,7 @@ export default function ProfileDetail() {
   const projects = normalizeProjects(profile?.projects ?? []);
   const skills = profile?.skills ?? [];
   const posts = profile?.posts ?? [];
+  const isEmployerProfile = profile?.type === 'EMPLOYER';
 
   useEffect(() => {
     let isMounted = true;
@@ -161,7 +207,7 @@ export default function ProfileDetail() {
               <div className="profile-placeholder">{profile.name.slice(0, 2).toUpperCase()}</div>
             )}
             <div>
-              <p className="eyebrow">Developer profile</p>
+              <p className="eyebrow">{isEmployerProfile ? 'Employer profile' : 'Developer profile'}</p>
               <h1>{profile.name}</h1>
               <p>{profile.title}</p>
               <div className="skill-list">
@@ -180,54 +226,86 @@ export default function ProfileDetail() {
               </article>
 
               <article className="workspace-panel">
-                <h2>Project proof</h2>
+                <h2>{isEmployerProfile ? 'Hiring needs' : 'Project proof'}</h2>
                 {projects.length === 0 ? (
-                  <p className="subtle">This developer has not published project proof yet.</p>
+                  <p className="subtle">
+                    {isEmployerProfile
+                      ? 'This employer has not published detailed hiring needs yet.'
+                      : 'This developer has not published project proof yet.'}
+                  </p>
                 ) : (
-                  <div className="public-project-list">
-                    {projects.map((project, projectIndex) => (
-                      <article className="public-project-card" key={project.name}>
-                        {(project.images ?? []).length > 0 && (
-                          <div className="project-images">
-                            {(project.images ?? []).slice(0, 3).map((image, index) => (
-                              <img key={`${project.name}-${projectIndex}-${index}`} src={image} alt={`${project.name} screenshot ${index + 1}`} />
-                            ))}
-                          </div>
-                        )}
-                        <div className="project-card-body">
-                          <div className="project-title-stack">
+                  isEmployerProfile ? (
+                    <div className="hiring-need-list">
+                      {projects.map((project) => (
+                        <article className="hiring-need-card" key={project.name}>
+                          <div>
+                            <span className="profile-type employer">Hiring need</span>
                             <h3>{project.name}</h3>
-                            {project.featured && (
-                              <span className="featured-badge">
-                                <Star size={14} />
-                                Featured
-                              </span>
-                            )}
+                            <p>{project.description}</p>
                           </div>
-                          <p>{project.description}</p>
-                          <div className="skill-list">
-                            {(project.skills ?? []).map((skill) => (
-                              <span key={skill}>{skill}</span>
-                            ))}
+                          <div className="hiring-need-meta">
+                            <div>
+                              <h4>Required skills</h4>
+                              <div className="skill-list">
+                                {(project.skills ?? []).map((skill) => (
+                                  <span key={skill}>{skill}</span>
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <h4>Ideal junior dev</h4>
+                              <p>{idealJuniorDevFor(project)}</p>
+                            </div>
                           </div>
-                          <div className="project-links">
-                            {project.githubUrl && (
-                              <a href={project.githubUrl} target="_blank" rel="noreferrer">
-                                <Github size={16} />
-                                <span>Code</span>
-                              </a>
-                            )}
-                            {project.liveUrl && (
-                              <a href={project.liveUrl} target="_blank" rel="noreferrer">
-                                <ExternalLink size={16} />
-                                <span>Live</span>
-                              </a>
-                            )}
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="public-project-list">
+                      {projects.map((project, projectIndex) => (
+                        <article className="public-project-card" key={project.name}>
+                          {(project.images ?? []).length > 0 && (
+                            <div className="project-images">
+                              {(project.images ?? []).slice(0, 3).map((image, index) => (
+                                <img key={`${project.name}-${projectIndex}-${index}`} src={image} alt={`${project.name} screenshot ${index + 1}`} />
+                              ))}
+                            </div>
+                          )}
+                          <div className="project-card-body">
+                            <div className="project-title-stack">
+                              <h3>{project.name}</h3>
+                              {project.featured && (
+                                <span className="featured-badge">
+                                  <Star size={14} />
+                                  Featured
+                                </span>
+                              )}
+                            </div>
+                            <p>{project.description}</p>
+                            <div className="skill-list">
+                              {(project.skills ?? []).map((skill) => (
+                                <span key={skill}>{skill}</span>
+                              ))}
+                            </div>
+                            <div className="project-links">
+                              {project.githubUrl && (
+                                <a href={project.githubUrl} target="_blank" rel="noreferrer">
+                                  <Github size={16} />
+                                  <span>Code</span>
+                                </a>
+                              )}
+                              {project.liveUrl && (
+                                <a href={project.liveUrl} target="_blank" rel="noreferrer">
+                                  <ExternalLink size={16} />
+                                  <span>Live</span>
+                                </a>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
+                        </article>
+                      ))}
+                    </div>
+                  )
                 )}
               </article>
             </div>
@@ -238,7 +316,11 @@ export default function ProfileDetail() {
                 <MessageSquareText size={20} />
               </div>
               {posts.length === 0 ? (
-                <p className="subtle">This developer has not posted feed updates yet.</p>
+                <p className="subtle">
+                  {isEmployerProfile
+                    ? 'This employer has not posted hiring updates yet.'
+                    : 'This developer has not posted feed updates yet.'}
+                </p>
               ) : (
                 <div className="public-feed-list">
                   {posts.map((post) => (

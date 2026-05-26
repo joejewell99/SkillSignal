@@ -105,6 +105,22 @@ public class MarketplaceProfile {
         return profile;
     }
 
+    public static MarketplaceProfile forEmployerUser(Long userId, String name) {
+        MarketplaceProfile profile = new MarketplaceProfile(
+                ProfileType.EMPLOYER,
+                name,
+                "Hiring team",
+                "Employer profile.",
+                "",
+                List.of("React", "APIs", "Junior developer"),
+                false,
+                1000
+        );
+        profile.userId = userId;
+        profile.displayed = false;
+        return profile;
+    }
+
     public Long getId() {
         return id;
     }

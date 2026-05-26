@@ -10,12 +10,22 @@ const profileFilters = [
   { label: 'Developers', value: 'DEVELOPER' },
   { label: 'Employers', value: 'EMPLOYER' },
 ];
+const summaryWordLimit = 28;
+
+function summaryPreview(summary = '', isExpanded = false) {
+  const words = summary.trim().split(/\s+/).filter(Boolean);
+  if (isExpanded || words.length <= summaryWordLimit) {
+    return summary;
+  }
+  return `${words.slice(0, summaryWordLimit).join(' ')}...`;
+}
 
 export default function Profiles() {
   const [query, setQuery] = useState('');
   const [nameQuery, setNameQuery] = useState('');
   const [filter, setFilter] = useState('ALL');
   const [profiles, setProfiles] = useState([]);
+  const [expandedSummaries, setExpandedSummaries] = useState({});
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
   const [profileError, setProfileError] = useState('');
 
@@ -143,34 +153,50 @@ export default function Profiles() {
         {profileError && <p className="error">{profileError}</p>}
 
         <div className="profile-grid">
-          {profiles.map((profile) => (
-            <article className="profile-card" key={`${profile.type}-${profile.name}`}>
-              {profile.image ? (
-                <img src={profile.image} alt={profile.name} />
-              ) : (
-                <div className="profile-placeholder">{profile.name.slice(0, 2).toUpperCase()}</div>
-              )}
-              <div className="profile-card-heading">
-                <span className={`profile-type ${profile.type.toLowerCase()}`}>
-                  {profile.type === 'DEVELOPER' ? 'Developer' : 'Employer'}
-                </span>
-                <h3>{profile.name}</h3>
-                <p>{profile.title}</p>
-              </div>
-              <div className="skill-list">
-                {profile.skills.map((skill) => (
-                  <span key={skill}>{skill}</span>
-                ))}
-              </div>
-              <p className="proof-text">{profile.summary}</p>
-              {profile.type === 'DEVELOPER' && (
+          {profiles.map((profile) => {
+            const profileKey = `${profile.type}-${profile.id ?? profile.name}`;
+            const summaryWords = profile.summary.trim().split(/\s+/).filter(Boolean);
+            const canExpandSummary = summaryWords.length > summaryWordLimit;
+            const isSummaryExpanded = Boolean(expandedSummaries[profileKey]);
+
+            return (
+              <article className="profile-card" key={profileKey}>
+                {profile.image ? (
+                  <img src={profile.image} alt={profile.name} />
+                ) : (
+                  <div className="profile-placeholder">{profile.name.slice(0, 2).toUpperCase()}</div>
+                )}
+                <div className="profile-card-heading">
+                  <span className={`profile-type ${profile.type.toLowerCase()}`}>
+                    {profile.type === 'DEVELOPER' ? 'Developer' : 'Employer'}
+                  </span>
+                  <h3>{profile.name}</h3>
+                  <p>{profile.title}</p>
+                </div>
+                <div className="skill-list">
+                  {profile.skills.map((skill) => (
+                    <span key={skill}>{skill}</span>
+                  ))}
+                </div>
+                <div className="proof-text">
+                  <p>{summaryPreview(profile.summary, isSummaryExpanded)}</p>
+                  {canExpandSummary && (
+                    <button
+                      className="text-button"
+                      type="button"
+                      onClick={() => setExpandedSummaries((current) => ({ ...current, [profileKey]: !isSummaryExpanded }))}
+                    >
+                      {isSummaryExpanded ? 'Show less' : 'Show more'}
+                    </button>
+                  )}
+                </div>
                 <Link className="secondary-button profile-view-link" to={`/profiles/${profile.id}`}>
                   <ExternalLink size={16} />
                   <span>View profile</span>
                 </Link>
-              )}
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       </section>
     </main>

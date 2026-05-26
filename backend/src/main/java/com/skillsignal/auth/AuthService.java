@@ -52,6 +52,9 @@ public class AuthService {
         if (savedUser.getRole() == Role.DEVELOPER) {
             marketplaceProfileService.createDeveloperProfile(savedUser.getId(), savedUser.getName());
         }
+        if (savedUser.getRole() == Role.EMPLOYER) {
+            marketplaceProfileService.createEmployerProfile(savedUser.getId(), savedUser.getName());
+        }
         return toAuthResponse(savedUser);
     }
 
