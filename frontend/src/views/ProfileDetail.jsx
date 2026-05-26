@@ -82,6 +82,15 @@ function idealJuniorDevFor(need) {
   if (needName.includes('deployment health checklist')) {
     return 'Someone who likes practical polish: environment checks, simple documentation, and small health signals that make deployments less stressful.';
   }
+  if (needName.includes('cloud cost insights')) {
+    return 'Someone who can make complex cloud usage feel understandable, cares about chart clarity, and can explain technical spending patterns without overwhelming users.';
+  }
+  if (needName.includes('api documentation sandbox')) {
+    return 'Someone who enjoys developer experience work, tests API examples carefully, and can turn confusing auth or permission errors into useful guidance.';
+  }
+  if (needName.includes('support triage tool')) {
+    return 'Someone who can organize messy support signals, think through workflow states, and build internal tools that help engineers spot repeated product issues.';
+  }
 
   if (skills.includes('react')) {
     return 'Someone who learns fast, communicates UI decisions clearly, and can turn rough workflow notes into tidy, reusable React screens.';
