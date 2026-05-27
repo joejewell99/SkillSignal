@@ -8,6 +8,7 @@ public record DeveloperMatchResponse(
         int matchScore,
         List<String> strengths,
         List<String> gaps,
+        List<String> evidence,
         String reason,
         List<String> interviewQuestions
 ) {

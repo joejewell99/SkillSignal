@@ -1,8 +1,9 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bookmark, BriefcaseBusiness, Camera, CheckCircle2, ExternalLink, MessageSquareText, Plus, Search, Send, Trash2 } from 'lucide-react';
+import { Bookmark, BriefcaseBusiness, Camera, CheckCircle2, ExternalLink, Pencil, Plus, Search, Send, Trash2 } from 'lucide-react';
 import { apiRequest } from '../../../api/client.js';
 import {
+  emptyProject,
   formatPostDate,
   normalizeProjects,
   readImage,
@@ -16,10 +17,13 @@ export default function EmployerDashboard({ user, token }) {
   const [error, setError] = useState('');
   const [proofSignals, setProofSignals] = useState([]);
   const [savedCandidates, setSavedCandidates] = useState([]);
-  const [search, setSearch] = useState('');
   const [focusInput, setFocusInput] = useState('');
   const [postInput, setPostInput] = useState('');
   const [isComposingPost, setIsComposingPost] = useState(false);
+  const [isAddingNeed, setIsAddingNeed] = useState(false);
+  const [needForm, setNeedForm] = useState(emptyProject);
+  const [editingNeedId, setEditingNeedId] = useState(null);
+  const [activeSection, setActiveSection] = useState('profile');
   const [profile, setProfile] = useState(() => readStoredEmployerProfile(storageKey, user));
 
   useEffect(() => {
@@ -45,11 +49,12 @@ export default function EmployerDashboard({ user, token }) {
           projects: shouldSyncStoredProjects ? storedProfile.projects : backendProjects,
           posts: shouldSyncStoredPosts ? storedProfile.posts : backendPosts,
         };
+        const shouldSyncProfileBasics = nextProfile.summary && nextProfile.summary !== profileData.summary;
         setProfile((current) => ({
           ...current,
           ...nextProfile,
         }));
-        if (shouldSyncStoredProjects || shouldSyncStoredPosts) {
+        if (shouldSyncProfileBasics || shouldSyncStoredProjects || shouldSyncStoredPosts) {
           apiRequest('/api/employer/profile', {
             token,
             method: 'PATCH',
@@ -177,6 +182,83 @@ export default function EmployerDashboard({ user, token }) {
     );
   }
 
+  function updateNeedField(field, value) {
+    setNeedForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function sortNeeds(needs) {
+    return [...needs].sort((first, second) => Number(Boolean(second.featured)) - Number(Boolean(first.featured)));
+  }
+
+  function resetNeedForm() {
+    setNeedForm(emptyProject);
+    setEditingNeedId(null);
+    setIsAddingNeed(false);
+  }
+
+  function startEditingNeed(need) {
+    setNeedForm({
+      name: need.name ?? '',
+      description: need.description ?? '',
+      githubUrl: '',
+      liveUrl: '',
+      skills: (need.skills ?? []).join(', '),
+      images: [],
+      featured: Boolean(need.featured),
+    });
+    setEditingNeedId(need.id);
+    setIsAddingNeed(true);
+  }
+
+  async function saveHiringNeed(event) {
+    event.preventDefault();
+    const name = needForm.name.trim();
+    const description = needForm.description.trim();
+    if (!name || !description) {
+      return;
+    }
+    const need = {
+      ...needForm,
+      id: crypto.randomUUID(),
+      name,
+      description,
+      githubUrl: '',
+      liveUrl: '',
+      images: [],
+      skills: needForm.skills
+        .split(',')
+        .map((skill) => skill.trim())
+        .filter(Boolean),
+      featured: Boolean(needForm.featured),
+    };
+    const nextProjects = editingNeedId
+      ? profile.projects.map((existingNeed) => (existingNeed.id === editingNeedId ? need : existingNeed))
+      : [need, ...profile.projects];
+    const nextProfile = { ...profile, projects: sortNeeds(nextProjects) };
+    setProfile(nextProfile);
+    resetNeedForm();
+    try {
+      await saveEmployerProfile(nextProfile);
+    } catch (err) {
+      setProfile(profile);
+      setError(err.message);
+    }
+  }
+
+  async function removeHiringNeed(needId) {
+    const nextProfile = {
+      ...profile,
+      projects: profile.projects.filter((need) => need.id !== needId),
+    };
+    setProfile(nextProfile);
+    try {
+      await saveEmployerProfile(nextProfile);
+    } catch (err) {
+      setProfile(profile);
+      setError(err.message);
+    }
+  }
+
   async function removeSavedCandidate(candidateId) {
     setError('');
     try {
@@ -192,6 +274,13 @@ export default function EmployerDashboard({ user, token }) {
 
   const candidates = data?.matches ?? data?.candidates ?? [];
   const posts = profile.posts ?? [];
+  const dashboardTabs = [
+    { id: 'profile', label: 'Profile', count: null },
+    { id: 'needs', label: 'Looking For', count: profile.projects.length },
+    { id: 'proof', label: 'Inbox', count: proofSignals.length },
+    { id: 'saved', label: 'Saved', count: savedCandidates.length },
+    { id: 'matches', label: 'Matches', count: candidates.length },
+  ];
 
   return (
     <section className="dashboard employer-dashboard">
@@ -219,71 +308,147 @@ export default function EmployerDashboard({ user, token }) {
             </label>
           </div>
         </div>
+        <div className="employer-header-side">
+          <label className="compact-visibility-toggle" htmlFor="employer-profile-publication">
+            <span>Toggle visibility</span>
+            <input
+              id="employer-profile-publication"
+              type="checkbox"
+              checked={profile.isDisplayed}
+              onChange={(event) => updateEmployerDisplayStatus(event.target.checked)}
+            />
+          </label>
+        </div>
       </header>
 
-      <section className="developer-layout">
-        <div className="developer-main">
-          <section className="feed-toolbar">
+      <nav className="employer-dashboard-tabs" aria-label="Employer dashboard sections">
+        {dashboardTabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={activeSection === tab.id ? 'active' : ''}
+            type="button"
+            onClick={() => setActiveSection(tab.id)}
+          >
+            <span>{tab.label}</span>
+            {tab.count !== null && <strong>{tab.count}</strong>}
+          </button>
+        ))}
+      </nav>
+
+      <section className="employer-workspace">
+        {activeSection === 'needs' && (
+          <>
+
+          <section className="workspace-panel candidate-panel employer-needs-editor">
             <div className="panel-heading-row">
               <div>
-                <p className="eyebrow">Hiring feed</p>
-                <h2>Activity</h2>
+                <h2>Looking for</h2>
+                <p className="subtle">Publish the problems a developer can prove they can solve.</p>
               </div>
-              <button className="primary-button" type="button" onClick={() => setIsComposingPost((current) => !current)}>
+              <button className="primary-button" type="button" onClick={() => {
+                if (isAddingNeed) {
+                  resetNeedForm();
+                  return;
+                }
+                setIsAddingNeed(true);
+              }}>
                 <Plus size={18} />
-                <span>Post need</span>
+                <span>{isAddingNeed ? 'Cancel' : 'Requirement'}</span>
               </button>
             </div>
-          </section>
-
-          {isComposingPost && (
-            <section className="workspace-panel feed-composer">
-              <form className="post-form" onSubmit={addPost}>
-                <textarea
-                  value={postInput}
-                  onChange={(event) => setPostInput(event.target.value)}
-                  placeholder="Looking for a junior React developer with API experience for a dashboard project..."
-                />
-                <div className="composer-actions">
-                  <button className="secondary-button" type="button" onClick={() => setIsComposingPost(false)}>
-                    Cancel
-                  </button>
-                  <button className="primary-button" type="submit">
-                    <Send size={17} />
-                    <span>Post</span>
-                  </button>
+            {isAddingNeed && (
+              <form className="project-form need-form" onSubmit={saveHiringNeed}>
+                <div className="two-column-fields">
+                  <label htmlFor="need-name">
+                    Requirement title
+                    <input
+                      id="need-name"
+                      value={needForm.name}
+                      onChange={(event) => updateNeedField('name', event.target.value)}
+                      placeholder="React dashboard polish"
+                    />
+                  </label>
+                  <label htmlFor="need-skills">
+                    Skills wanted
+                    <input
+                      id="need-skills"
+                      value={needForm.skills}
+                      onChange={(event) => updateNeedField('skills', event.target.value)}
+                      placeholder="React, APIs, PostgreSQL"
+                    />
+                  </label>
                 </div>
+                <label htmlFor="need-description">
+                  Problem to solve
+                  <textarea
+                    id="need-description"
+                    value={needForm.description}
+                    onChange={(event) => updateNeedField('description', event.target.value)}
+                    placeholder="Describe the real workflow, bug, feature, or product problem you want a developer to help with."
+                  />
+                </label>
+                <label className="featured-project-toggle" htmlFor="need-featured">
+                  <input
+                    id="need-featured"
+                    type="checkbox"
+                    checked={needForm.featured}
+                    onChange={(event) => updateNeedField('featured', event.target.checked)}
+                  />
+                  <span>Feature this requirement</span>
+                </label>
+                <button className="primary-button" type="submit">
+                  {editingNeedId ? <CheckCircle2 size={17} /> : <Plus size={17} />}
+                  <span>{editingNeedId ? 'Save requirement' : 'Add requirement'}</span>
+                </button>
               </form>
-            </section>
-          )}
-
-          <section className="feed-list">
-            {posts.length === 0 ? (
-              <article className="workspace-panel empty-feed">
-                <MessageSquareText size={28} />
-                <p>Post hiring needs, project context, role requirements, or the kind of developer you want to speak with.</p>
-              </article>
+            )}
+            {profile.projects.length === 0 ? (
+              <p className="info-message">Add what you are looking for so developers know what proof to send you.</p>
             ) : (
-              posts.map((post) => (
-                <article className="workspace-panel feed-post" key={post.id}>
-                  <div className="feed-post-header">
-                    <div className="feed-author">
-                      {profile.photo ? <img src={profile.photo} alt={`${user.name} avatar`} /> : <div className="profile-placeholder">{user.name?.[0] ?? 'E'}</div>}
-                      <div>
-                        <strong>{user.name}</strong>
-                        <span>{formatPostDate(post.createdAt)}</span>
+              <div className="candidate-list employer-need-editor-list">
+                {profile.projects.map((need) => (
+                  <article className="candidate-card proof-signal-card" key={need.id ?? need.name}>
+                    <BriefcaseBusiness size={28} />
+                    <div>
+                      <div className="panel-heading-row">
+                        <div>
+                          <h3>{need.name}</h3>
+                          <p>{need.description}</p>
+                        </div>
+                        <div className="requirement-actions">
+                          <button
+                            className="delete-button"
+                            type="button"
+                            onClick={() => startEditingNeed(need)}
+                            aria-label={`Edit ${need.name}`}
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            className="delete-button destructive-button"
+                            type="button"
+                            onClick={() => removeHiringNeed(need.id)}
+                            aria-label={`Remove ${need.name}`}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="skill-list">
+                        {(need.skills ?? []).map((skill) => (
+                          <span key={skill}>{skill}</span>
+                        ))}
                       </div>
                     </div>
-                    <button className="delete-button" type="button" onClick={() => removePost(post.id)} aria-label="Remove post">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                  <p>{post.body}</p>
-                </article>
-              ))
+                  </article>
+                ))}
+              </div>
             )}
           </section>
+          </>
+        )}
 
+        {activeSection === 'saved' && (
           <section className="workspace-panel candidate-panel">
             <div className="panel-heading-row">
               <div>
@@ -313,7 +478,7 @@ export default function EmployerDashboard({ user, token }) {
                           <p>{candidate.developerTitle}</p>
                         </div>
                         <button
-                          className="delete-button"
+                          className="delete-button destructive-button"
                           type="button"
                           onClick={() => removeSavedCandidate(candidate.id)}
                           aria-label={`Remove ${candidate.developerName} from saved candidates`}
@@ -338,12 +503,14 @@ export default function EmployerDashboard({ user, token }) {
               </div>
             )}
           </section>
+        )}
 
+        {activeSection === 'proof' && (
           <section className="workspace-panel candidate-panel">
             <div className="panel-heading-row">
               <div>
-                <h2>Proof inbox</h2>
-                <p className="subtle">Developers who sent project evidence for your hiring needs.</p>
+                <h2>Inbox</h2>
+                <p className="subtle">Incoming proof of work from developers interested in what you are looking for.</p>
               </div>
               <Link className="secondary-button" to="/profiles?type=DEVELOPER">
                 <Search size={16} />
@@ -351,7 +518,7 @@ export default function EmployerDashboard({ user, token }) {
               </Link>
             </div>
             {proofSignals.length === 0 ? (
-              <p className="info-message">When developers send proof from your employer profile, it will appear here.</p>
+              <p className="info-message">When developers send proof of work from your employer profile, it will appear here.</p>
             ) : (
               <div className="candidate-list proof-signal-list">
                 {proofSignals.map((signal) => (
@@ -389,16 +556,18 @@ export default function EmployerDashboard({ user, token }) {
               </div>
             )}
           </section>
+        )}
 
+        {activeSection === 'matches' && (
           <section className="workspace-panel candidate-panel">
             <div className="panel-heading-row">
               <div>
                 <h2>Recommended developers</h2>
-                <p className="subtle">Starting point based on an authentication/dashboard hiring need.</p>
+                <p className="subtle">Starting point based on an authentication/dashboard requirement.</p>
               </div>
               <Link className="secondary-button" to="/profiles">
                 <Search size={16} />
-                <span>Browse</span>
+                <span>Find candidates</span>
               </Link>
             </div>
             {error && <p className="error">{error}</p>}
@@ -426,131 +595,150 @@ export default function EmployerDashboard({ user, token }) {
               </div>
             )}
           </section>
-        </div>
+        )}
 
-        <aside className="developer-preview">
-          <section className="workspace-panel">
-            <h2>Profile preview</h2>
-            <div className="preview-card">
-              {profile.photo ? <img src={profile.photo} alt={`${user.name} preview`} /> : <div className="profile-placeholder">{user.name?.[0] ?? 'E'}</div>}
-              <div>
-                <h3>{user.name}</h3>
-                <p>{profile.title}</p>
-              </div>
-              <p>{profile.summary || 'Add a summary so developers understand what you are hiring for.'}</p>
-              <div className="skill-list">
+        {activeSection === 'profile' && (
+          <div className="employer-profile-grid">
+            <div className="employer-profile-editor-column">
+              <section className="workspace-panel profile-editor">
+                <h2>Profile summary</h2>
+                <label htmlFor="employer-summary">
+                  Summary
+                  <textarea
+                    id="employer-summary"
+                    value={profile.summary}
+                    onChange={(event) => updateEmployerProfile('summary', event.target.value)}
+                    placeholder="Describe your company, the kind of work available, and what developers should know before reaching out."
+                  />
+                </label>
+              </section>
+
+              <section className="workspace-panel">
+                <div className="panel-heading-row">
+                  <h2>Hiring focus</h2>
+                  <span>{profile.focus.length} added</span>
+                </div>
+                <form className="skill-entry" onSubmit={addFocus}>
+                  <input
+                    value={focusInput}
+                    onChange={(event) => setFocusInput(event.target.value)}
+                    placeholder="React, dashboards, APIs"
+                  />
+                  <button className="primary-button icon-button" type="submit" aria-label="Add hiring focus">
+                    <Plus size={18} />
+                  </button>
+                </form>
+                <div className="editable-skill-list">
                 {profile.focus.map((item) => (
-                  <span key={item}>{item}</span>
-                ))}
-              </div>
-            </div>
-          </section>
+                  <button className="remove-chip-button" key={item} type="button" onClick={() => removeFocus(item)}>
+                    <span>{item}</span>
+                    <Trash2 size={14} />
+                  </button>
+                  ))}
+                </div>
+              </section>
 
-          <section className="workspace-panel profile-editor">
-            <h2>Profile summary</h2>
-            <label htmlFor="employer-summary">
-              Summary
-              <textarea
-                id="employer-summary"
-                value={profile.summary}
-                onChange={(event) => updateEmployerProfile('summary', event.target.value)}
-                placeholder="Describe your company, the kind of work available, and what developers should know before reaching out."
-              />
-            </label>
-          </section>
+              <section className="workspace-panel">
+                <div className="panel-heading-row">
+                  <div>
+                    <h2>Hiring feed</h2>
+                    <p className="subtle">Optional updates for developers browsing your profile.</p>
+                  </div>
+                  <button className="primary-button" type="button" onClick={() => setIsComposingPost((current) => !current)}>
+                    <Plus size={18} />
+                    <span>Post</span>
+                  </button>
+                </div>
+                {isComposingPost && (
+                  <form className="post-form compact-post-form" onSubmit={addPost}>
+                    <textarea
+                      value={postInput}
+                      onChange={(event) => setPostInput(event.target.value)}
+                      placeholder="Looking for a junior React developer with API experience for a dashboard project..."
+                    />
+                    <div className="composer-actions">
+                      <button className="secondary-button" type="button" onClick={() => setIsComposingPost(false)}>
+                        Cancel
+                      </button>
+                      <button className="primary-button" type="submit">
+                        <Send size={17} />
+                        <span>Post</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
+                <div className="feed-list compact-feed-list">
+                  {posts.length === 0 ? (
+                    <p className="info-message">Hiring updates can live here without taking over the main dashboard.</p>
+                  ) : (
+                    posts.map((post) => (
+                      <article className="feed-post" key={post.id}>
+                        <div className="feed-post-header">
+                          <div className="feed-author">
+                            {profile.photo ? <img src={profile.photo} alt={`${user.name} avatar`} /> : <div className="profile-placeholder">{user.name?.[0] ?? 'E'}</div>}
+                            <div>
+                              <strong>{user.name}</strong>
+                              <span>{formatPostDate(post.createdAt)}</span>
+                            </div>
+                          </div>
+                          <button className="delete-button destructive-button" type="button" onClick={() => removePost(post.id)} aria-label="Remove post">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                        <p>{post.body}</p>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </section>
 
-          <section className="workspace-panel">
-            <div className="panel-heading-row">
-              <h2>Hiring focus</h2>
-              <span>{profile.focus.length} added</span>
+              <section className="workspace-panel">
+                <h2>Hiring brief</h2>
+                <ul className="feature-list">
+                  <li>
+                    <CheckCircle2 size={18} />
+                    <span>Post what kind of developer you are looking for</span>
+                  </li>
+                  <li>
+                    <CheckCircle2 size={18} />
+                    <span>Review project proof before contacting</span>
+                  </li>
+                  <li>
+                    <CheckCircle2 size={18} />
+                    <span>Shortlist developers by skill evidence</span>
+                  </li>
+                </ul>
+              </section>
             </div>
-            <form className="skill-entry" onSubmit={addFocus}>
-              <input
-                value={focusInput}
-                onChange={(event) => setFocusInput(event.target.value)}
-                placeholder="React, dashboards, APIs"
-              />
-              <button className="primary-button icon-button" type="submit" aria-label="Add hiring focus">
-                <Plus size={18} />
-              </button>
-            </form>
-            <div className="editable-skill-list">
-              {profile.focus.map((item) => (
-                <button key={item} type="button" onClick={() => removeFocus(item)}>
-                  <span>{item}</span>
-                  <Trash2 size={14} />
-                </button>
-              ))}
-            </div>
-          </section>
 
-          <section className="workspace-panel">
-            <div className="publication-panel">
-              <div>
-                <h2>Profile visibility</h2>
-                <p className="subtle">
-                  {profile.isDisplayed
-                    ? 'Your employer profile is visible in the public profiles.'
-                    : 'Your employer profile is hidden from public profiles.'}
-                </p>
-              </div>
-              <label className="visibility-toggle" htmlFor="employer-profile-publication">
-                <input
-                  id="employer-profile-publication"
-                  type="checkbox"
-                  checked={profile.isDisplayed}
-                  onChange={(event) => updateEmployerDisplayStatus(event.target.checked)}
-                />
-                <span>{profile.isDisplayed ? 'Displayed' : 'Hidden'}</span>
-              </label>
-              <Link className="secondary-button" to="/profiles">
-                View profiles
-              </Link>
-              {backendData && (
-                <p className="info-message">
-                  Database profile is {backendData.displayed ? 'displayed publicly' : 'hidden from public profiles'}.
-                </p>
-              )}
-            </div>
-          </section>
-
-          <section className="workspace-panel">
-            <h2>Hiring search</h2>
-            <div className="quick-search">
-              <label htmlFor="employer-dashboard-search">Find developers by skill</label>
-              <div className="search-box">
-                <Search size={18} />
-                <input
-                  id="employer-dashboard-search"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="React, Spring Boot, PostgreSQL"
-                />
-              </div>
-              <Link className="primary-button" to={`/profiles?query=${encodeURIComponent(search)}`}>
-                Search profiles
-              </Link>
-            </div>
-          </section>
-
-          <section className="workspace-panel">
-            <h2>Hiring brief</h2>
-            <ul className="feature-list">
-              <li>
-                <CheckCircle2 size={18} />
-                <span>Post what kind of developer you need</span>
-              </li>
-              <li>
-                <CheckCircle2 size={18} />
-                <span>Review project proof before contacting</span>
-              </li>
-              <li>
-                <CheckCircle2 size={18} />
-                <span>Shortlist developers by skill evidence</span>
-              </li>
-            </ul>
-          </section>
-        </aside>
+            <aside className="employer-profile-preview-column">
+              <section className="profile-card employer-dashboard-preview-card">
+                {profile.photo ? (
+                  <img src={profile.photo} alt={`${user.name} preview`} />
+                ) : (
+                  <div className="profile-placeholder">{user.name.slice(0, 2).toUpperCase()}</div>
+                )}
+                <div className="profile-card-heading">
+                  <span className="profile-type employer">Employer</span>
+                  <h3>{user.name}</h3>
+                  <p>{profile.title}</p>
+                </div>
+                <div className="skill-list">
+                  {profile.focus.map((item) => (
+                    <span key={item}>{item}</span>
+                  ))}
+                </div>
+                <div className="proof-text">
+                  <p>{profile.summary || 'Add a summary so developers understand what you are hiring for.'}</p>
+                </div>
+                <Link className="secondary-button profile-view-link" to={backendData?.id ? `/profiles/${backendData.id}` : '/profiles'}>
+                  <ExternalLink size={16} />
+                  <span>View profile</span>
+                </Link>
+              </section>
+            </aside>
+          </div>
+        )}
       </section>
     </section>
   );

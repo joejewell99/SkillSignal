@@ -63,10 +63,11 @@
   .dashboard-cards,
   .profile-detail-header,
   .profile-detail-grid,
-  .public-project-card,
-  .hiring-need-list,
-  .developer-layout,
-  .project-grid {
+    .public-project-card,
+    .hiring-need-list,
+    .employer-profile-grid,
+    .developer-layout,
+    .project-grid {
     grid-template-columns: 1fr;
   }
 
@@ -88,6 +89,15 @@
     flex-direction: column;
   }
 
+  .employer-header-side,
+  .employer-header-actions,
+  .compact-visibility-toggle {
+    align-items: stretch;
+    justify-content: flex-start;
+    justify-items: stretch;
+    width: 100%;
+  }
+
   .photo-frame {
     width: min(100%, 220px);
   }
@@ -95,6 +105,15 @@
   .profile-readiness {
     flex-basis: auto;
     width: 100%;
+  }
+
+  .employer-profile-preview-column {
+    justify-items: stretch;
+    position: static;
+  }
+
+  .employer-dashboard-preview-card {
+    max-width: none;
   }
 
   .two-column-fields,

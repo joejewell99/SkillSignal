@@ -15,17 +15,29 @@ public record ProfileResponse(
         boolean displayed,
         boolean acceptsConnections,
         List<ProfileProjectResponse> projects,
+        List<EmployerNeedResponse> needs,
+        ProofQualityResponse proofQuality,
         List<ProfilePostResponse> posts
 ) {
     public static ProfileResponse from(MarketplaceProfile profile) {
-        return from(profile, List.of(), List.of());
+        return from(profile, List.of(), List.of(), null, List.of());
     }
 
     public static ProfileResponse from(MarketplaceProfile profile, List<ProfileProjectResponse> projects) {
-        return from(profile, projects, List.of());
+        return from(profile, projects, List.of(), null, List.of());
     }
 
     public static ProfileResponse from(MarketplaceProfile profile, List<ProfileProjectResponse> projects, List<ProfilePostResponse> posts) {
+        return from(profile, projects, List.of(), null, posts);
+    }
+
+    public static ProfileResponse from(
+            MarketplaceProfile profile,
+            List<ProfileProjectResponse> projects,
+            List<EmployerNeedResponse> needs,
+            ProofQualityResponse proofQuality,
+            List<ProfilePostResponse> posts
+    ) {
         return new ProfileResponse(
                 profile.getId(),
                 profile.getType().name(),
@@ -38,6 +50,8 @@ public record ProfileResponse(
                 profile.isDisplayed(),
                 profile.getType().name().equals("DEVELOPER") && profile.getUserId() != null,
                 projects,
+                needs,
+                proofQuality,
                 posts
         );
     }

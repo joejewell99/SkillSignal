@@ -83,6 +83,17 @@
   padding-left: 18px;
 }
 
+.match-evidence {
+  background: #f4f9f6;
+  border: 1px solid #cde8d8;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.match-evidence h4 {
+  color: #17643a;
+}
+
 .section-heading {
   align-items: end;
   display: flex;

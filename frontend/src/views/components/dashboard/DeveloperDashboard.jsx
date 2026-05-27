@@ -314,6 +314,7 @@ export default function DeveloperDashboard({ user, token }) {
     { label: 'Projects', complete: profile.projects.length > 0 },
   ];
   const completion = Math.round((completionItems.filter((item) => item.complete).length / completionItems.length) * 100);
+  const proofQuality = backendData?.proofQuality;
   const posts = profile.posts ?? [];
 
   return (
@@ -343,10 +344,10 @@ export default function DeveloperDashboard({ user, token }) {
           </div>
         </div>
         <div className="profile-readiness" aria-label="Profile readiness">
-          <strong>{completion}%</strong>
-          <span>profile ready</span>
+          <strong>{proofQuality?.score ?? completion}%</strong>
+          <span>{proofQuality?.label ?? 'profile ready'}</span>
           <div className="readiness-bar">
-            <span style={{ width: `${completion}%` }} />
+            <span style={{ width: `${proofQuality?.score ?? completion}%` }} />
           </div>
         </div>
       </header>
@@ -404,7 +405,7 @@ export default function DeveloperDashboard({ user, token }) {
                         <span>{formatPostDate(post.createdAt)}</span>
                       </div>
                     </div>
-                    <button className="delete-button" type="button" onClick={() => removePost(post.id)} aria-label="Remove post">
+                    <button className="delete-button destructive-button" type="button" onClick={() => removePost(post.id)} aria-label="Remove post">
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -618,7 +619,7 @@ export default function DeveloperDashboard({ user, token }) {
                           >
                             <Star size={16} />
                           </button>
-                          <button className="delete-button" type="button" onClick={() => removeProject(project.id)} aria-label={`Remove ${project.name}`}>
+                          <button className="delete-button destructive-button" type="button" onClick={() => removeProject(project.id)} aria-label={`Remove ${project.name}`}>
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -699,7 +700,7 @@ export default function DeveloperDashboard({ user, token }) {
             </form>
             <div className="editable-skill-list">
               {profile.skills.map((skill) => (
-                <button key={skill} type="button" onClick={() => removeSkill(skill)}>
+                <button className="remove-chip-button" key={skill} type="button" onClick={() => removeSkill(skill)}>
                   <span>{skill}</span>
                   <Trash2 size={14} />
                 </button>
@@ -735,13 +736,16 @@ export default function DeveloperDashboard({ user, token }) {
           <section className="workspace-panel">
             <h2>Checklist</h2>
             <ul className="feature-list">
-              {completionItems.map((item) => (
+              {(proofQuality?.completedChecks?.length ? proofQuality.completedChecks.map((label) => ({ label, complete: true })) : completionItems).map((item) => (
                 <li key={item.label}>
                   <CheckCircle2 size={18} className={item.complete ? 'complete' : ''} />
                   <span>{item.label}</span>
                 </li>
               ))}
             </ul>
+            {(proofQuality?.missingChecks ?? []).length > 0 && (
+              <p className="info-message">Next proof step: {proofQuality.missingChecks[0]}.</p>
+            )}
             {error && <p className="error">{error}</p>}
             {backendData && (
               <p className="info-message">

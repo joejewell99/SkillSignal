@@ -50,10 +50,17 @@ const lipEmployerProfile = {
   ],
 };
 
+const legacyJeiSummary =
+  'Jei is building a small hiring and workflow platform for teams that want clearer developer proof, cleaner employer briefs, and faster shortlisting. We need junior developers who can learn quickly, communicate progress clearly, and help turn early product ideas into reliable React screens, API-backed workflows, and practical employer tools.';
+
+const genericEmployerSummaries = ['', 'Employer profile.'];
+
+const richJeiSummary =
+  'Jei is building a proof-first hiring workspace for early-career developers and small hiring teams. The product focuses on replacing vague job-board signals with visible project evidence: employer briefs, developer portfolios, proof inboxes, saved candidates, and match explanations that show why someone may be able to solve a real product problem. We are looking for junior full-stack developers who can move thoughtfully across React screens, Spring Boot APIs, profile workflows, and dashboard UX. A strong fit is someone who can ask good questions, ship small reliable improvements, explain their decisions clearly, and turn rough hiring ideas into practical tools that feel calm, useful, and trustworthy.';
+
 const jeiEmployerProfile = {
   title: 'Founder hiring junior full-stack product support',
-  summary:
-    'Jei is building a small hiring and workflow platform for teams that want clearer developer proof, cleaner employer briefs, and faster shortlisting. We need junior developers who can learn quickly, communicate progress clearly, and help turn early product ideas into reliable React screens, API-backed workflows, and practical employer tools.',
+  summary: richJeiSummary,
   photo: '',
   isDisplayed: false,
   focus: ['React', 'Spring Boot', 'REST APIs', 'Hiring workflows', 'Dashboard UI', 'Fast learner'],
@@ -223,12 +230,13 @@ export function readStoredEmployerProfile(storageKey, user) {
     const parsedProfile = JSON.parse(storedProfile);
     const hasCustomTitle = parsedProfile.title && parsedProfile.title !== defaultEmployerProfile.title;
     const hasCustomFocus = (parsedProfile.focus ?? []).some((item) => !defaultEmployerProfile.focus.includes(item));
+    const shouldUseSeededSummary = parsedProfile.summary === legacyJeiSummary || genericEmployerSummaries.includes(parsedProfile.summary ?? '');
     return {
       ...defaultEmployerProfile,
       ...seededProfile,
       ...parsedProfile,
       title: hasCustomTitle ? parsedProfile.title : seededProfile.title,
-      summary: parsedProfile.summary || seededProfile.summary,
+      summary: shouldUseSeededSummary ? seededProfile.summary : parsedProfile.summary || seededProfile.summary,
       isDisplayed: parsedProfile.isDisplayed ?? parsedProfile.isPublished ?? parsedProfile.displayed ?? false,
       focus: hasCustomFocus ? parsedProfile.focus : seededProfile.focus,
       projects: normalizeProjects((parsedProfile.projects ?? []).length > 0 ? parsedProfile.projects : seededProfile.projects),
