@@ -1,7 +1,11 @@
 package com.skillsignal.ai.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillsignal.ai.dto.AiMatchResponse;
 import com.skillsignal.ai.dto.DeveloperMatchResponse;
+import com.skillsignal.marketplace.dto.ProfileProjectResponse;
 import com.skillsignal.marketplace.model.MarketplaceProfile;
 import com.skillsignal.marketplace.repository.MarketplaceProfileRepository;
 import com.skillsignal.marketplace.dto.ProfileResponse;
@@ -36,9 +40,11 @@ public class MockAiMatchService {
     }
 
     private final MarketplaceProfileRepository profileRepository;
+    private final ObjectMapper objectMapper;
 
-    public MockAiMatchService(MarketplaceProfileRepository profileRepository) {
+    public MockAiMatchService(MarketplaceProfileRepository profileRepository, ObjectMapper objectMapper) {
         this.profileRepository = profileRepository;
+        this.objectMapper = objectMapper;
     }
 
     public AiMatchResponse matchDevelopers(String brief) {
@@ -69,13 +75,18 @@ public class MockAiMatchService {
             List<String> requiredSkills,
             List<String> problemTypes
     ) {
+        List<ProfileProjectResponse> projects = readProjects(profile);
         String profileText = normalize(String.join(" ",
                 profile.getTitle(),
                 profile.getSummary(),
-                String.join(" ", profile.getSkills())
+                String.join(" ", profile.getSkills()),
+                projects.stream()
+                        .map(this::projectSearchText)
+                        .reduce("", (current, next) -> current + " " + next)
         ));
         Set<String> strengths = new LinkedHashSet<>();
         Set<String> gaps = new LinkedHashSet<>();
+        List<String> evidence = new ArrayList<>();
         int score = 28;
 
         for (String skill : requiredSkills) {
@@ -85,6 +96,26 @@ public class MockAiMatchService {
             } else {
                 gaps.add(skill);
             }
+        }
+
+        List<ProfileProjectResponse> matchedProjects = projects.stream()
+                .filter(project -> projectMatches(project, requiredSkills, problemTypes))
+                .limit(3)
+                .toList();
+
+        for (ProfileProjectResponse project : matchedProjects) {
+            score += 8;
+            evidence.add(project.name() + " shows " + summarizeProjectEvidence(project));
+        }
+
+        if (projects.stream().anyMatch(project -> project.githubUrl() != null && !project.githubUrl().isBlank())) {
+            score += 4;
+            evidence.add("Code link available for review");
+        }
+
+        if (projects.stream().anyMatch(project -> project.liveUrl() != null && !project.liveUrl().isBlank())) {
+            score += 4;
+            evidence.add("Live demo available");
         }
 
         for (String problemType : problemTypes) {
@@ -100,13 +131,43 @@ public class MockAiMatchService {
 
         score = Math.min(score, 96);
         return new DeveloperMatchResponse(
-                ProfileResponse.from(profile),
+                ProfileResponse.from(profile, projects),
                 score,
                 new ArrayList<>(strengths),
                 new ArrayList<>(gaps).stream().limit(3).toList(),
-                buildReason(profile, strengths, gaps),
+                evidence.stream().distinct().limit(4).toList(),
+                buildReason(profile, strengths, gaps, matchedProjects),
                 buildQuestions(strengths, gaps)
         );
+    }
+
+    private boolean projectMatches(ProfileProjectResponse project, List<String> requiredSkills, List<String> problemTypes) {
+        String text = projectSearchText(project);
+        return requiredSkills.stream().anyMatch(skill ->
+                text.contains(normalize(skill)) || SIGNALS.getOrDefault(skill, List.of()).stream().anyMatch(text::contains)
+        ) || problemTypes.stream().anyMatch(problemType -> text.contains(normalize(problemType)));
+    }
+
+    private String projectSearchText(ProfileProjectResponse project) {
+        return normalize(String.join(" ",
+                safe(project.name()),
+                safe(project.description()),
+                String.join(" ", project.skills() == null ? List.of() : project.skills())
+        ));
+    }
+
+    private String summarizeProjectEvidence(ProfileProjectResponse project) {
+        List<String> signals = new ArrayList<>();
+        if (project.skills() != null && !project.skills().isEmpty()) {
+            signals.add(String.join(", ", project.skills().stream().limit(3).toList()));
+        }
+        if (project.githubUrl() != null && !project.githubUrl().isBlank()) {
+            signals.add("code");
+        }
+        if (project.liveUrl() != null && !project.liveUrl().isBlank()) {
+            signals.add("a live demo");
+        }
+        return signals.isEmpty() ? "relevant project context" : String.join(" plus ", signals);
     }
 
     private List<String> extractSignals(String brief) {
@@ -168,11 +229,14 @@ public class MockAiMatchService {
                 + " work.";
     }
 
-    private String buildReason(MarketplaceProfile profile, Set<String> strengths, Set<String> gaps) {
+    private String buildReason(MarketplaceProfile profile, Set<String> strengths, Set<String> gaps, List<ProfileProjectResponse> matchedProjects) {
         if (strengths.isEmpty()) {
             return profile.getName() + " has some adjacent project evidence, but would need closer review.";
         }
         String reason = profile.getName() + " matches because their profile shows " + String.join(", ", strengths) + ".";
+        if (!matchedProjects.isEmpty()) {
+            reason += " Start with " + matchedProjects.get(0).name() + " as the closest project proof.";
+        }
         if (!gaps.isEmpty()) {
             reason += " Check the interview for " + String.join(", ", gaps.stream().limit(2).toList()) + ".";
         }
@@ -198,5 +262,17 @@ public class MockAiMatchService {
 
     private String normalize(String value) {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
+    }
+
+    private List<ProfileProjectResponse> readProjects(MarketplaceProfile profile) {
+        try {
+            return objectMapper.readValue(profile.getProjectsJson(), new TypeReference<>() {});
+        } catch (JsonProcessingException exception) {
+            return List.of();
+        }
     }
 }

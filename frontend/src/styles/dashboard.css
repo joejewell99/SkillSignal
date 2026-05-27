@@ -107,6 +107,172 @@
   padding: 22px;
 }
 
+.employer-header-side {
+  align-items: start;
+  align-self: stretch;
+  display: grid;
+  justify-items: end;
+}
+
+.employer-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.employer-dashboard-tabs button:hover {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--line));
+}
+
+.compact-visibility-toggle {
+  align-items: center;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 900;
+  gap: 10px;
+  justify-self: end;
+  min-height: 38px;
+  padding: 7px 10px;
+  text-transform: uppercase;
+}
+
+.compact-visibility-toggle input {
+  appearance: none;
+  background: var(--line-strong);
+  border: 0;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  position: relative;
+  width: 40px;
+}
+
+.compact-visibility-toggle input::before {
+  background: #ffffff;
+  border-radius: 50%;
+  content: "";
+  height: 16px;
+  left: 3px;
+  position: absolute;
+  top: 3px;
+  transition: transform 160ms ease;
+  width: 16px;
+}
+
+.compact-visibility-toggle input:checked {
+  background: var(--signal);
+}
+
+.compact-visibility-toggle input:checked::before {
+  transform: translateX(18px);
+}
+
+.employer-dashboard-tabs {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px;
+}
+
+.employer-dashboard-tabs button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--muted);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-weight: 900;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 13px;
+}
+
+.employer-dashboard-tabs button.active {
+  background: var(--surface-strong);
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.employer-dashboard-tabs strong {
+  align-items: center;
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  border-radius: 999px;
+  color: var(--primary);
+  display: inline-flex;
+  font-size: 0.78rem;
+  justify-content: center;
+  min-width: 26px;
+  padding: 4px 8px;
+}
+
+.employer-workspace {
+  display: grid;
+  gap: 18px;
+}
+
+.employer-profile-grid {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+}
+
+.employer-profile-editor-column {
+  display: grid;
+  gap: 18px;
+}
+
+.employer-profile-preview-column {
+  display: grid;
+  justify-items: end;
+  position: sticky;
+  top: 24px;
+}
+
+.employer-dashboard-preview-card {
+  box-shadow: none;
+  max-width: 320px;
+  width: 100%;
+}
+
+.employer-dashboard-preview-card:hover {
+  box-shadow: var(--shadow);
+}
+
+.employer-dashboard-preview-card .proof-text p {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+}
+
+.compact-post-form {
+  margin-top: 16px;
+}
+
+.compact-feed-list {
+  margin-top: 16px;
+}
+
+.compact-feed-list .feed-post {
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+}
+
 .developer-identity {
   align-items: center;
   display: grid;
@@ -502,6 +668,18 @@
   padding: 7px 11px;
 }
 
+.editable-skill-list button.remove-chip-button {
+  background: #fff1f1;
+  border-color: #ef9a9a;
+  color: #b42318;
+}
+
+.editable-skill-list button.remove-chip-button:hover {
+  background: #ffe4e4;
+  border-color: #d92d20;
+  color: #8f1d14;
+}
+
 .project-form {
   display: grid;
   gap: 16px;
@@ -771,6 +949,12 @@
   gap: 8px;
 }
 
+.requirement-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .delete-button {
   align-items: center;
   background: var(--surface);
@@ -786,6 +970,18 @@
 .delete-button.active-feature {
   border-color: color-mix(in srgb, var(--primary) 44%, var(--line));
   color: var(--primary);
+}
+
+.delete-button.destructive-button {
+  background: #fff1f1;
+  border-color: #ef9a9a;
+  color: #b42318;
+}
+
+.delete-button.destructive-button:hover {
+  background: #ffe4e4;
+  border-color: #d92d20;
+  color: #8f1d14;
 }
 
 .project-links {

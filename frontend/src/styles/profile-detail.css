@@ -88,6 +88,47 @@
   color: var(--primary);
 }
 
+.proof-quality-card {
+  display: grid;
+  gap: 14px;
+}
+
+.proof-quality-score {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.proof-quality-score strong {
+  color: var(--primary);
+  font-size: 2.35rem;
+  line-height: 1;
+}
+
+.proof-quality-score h2 {
+  margin-bottom: 4px;
+}
+
+.proof-quality-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.proof-quality-checks span {
+  align-items: center;
+  background: #eef8f2;
+  border: 1px solid #b8e3c6;
+  border-radius: 999px;
+  color: #17643a;
+  display: inline-flex;
+  font-size: 0.84rem;
+  font-weight: 800;
+  gap: 6px;
+  padding: 7px 10px;
+}
+
 .proof-signal-panel {
   display: grid;
   gap: 14px;

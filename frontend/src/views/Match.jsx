@@ -113,6 +113,16 @@ export default function Match() {
                   </div>
                 </div>
                 <p className="proof-text">{match.reason}</p>
+                {(match.evidence ?? []).length > 0 && (
+                  <div className="match-evidence">
+                    <h4>Project evidence</h4>
+                    <ul>
+                      {match.evidence.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <div className="match-columns">
                   <div>
                     <h4>Strengths</h4>

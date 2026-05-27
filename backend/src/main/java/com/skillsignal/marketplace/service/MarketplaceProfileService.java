@@ -3,9 +3,11 @@ package com.skillsignal.marketplace.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.skillsignal.marketplace.dto.EmployerNeedResponse;
 import com.skillsignal.marketplace.dto.ProfilePostResponse;
 import com.skillsignal.marketplace.dto.ProfileProjectResponse;
 import com.skillsignal.marketplace.dto.ProfileResponse;
+import com.skillsignal.marketplace.dto.ProofQualityResponse;
 import com.skillsignal.marketplace.model.MarketplaceProfile;
 import com.skillsignal.marketplace.model.ProfileType;
 import com.skillsignal.marketplace.repository.MarketplaceProfileRepository;
@@ -155,7 +157,108 @@ public class MarketplaceProfileService {
     }
 
     private ProfileResponse toResponse(MarketplaceProfile profile) {
-        return ProfileResponse.from(profile, readProjects(profile), readPosts(profile));
+        List<ProfileProjectResponse> projects = readProjects(profile);
+        List<EmployerNeedResponse> needs = profile.getType() == ProfileType.EMPLOYER
+                ? projects.stream().map(this::toEmployerNeed).toList()
+                : List.of();
+        ProofQualityResponse proofQuality = profile.getType() == ProfileType.DEVELOPER
+                ? calculateProofQuality(projects)
+                : null;
+        return ProfileResponse.from(profile, projects, needs, proofQuality, readPosts(profile));
+    }
+
+    private EmployerNeedResponse toEmployerNeed(ProfileProjectResponse project) {
+        return new EmployerNeedResponse(
+                project.name(),
+                project.description(),
+                project.skills() == null ? List.of() : project.skills(),
+                buildEvidenceWanted(project),
+                project.featured()
+        );
+    }
+
+    private String buildEvidenceWanted(ProfileProjectResponse need) {
+        List<String> skills = need.skills() == null ? List.of() : need.skills();
+        if (skills.stream().anyMatch(skill -> normalize(skill).contains("react"))) {
+            return "A React project with reusable components, API states, and clear workflow decisions.";
+        }
+        if (skills.stream().anyMatch(skill -> normalize(skill).contains("spring") || normalize(skill).contains("jwt"))) {
+            return "A backend or authentication project with protected endpoints and edge-case notes.";
+        }
+        if (skills.stream().anyMatch(skill -> normalize(skill).contains("sql") || normalize(skill).contains("postgres"))) {
+            return "A database-backed project showing schema choices, queries, or reporting logic.";
+        }
+        return "A project link, code sample, or short explanation showing similar problem-solving evidence.";
+    }
+
+    private ProofQualityResponse calculateProofQuality(List<ProfileProjectResponse> projects) {
+        List<String> completed = new ArrayList<>();
+        List<String> missing = new ArrayList<>();
+        int score = 0;
+
+        if (!projects.isEmpty()) {
+            score += 20;
+            completed.add("Project proof added");
+        } else {
+            missing.add("Add at least one project");
+        }
+
+        if (projects.stream().anyMatch(project -> project.githubUrl() != null && !project.githubUrl().isBlank())) {
+            score += 15;
+            completed.add("Code link");
+        } else {
+            missing.add("Add a GitHub or code link");
+        }
+
+        if (projects.stream().anyMatch(project -> project.liveUrl() != null && !project.liveUrl().isBlank())) {
+            score += 15;
+            completed.add("Live demo");
+        } else {
+            missing.add("Add a live demo link");
+        }
+
+        if (projects.stream().anyMatch(project -> project.images() != null && !project.images().isEmpty())) {
+            score += 15;
+            completed.add("Screenshots");
+        } else {
+            missing.add("Add screenshots");
+        }
+
+        if (projects.stream().anyMatch(project -> project.skills() != null && !project.skills().isEmpty())) {
+            score += 15;
+            completed.add("Skills tied to projects");
+        } else {
+            missing.add("Tag projects with skills");
+        }
+
+        if (projects.stream().anyMatch(project -> Boolean.TRUE.equals(project.featured()))) {
+            score += 10;
+            completed.add("Featured best project");
+        } else {
+            missing.add("Feature your strongest project");
+        }
+
+        if (projects.stream().anyMatch(project -> project.description() != null && project.description().trim().length() >= 120)) {
+            score += 10;
+            completed.add("Detailed explanation");
+        } else {
+            missing.add("Explain the problem and decisions in more detail");
+        }
+
+        return new ProofQualityResponse(Math.min(score, 100), proofQualityLabel(score), completed, missing);
+    }
+
+    private String proofQualityLabel(int score) {
+        if (score >= 85) {
+            return "Strong proof";
+        }
+        if (score >= 60) {
+            return "Useful proof";
+        }
+        if (score >= 30) {
+            return "Needs more evidence";
+        }
+        return "No clear proof yet";
     }
 
     private List<ProfileProjectResponse> readProjects(MarketplaceProfile profile) {

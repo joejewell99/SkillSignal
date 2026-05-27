@@ -156,6 +156,30 @@
   color: #ffb5ad;
 }
 
+:root[data-theme="dark"] .delete-button.destructive-button {
+  background: #3a1512;
+  border-color: #b42318;
+  color: #ffb4aa;
+}
+
+:root[data-theme="dark"] .delete-button.destructive-button:hover {
+  background: #561b16;
+  border-color: #ff6b5f;
+  color: #ffd6d1;
+}
+
+:root[data-theme="dark"] .editable-skill-list button.remove-chip-button {
+  background: #3a1512;
+  border-color: #b42318;
+  color: #ffb4aa;
+}
+
+:root[data-theme="dark"] .editable-skill-list button.remove-chip-button:hover {
+  background: #561b16;
+  border-color: #ff6b5f;
+  color: #ffd6d1;
+}
+
 :root[data-theme="dark"] .success {
   background: #10271b;
   border-color: #245b3a;
@@ -166,5 +190,101 @@
   background: #101f2b;
   border-color: #29445a;
   color: #bdd2df;
+}
+
+:root[data-theme="dark"] .compact-visibility-toggle {
+  background: #10181e;
+  border-color: #33424c;
+  color: #c5d2db;
+}
+
+:root[data-theme="dark"] .compact-visibility-toggle input,
+:root[data-theme="dark"] .visibility-toggle input {
+  background: #33424c;
+  border-color: transparent;
+}
+
+:root[data-theme="dark"] .compact-visibility-toggle input::before,
+:root[data-theme="dark"] .visibility-toggle input::before {
+  background: #e8eef2;
+}
+
+:root[data-theme="dark"] .compact-visibility-toggle input:checked,
+:root[data-theme="dark"] .visibility-toggle input:checked {
+  background: #37d399;
+}
+
+:root[data-theme="dark"] .compact-visibility-toggle input:checked::before,
+:root[data-theme="dark"] .visibility-toggle input:checked::before {
+  background: #071017;
+}
+
+:root[data-theme="dark"] .featured-project-toggle input {
+  accent-color: #4f8cff;
+  background: transparent;
+}
+
+:root[data-theme="dark"] .featured-project-toggle input:checked {
+  accent-color: #4f8cff;
+}
+
+:root[data-theme="dark"] .employer-dashboard-tabs {
+  background: #11181d;
+  border-color: #26323a;
+}
+
+:root[data-theme="dark"] .employer-dashboard-tabs button {
+  color: #a9b7c1;
+}
+
+:root[data-theme="dark"] .employer-dashboard-tabs button.active {
+  background: #17232b;
+  border-color: #3e5361;
+  color: #e8eef2;
+}
+
+:root[data-theme="dark"] .employer-dashboard-tabs strong {
+  background: #10243f;
+  color: #9fc4ff;
+}
+
+:root[data-theme="dark"] .connection-toast {
+  background: #10271b;
+  border-color: #2f855a;
+  color: #98f0bd;
+}
+
+:root[data-theme="dark"] .proof-quality-checks span {
+  background: #10271b;
+  border-color: #2f855a;
+  color: #98f0bd;
+}
+
+:root[data-theme="dark"] .match-evidence {
+  background: #10271b;
+  border-color: #245b3a;
+}
+
+:root[data-theme="dark"] .match-evidence h4 {
+  color: #98f0bd;
+}
+
+:root[data-theme="dark"] .readiness-bar {
+  background: #26323a;
+}
+
+:root[data-theme="dark"] .readiness-bar span {
+  background: linear-gradient(90deg, #4f8cff, #37d399);
+}
+
+:root[data-theme="dark"] .feature-list svg.complete,
+:root[data-theme="dark"] .proof-quality-score strong,
+:root[data-theme="dark"] .profile-feed-panel .panel-heading-row svg {
+  color: #37d399;
+}
+
+:root[data-theme="dark"] .delete-button.active-feature {
+  border-color: #4f8cff;
+  color: #9fc4ff;
 }
 

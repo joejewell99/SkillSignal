@@ -4,6 +4,8 @@ import { Link, useParams } from 'react-router-dom';
 import { apiRequest } from '../api/client.js';
 import { useAuth } from '../state/AuthContext.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
+import EmployerNeedsList from './components/profile/EmployerNeedsList.jsx';
+import ProofQualityCard from './components/profile/ProofQualityCard.jsx';
 
 function normalizeProjects(projects = []) {
   return projects
@@ -131,6 +133,7 @@ export default function ProfileDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const projects = normalizeProjects(profile?.projects ?? []);
+  const needs = profile?.needs ?? [];
   const skills = profile?.skills ?? [];
   const posts = profile?.posts ?? [];
   const isEmployerProfile = profile?.type === 'EMPLOYER';
@@ -157,7 +160,7 @@ export default function ProfileDetail() {
         try {
           publicProfile = await apiRequest(`/api/profiles/${id}`);
         } catch (publicError) {
-          if (!token || user?.role !== 'DEVELOPER') {
+          if (!token || !['DEVELOPER', 'EMPLOYER'].includes(user?.role)) {
             throw publicError;
           }
         }
@@ -177,11 +180,21 @@ export default function ProfileDetail() {
         }
 
         if (token && user?.role === 'EMPLOYER') {
+          try {
+            ownProfile = await apiRequest('/api/employer/profile', { token });
+          } catch (ownProfileError) {
+            if (!publicProfile) {
+              throw ownProfileError;
+            }
+          }
+        }
+
+        if (token && user?.role === 'EMPLOYER') {
           savedCandidates = await apiRequest('/api/employer/saved-candidates', { token }).catch(() => []);
         }
 
         const isOwnProfile = ownProfile && String(ownProfile.id) === String(id);
-        const storedProfile = isOwnProfile ? readStoredDeveloperProfile(user) : null;
+        const storedProfile = isOwnProfile && user?.role === 'DEVELOPER' ? readStoredDeveloperProfile(user) : null;
         const shouldUseStoredProjects = storedProfile?.projects?.length > 0 && (ownProfile?.projects ?? []).length === 0;
         const shouldUseStoredPosts = storedProfile?.posts?.length > 0 && (ownProfile?.posts ?? []).length === 0;
         const nextProfile = isOwnProfile
@@ -497,44 +510,18 @@ export default function ProfileDetail() {
                 <h2>About</h2>
                 <p className="subtle">{profile.summary}</p>
               </article>
+              {isDeveloperProfile && <ProofQualityCard proofQuality={profile.proofQuality} />}
 
               <article className="workspace-panel">
                 <h2>{isEmployerProfile ? 'Hiring needs' : 'Project proof'}</h2>
-                {projects.length === 0 ? (
+                {isEmployerProfile ? (
+                  <EmployerNeedsList needs={needs} fallbackProjects={projects} describeIdealDeveloper={idealJuniorDevFor} />
+                ) : projects.length === 0 ? (
                   <p className="subtle">
-                    {isEmployerProfile
-                      ? 'This employer has not published detailed hiring needs yet.'
-                      : 'This developer has not published project proof yet.'}
+                    This developer has not published project proof yet.
                   </p>
                 ) : (
-                  isEmployerProfile ? (
-                    <div className="hiring-need-list">
-                      {projects.map((project) => (
-                        <article className="hiring-need-card" key={project.name}>
-                          <div>
-                            <span className="profile-type employer">Hiring need</span>
-                            <h3>{project.name}</h3>
-                            <p>{project.description}</p>
-                          </div>
-                          <div className="hiring-need-meta">
-                            <div>
-                              <h4>Required skills</h4>
-                              <div className="skill-list">
-                                {(project.skills ?? []).map((skill) => (
-                                  <span key={skill}>{skill}</span>
-                                ))}
-                              </div>
-                            </div>
-                            <div>
-                              <h4>Ideal junior dev</h4>
-                              <p>{idealJuniorDevFor(project)}</p>
-                            </div>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="public-project-list">
+                  <div className="public-project-list">
                       {projects.map((project, projectIndex) => (
                         <article className="public-project-card" key={project.name}>
                           {(project.images ?? []).length > 0 && (
@@ -578,7 +565,6 @@ export default function ProfileDetail() {
                         </article>
                       ))}
                     </div>
-                  )
                 )}
               </article>
             </div>
