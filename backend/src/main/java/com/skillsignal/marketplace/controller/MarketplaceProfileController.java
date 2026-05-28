@@ -1,5 +1,6 @@
 package com.skillsignal.marketplace.controller;
 
+import com.skillsignal.marketplace.dto.ProfileMetricsResponse;
 import com.skillsignal.marketplace.dto.ProfileResponse;
 import com.skillsignal.marketplace.model.ProfileType;
 import com.skillsignal.marketplace.service.MarketplaceProfileService;
@@ -26,6 +27,11 @@ public class MarketplaceProfileController {
             @RequestParam(required = false) ProfileType type
     ) {
         return profileService.search(query, name, type);
+    }
+
+    @GetMapping("/metrics")
+    ProfileMetricsResponse metrics() {
+        return profileService.metrics();
     }
 
     @GetMapping("/{id}")

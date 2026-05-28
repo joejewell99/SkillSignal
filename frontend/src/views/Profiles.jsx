@@ -20,14 +20,32 @@ function summaryPreview(summary = '', isExpanded = false) {
   return `${words.slice(0, summaryWordLimit).join(' ')}...`;
 }
 
+function formatMetric(value, isLoading = false) {
+  if (isLoading) {
+    return 'Loading';
+  }
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? new Intl.NumberFormat('en').format(numericValue) : '0';
+}
+
 export default function Profiles() {
   const [query, setQuery] = useState('');
   const [nameQuery, setNameQuery] = useState('');
   const [filter, setFilter] = useState('ALL');
   const [profiles, setProfiles] = useState([]);
+  const [metrics, setMetrics] = useState(null);
+  const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
   const [expandedSummaries, setExpandedSummaries] = useState({});
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
   const [profileError, setProfileError] = useState('');
+
+  useEffect(() => {
+    setIsLoadingMetrics(true);
+    apiRequest('/api/profiles/metrics')
+      .then(setMetrics)
+      .catch(() => setMetrics(null))
+      .finally(() => setIsLoadingMetrics(false));
+  }, []);
 
   useEffect(() => {
     const searchParams = new URLSearchParams();
@@ -71,16 +89,20 @@ export default function Profiles() {
         </div>
         <div className="directory-metrics" aria-label="Profile directory metrics">
           <div>
-            <strong>22</strong>
-            <span>seed profiles</span>
+            <strong>{formatMetric(metrics?.totalAccounts, isLoadingMetrics)}</strong>
+            <span>accounts</span>
           </div>
           <div>
-            <strong>AI</strong>
-            <span>match ready</span>
+            <strong>{formatMetric(metrics?.publicProfiles, isLoadingMetrics)}</strong>
+            <span>public profiles</span>
           </div>
           <div>
-            <strong>Proof</strong>
-            <span>first ranking</span>
+            <strong>{formatMetric(metrics?.developerProfiles, isLoadingMetrics)}</strong>
+            <span>developers</span>
+          </div>
+          <div>
+            <strong>{formatMetric(metrics?.employerProfiles, isLoadingMetrics)}</strong>
+            <span>employers</span>
           </div>
         </div>
       </section>

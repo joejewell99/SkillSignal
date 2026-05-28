@@ -237,8 +237,8 @@
 .directory-metrics {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  max-width: 720px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-width: 860px;
 }
 
 .directory-metrics div {
@@ -253,6 +253,9 @@
 .directory-metrics strong {
   color: var(--primary);
   font-size: 1.45rem;
+  line-height: 1.1;
+  min-height: 1.6rem;
+  overflow-wrap: anywhere;
 }
 
 .directory-metrics span {
