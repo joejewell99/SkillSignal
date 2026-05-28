@@ -15,6 +15,7 @@ export default function PublicHeader() {
       </Link>
 
       <nav className="site-nav" aria-label="Primary navigation">
+        <Link to="/">Home</Link>
         <Link to="/match">AI match</Link>
         <Link to="/profiles">Profiles</Link>
         <ThemeToggle />
