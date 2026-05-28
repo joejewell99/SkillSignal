@@ -45,6 +45,12 @@ public class MarketplaceProfile {
     @Column(nullable = false, columnDefinition = "text")
     private String postsJson = "[]";
 
+    @Column(columnDefinition = "text")
+    private String contactLinksJson = "{}";
+
+    @Column(columnDefinition = "text")
+    private String preferencesJson = "{}";
+
     @Column(unique = true)
     private Long userId;
 
@@ -175,6 +181,22 @@ public class MarketplaceProfile {
 
     public void setPostsJson(String postsJson) {
         this.postsJson = postsJson == null || postsJson.isBlank() ? "[]" : postsJson;
+    }
+
+    public String getContactLinksJson() {
+        return contactLinksJson;
+    }
+
+    public void setContactLinksJson(String contactLinksJson) {
+        this.contactLinksJson = contactLinksJson == null || contactLinksJson.isBlank() ? "{}" : contactLinksJson;
+    }
+
+    public String getPreferencesJson() {
+        return preferencesJson;
+    }
+
+    public void setPreferencesJson(String preferencesJson) {
+        this.preferencesJson = preferencesJson == null || preferencesJson.isBlank() ? "{}" : preferencesJson;
     }
 
     public List<String> getSkills() {

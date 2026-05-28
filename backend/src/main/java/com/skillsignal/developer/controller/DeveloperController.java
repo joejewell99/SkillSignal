@@ -58,6 +58,8 @@ public class DeveloperController {
                 request.summary(),
                 request.image(),
                 request.skills(),
+                request.contactLinks(),
+                request.preferences(),
                 request.projects(),
                 request.posts(),
                 request.displayed()

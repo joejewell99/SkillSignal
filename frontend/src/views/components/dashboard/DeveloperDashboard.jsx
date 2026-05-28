@@ -6,8 +6,12 @@ import {
   Code2,
   ExternalLink,
   Github,
+  Globe,
   ImagePlus,
+  Linkedin,
+  Mail,
   MessageSquareText,
+  Pencil,
   Plus,
   Send,
   Star,
@@ -15,6 +19,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { apiRequest } from '../../../api/client.js';
+import ContactLinks from '../profile/ContactLinks.jsx';
 import {
   emptyProject,
   formatPostDate,
@@ -32,7 +37,11 @@ export default function DeveloperDashboard({ user, token }) {
   const [connectionFeed, setConnectionFeed] = useState([]);
   const [isComposingPost, setIsComposingPost] = useState(false);
   const [isAddingProject, setIsAddingProject] = useState(false);
+  const [profileSaveStatus, setProfileSaveStatus] = useState('');
+  const [projectSaveStatus, setProjectSaveStatus] = useState('');
   const [projectForm, setProjectForm] = useState(emptyProject);
+  const [editingProjectId, setEditingProjectId] = useState(null);
+  const [activeSection, setActiveSection] = useState('profile');
   const [profile, setProfile] = useState(() => readStoredDeveloperProfile(storageKey));
 
   useEffect(() => {
@@ -51,12 +60,20 @@ export default function DeveloperDashboard({ user, token }) {
         const nextProfile = {
           ...storedProfile,
           isDisplayed: profileData.displayed,
-          title: storedProfile.title || profileData.title,
-          summary: storedProfile.summary || profileData.summary,
-          photo: storedProfile.photo || profileData.image,
-          skills: storedProfile.skills.length > 0 ? storedProfile.skills : profileData.skills,
-          projects: shouldSyncStoredProjects ? storedProfile.projects : backendProjects,
-          posts: shouldSyncStoredPosts ? storedProfile.posts : backendPosts,
+          title: profileData.title || storedProfile.title,
+          summary: profileData.summary || storedProfile.summary,
+          photo: profileData.image || storedProfile.photo,
+          skills: profileData.skills?.length > 0 ? profileData.skills : storedProfile.skills,
+          contactLinks: {
+            ...(storedProfile.contactLinks ?? {}),
+            ...(profileData.contactLinks ?? {}),
+          },
+          preferences: {
+            ...(storedProfile.preferences ?? {}),
+            ...(profileData.preferences ?? {}),
+          },
+          projects: backendProjects.length > 0 ? backendProjects : storedProfile.projects,
+          posts: backendPosts.length > 0 ? backendPosts : storedProfile.posts,
         };
         setProfile((current) => ({
           ...current,
@@ -94,6 +111,42 @@ export default function DeveloperDashboard({ user, token }) {
 
   function updateProfile(field, value) {
     setProfile((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateContactLink(field, value) {
+    setProfile((current) => ({
+      ...current,
+      contactLinks: {
+        ...(current.contactLinks ?? {}),
+        [field]: value,
+      },
+    }));
+  }
+
+  function updatePreference(field, value) {
+    setProfile((current) => ({
+      ...current,
+      preferences: {
+        ...(current.preferences ?? {}),
+        [field]: value,
+      },
+    }));
+  }
+
+  function toggleWorkType(workType) {
+    setProfile((current) => {
+      const currentTypes = current.preferences?.workTypes ?? [];
+      const nextTypes = currentTypes.includes(workType)
+        ? currentTypes.filter((item) => item !== workType)
+        : [...currentTypes, workType];
+      return {
+        ...current,
+        preferences: {
+          ...(current.preferences ?? {}),
+          workTypes: nextTypes,
+        },
+      };
+    });
   }
 
   function readImage(file, onLoad) {
@@ -190,6 +243,26 @@ export default function DeveloperDashboard({ user, token }) {
     return [...projects].sort((first, second) => Number(Boolean(second.featured)) - Number(Boolean(first.featured)));
   }
 
+  function resetProjectForm() {
+    setProjectForm(emptyProject);
+    setEditingProjectId(null);
+    setIsAddingProject(false);
+  }
+
+  function startEditingProject(project) {
+    setProjectForm({
+      name: project.name ?? '',
+      description: project.description ?? '',
+      githubUrl: project.githubUrl ?? '',
+      liveUrl: project.liveUrl ?? '',
+      skills: (project.skills ?? []).join(', '),
+      images: project.images ?? [],
+      featured: Boolean(project.featured),
+    });
+    setEditingProjectId(project.id);
+    setIsAddingProject(true);
+  }
+
   async function saveDeveloperProfile(nextProfile, displayed = nextProfile.isDisplayed) {
     setError('');
     const profileData = await apiRequest('/api/developer/profile', {
@@ -207,7 +280,7 @@ export default function DeveloperDashboard({ user, token }) {
     return profileData;
   }
 
-  async function addProject(event) {
+  async function saveProject(event) {
     event.preventDefault();
     const name = projectForm.name.trim();
     const description = projectForm.description.trim();
@@ -227,12 +300,16 @@ export default function DeveloperDashboard({ user, token }) {
         .map((skill) => skill.trim())
         .filter(Boolean),
     };
-    const nextProfile = { ...profile, projects: sortProjects([project, ...profile.projects]) };
+    const nextProjects = editingProjectId
+      ? profile.projects.map((existingProject) => (existingProject.id === editingProjectId ? { ...project, id: editingProjectId } : existingProject))
+      : [project, ...profile.projects];
+    const nextProfile = { ...profile, projects: sortProjects(nextProjects) };
     setProfile(nextProfile);
-    setProjectForm(emptyProject);
-    setIsAddingProject(false);
+    resetProjectForm();
     try {
       await saveDeveloperProfile(nextProfile);
+      setProjectSaveStatus(editingProjectId ? 'Saved' : 'Added');
+      window.setTimeout(() => setProjectSaveStatus(''), 1800);
     } catch (err) {
       setProfile(profile);
       setError(err.message);
@@ -282,6 +359,40 @@ export default function DeveloperDashboard({ user, token }) {
     }
   }
 
+  async function saveContactLinks() {
+    try {
+      await saveDeveloperProfile(profile);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function saveDeveloperPreferences() {
+    try {
+      await saveDeveloperProfile(profile);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function saveProfileDetails() {
+    try {
+      await saveDeveloperProfile(profile);
+      setProfileSaveStatus('Saved');
+      window.setTimeout(() => setProfileSaveStatus(''), 1800);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  function handleProfileFieldKeyDown(event) {
+    if (event.key !== 'Enter' || event.shiftKey || event.metaKey || event.ctrlKey || event.altKey) {
+      return;
+    }
+    event.preventDefault();
+    saveProfileDetails();
+  }
+
   async function acceptConnection(connectionId) {
     setError('');
     try {
@@ -316,6 +427,37 @@ export default function DeveloperDashboard({ user, token }) {
   const completion = Math.round((completionItems.filter((item) => item.complete).length / completionItems.length) * 100);
   const proofQuality = backendData?.proofQuality;
   const posts = profile.posts ?? [];
+  const qualityChecklist = [
+    { label: 'Add a clear profile photo', complete: Boolean(profile.photo) },
+    { label: 'Add at least 3 core skills', complete: profile.skills.length >= 3 },
+    {
+      label: 'Set availability and work focus',
+      complete: Boolean(profile.preferences?.availability) && (profile.preferences?.workTypes ?? []).length > 0,
+    },
+    {
+      label: 'Add professional contact links',
+      complete: Object.values(profile.contactLinks ?? {}).some(Boolean),
+    },
+    { label: 'Publish your strongest project', complete: profile.projects.length > 0 },
+    {
+      label: 'Include a GitHub or live link',
+      complete: profile.projects.some((project) => project.githubUrl || project.liveUrl),
+    },
+    {
+      label: 'Use screenshots to show the result',
+      complete: profile.projects.some((project) => (project.images ?? []).length > 0),
+    },
+    {
+      label: 'Explain what you personally built',
+      complete: profile.projects.some((project) => (project.description ?? '').trim().length >= 80),
+    },
+  ];
+  const dashboardTabs = [
+    { id: 'profile', label: 'Profile', count: null },
+    { id: 'projects', label: 'Projects', count: profile.projects.length },
+    { id: 'inbox', label: 'Inbox', count: connectionRequests.length },
+    { id: 'feed', label: 'Updates', count: posts.length + connectionFeed.length },
+  ];
 
   return (
     <section className="dashboard developer-dashboard">
@@ -338,174 +480,289 @@ export default function DeveloperDashboard({ user, token }) {
                 id="developer-title"
                 value={profile.title}
                 onChange={(event) => updateProfile('title', event.target.value)}
+                onKeyDown={handleProfileFieldKeyDown}
                 placeholder="Junior frontend developer"
               />
             </label>
           </div>
         </div>
-        <div className="profile-readiness" aria-label="Profile readiness">
-          <strong>{proofQuality?.score ?? completion}%</strong>
-          <span>{proofQuality?.label ?? 'profile ready'}</span>
-          <div className="readiness-bar">
-            <span style={{ width: `${proofQuality?.score ?? completion}%` }} />
+        <div className="employer-header-side developer-header-side">
+          <label className="compact-visibility-toggle" htmlFor="developer-profile-publication">
+            <span>Toggle visibility</span>
+            <input
+              id="developer-profile-publication"
+              type="checkbox"
+              checked={profile.isDisplayed}
+              onChange={(event) => updateDisplayStatus(event.target.checked)}
+            />
+          </label>
+          <div className="profile-readiness" aria-label="Profile readiness">
+            <strong>{proofQuality?.score ?? completion}%</strong>
+            <span>{proofQuality?.label ?? 'profile ready'}</span>
+            <div className="readiness-bar">
+              <span style={{ width: `${proofQuality?.score ?? completion}%` }} />
+            </div>
           </div>
         </div>
       </header>
 
-      <section className="developer-layout">
-        <div className="developer-main">
-          <section className="feed-toolbar">
-            <div className="panel-heading-row">
-              <div>
-                <p className="eyebrow">Feed</p>
-                <h2>Activity</h2>
-              </div>
-              <button className="primary-button" type="button" onClick={() => setIsComposingPost((current) => !current)}>
-                <Plus size={18} />
-                <span>Post</span>
-              </button>
-            </div>
-          </section>
+      <nav className="employer-dashboard-tabs" aria-label="Developer dashboard sections">
+        {dashboardTabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={activeSection === tab.id ? 'active' : ''}
+            type="button"
+            onClick={() => setActiveSection(tab.id)}
+          >
+            <span>{tab.label}</span>
+            {tab.count !== null && <strong>{tab.count}</strong>}
+          </button>
+        ))}
+      </nav>
 
-          {isComposingPost && (
-            <section className="workspace-panel feed-composer">
-              <form className="post-form" onSubmit={addPost}>
-                <textarea
-                  value={postInput}
-                  onChange={(event) => setPostInput(event.target.value)}
-                  placeholder="Working on my new React project, currently in development..."
-                />
-                <div className="composer-actions">
-                  <button className="secondary-button" type="button" onClick={() => setIsComposingPost(false)}>
-                    Cancel
-                  </button>
-                  <button className="primary-button" type="submit">
-                    <Send size={17} />
-                    <span>Post</span>
-                  </button>
-                </div>
-              </form>
-            </section>
-          )}
+      <section className="employer-workspace developer-workspace">
+        {activeSection === 'profile' && (
+          <div className="employer-profile-grid">
+            <div className="employer-profile-editor-column">
+              <section className="workspace-panel profile-editor">
+                <h2>Profile summary</h2>
+                <label htmlFor="developer-summary">
+                  Summary
+                  <textarea
+                    id="developer-summary"
+                    value={profile.summary}
+                    onChange={(event) => updateProfile('summary', event.target.value)}
+                    placeholder="Describe the kind of developer you are, what you build, and what roles you are looking for."
+                  />
+                </label>
+              </section>
 
-          <section className="feed-list">
-            {posts.length === 0 ? (
-              <article className="workspace-panel empty-feed">
-                <MessageSquareText size={28} />
-                <p>Post project progress, learning notes, goals, and what you are building next.</p>
-              </article>
-            ) : (
-              posts.map((post) => (
-                <article className="workspace-panel feed-post" key={post.id}>
-                  <div className="feed-post-header">
-                    <div className="feed-author">
-                      {profile.photo ? <img src={profile.photo} alt={`${user.name} avatar`} /> : <div className="profile-placeholder">{user.name?.[0] ?? 'D'}</div>}
-                      <div>
-                        <strong>{user.name}</strong>
-                        <span>{formatPostDate(post.createdAt)}</span>
-                      </div>
-                    </div>
-                    <button className="delete-button destructive-button" type="button" onClick={() => removePost(post.id)} aria-label="Remove post">
-                      <Trash2 size={16} />
-                    </button>
+              <section className="workspace-panel">
+                <div className="panel-heading-row">
+                  <div>
+                    <h2>Main skills</h2>
+                    <p className="subtle">{profile.skills.length} added</p>
                   </div>
-                  <p>{post.body}</p>
-                </article>
-              ))
-            )}
-          </section>
+                </div>
+                <form className="skill-entry" onSubmit={addSkill}>
+                  <input
+                    value={skillInput}
+                    onChange={(event) => setSkillInput(event.target.value)}
+                    placeholder="React, Java, AWS"
+                  />
+                  <button className="primary-button icon-button" type="submit" aria-label="Add skill">
+                    <Plus size={18} />
+                  </button>
+                </form>
+                <div className="editable-skill-list">
+                  {profile.skills.map((skill) => (
+                    <button className="remove-chip-button" key={skill} type="button" onClick={() => removeSkill(skill)}>
+                      <span>{skill}</span>
+                      <Trash2 size={14} />
+                    </button>
+                  ))}
+                </div>
+              </section>
 
-          <section className="workspace-panel connection-panel">
-            <div className="panel-heading-row">
-              <div>
-                <p className="eyebrow">Connections</p>
-                <h2>Requests</h2>
-              </div>
-              <Link className="secondary-button" to="/profiles?type=DEVELOPER">
-                <UserRound size={16} />
-                <span>Find developers</span>
-              </Link>
+              <section className="workspace-panel developer-preferences-editor">
+                <div className="panel-heading-row">
+                  <div>
+                    <h2>Looking for</h2>
+                    <p className="subtle">These details appear on your full View profile page, not on the searchable profile card.</p>
+                  </div>
+                </div>
+                <div className="two-column-fields">
+                  <label htmlFor="developer-availability">
+                    Availability
+                    <select
+                      id="developer-availability"
+                      value={profile.preferences?.availability ?? ''}
+                      onChange={(event) => updatePreference('availability', event.target.value)}
+                      onKeyDown={handleProfileFieldKeyDown}
+                    >
+                      <option value="">Choose availability</option>
+                      <option value="Open to junior roles">Open to junior roles</option>
+                      <option value="Open to freelance projects">Open to freelance projects</option>
+                      <option value="Open to internships">Open to internships</option>
+                      <option value="Open to collaborations">Open to collaborations</option>
+                      <option value="Not currently looking">Not currently looking</option>
+                    </select>
+                  </label>
+                  <label htmlFor="developer-remote-preference">
+                    Work preference
+                    <input
+                      id="developer-remote-preference"
+                      value={profile.preferences?.remotePreference ?? ''}
+                      onChange={(event) => updatePreference('remotePreference', event.target.value)}
+                      onKeyDown={handleProfileFieldKeyDown}
+                      placeholder="Remote, hybrid, London, UK only"
+                    />
+                  </label>
+                </div>
+                <div className="work-type-picker" aria-label="Preferred work types">
+                  {['Frontend', 'Backend', 'Full-stack', 'APIs', 'Dashboards', 'Internal tools'].map((workType) => (
+                    <button
+                      key={workType}
+                      className={(profile.preferences?.workTypes ?? []).includes(workType) ? 'active' : ''}
+                      type="button"
+                      onClick={() => toggleWorkType(workType)}
+                    >
+                      {workType}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="workspace-panel contact-links-editor">
+                <div className="panel-heading-row">
+                  <div>
+                    <h2>Contact links</h2>
+                    <p className="subtle">Add the professional places employers should use to learn more or contact you.</p>
+                  </div>
+                </div>
+                <div className="contact-link-fields">
+                  <label htmlFor="developer-linkedin">
+                    <span><Linkedin size={17} /> LinkedIn</span>
+                    <input
+                      id="developer-linkedin"
+                      type="url"
+                      value={profile.contactLinks?.linkedinUrl ?? ''}
+                      onChange={(event) => updateContactLink('linkedinUrl', event.target.value)}
+                      onKeyDown={handleProfileFieldKeyDown}
+                      placeholder="https://linkedin.com/in/your-name"
+                    />
+                  </label>
+                  <label htmlFor="developer-github-contact">
+                    <span><Github size={17} /> GitHub</span>
+                    <input
+                      id="developer-github-contact"
+                      type="url"
+                      value={profile.contactLinks?.githubUrl ?? ''}
+                      onChange={(event) => updateContactLink('githubUrl', event.target.value)}
+                      onKeyDown={handleProfileFieldKeyDown}
+                      placeholder="https://github.com/your-username"
+                    />
+                  </label>
+                  <label htmlFor="developer-contact-email">
+                    <span><Mail size={17} /> Email</span>
+                    <input
+                      id="developer-contact-email"
+                      type="email"
+                      value={profile.contactLinks?.email ?? ''}
+                      onChange={(event) => updateContactLink('email', event.target.value)}
+                      onKeyDown={handleProfileFieldKeyDown}
+                      placeholder="you@example.com"
+                    />
+                  </label>
+                  <label htmlFor="developer-website">
+                    <span><Globe size={17} /> Website</span>
+                    <input
+                      id="developer-website"
+                      type="url"
+                      value={profile.contactLinks?.websiteUrl ?? ''}
+                      onChange={(event) => updateContactLink('websiteUrl', event.target.value)}
+                      onKeyDown={handleProfileFieldKeyDown}
+                      placeholder="https://your-portfolio.dev"
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <section className="workspace-panel">
+                <div className="panel-heading-row quality-heading">
+                  <div>
+                    <h2>Profile quality</h2>
+                    <p className="subtle">Use this as a quick QA check before employers review your work.</p>
+                  </div>
+                  <Link className="secondary-button" to="/profiles/me">
+                    <ExternalLink size={16} />
+                    <span>View profile</span>
+                  </Link>
+                </div>
+                <ul className="feature-list quality-checklist">
+                  {qualityChecklist.map((item) => (
+                    <li key={item.label}>
+                      <CheckCircle2 size={18} className={item.complete ? 'complete' : ''} />
+                      <span>{item.label}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="info-message">
+                  {profile.isDisplayed
+                    ? 'Your profile is currently visible to employers.'
+                    : 'Your profile is currently hidden from public developer profiles.'}
+                </p>
+              </section>
             </div>
-            {connectionRequests.length === 0 ? (
-              <p className="info-message">Connection requests from other developers will appear here.</p>
-            ) : (
-              <div className="connection-request-list">
-                {connectionRequests.map((request) => (
-                  <article className="connection-request-card" key={request.id}>
-                    {request.requesterImage ? (
-                      <img src={request.requesterImage} alt={request.requesterName} />
-                    ) : (
-                      <div className="profile-placeholder">{request.requesterName?.[0] ?? 'D'}</div>
-                    )}
-                    <div>
-                      <h3>{request.requesterName}</h3>
-                      <p>{request.requesterTitle}</p>
-                      <Link to={`/profiles/${request.requesterProfileId}`}>View profile</Link>
-                    </div>
-                    <div className="connection-actions">
-                      <button className="primary-button" type="button" onClick={() => acceptConnection(request.id)}>
-                        <CheckCircle2 size={17} />
-                        <span>Accept</span>
-                      </button>
-                      <button className="secondary-button" type="button" onClick={() => declineConnection(request.id)}>
-                        Decline
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
 
-          <section className="workspace-panel connection-panel">
-            <div className="panel-heading-row">
-              <div>
-                <p className="eyebrow">Connection feed</p>
-                <h2>Developer activity</h2>
+            <aside className="employer-profile-preview-column">
+              <section className="profile-card employer-dashboard-preview-card">
+                {profile.photo ? (
+                  <img src={profile.photo} alt={`${user.name} preview`} />
+                ) : (
+                  <div className="profile-placeholder">{user.name.slice(0, 2).toUpperCase()}</div>
+                )}
+                <div className="profile-card-heading">
+                  <span className="profile-type developer">Developer</span>
+                  <h3>{user.name}</h3>
+                  <p>{profile.title}</p>
+                </div>
+                <div className="skill-list">
+                  {profile.skills.map((skill) => (
+                    <span key={skill}>{skill}</span>
+                  ))}
+                </div>
+                <div className="proof-text">
+                  <p>{profile.summary || 'Add a summary so employers understand the kind of work you can take on.'}</p>
+                </div>
+                <Link className="secondary-button profile-view-link" to="/profiles/me">
+                  <ExternalLink size={16} />
+                  <span>View profile</span>
+                </Link>
+              </section>
+              <div className="profile-preview-actions">
+                <p className="info-message preview-note">This mirrors your searchable profile card.</p>
+                <button className={`primary-button profile-view-link ${profileSaveStatus ? 'success-button' : ''}`} type="button" onClick={saveProfileDetails}>
+                  <CheckCircle2 size={17} />
+                  <span>{profileSaveStatus || 'Save profile'}</span>
+                </button>
               </div>
-              <MessageSquareText size={20} />
-            </div>
-            {connectionFeed.length === 0 ? (
-              <p className="info-message">After you connect with developers, their project updates will show here.</p>
-            ) : (
-              <div className="feed-list connection-feed-list">
-                {connectionFeed.map((post) => (
-                  <article className="feed-post" key={`${post.authorProfileId}-${post.postId ?? post.createdAt}`}>
-                    <div className="feed-post-header">
-                      <div className="feed-author">
-                        {post.authorImage ? (
-                          <img src={post.authorImage} alt={`${post.authorName} avatar`} />
-                        ) : (
-                          <div className="profile-placeholder">{post.authorName?.[0] ?? 'D'}</div>
-                        )}
-                        <div>
-                          <strong>{post.authorName}</strong>
-                          <span>{formatPostDate(post.createdAt)}</span>
-                        </div>
-                      </div>
-                      <Link className="secondary-button" to={`/profiles/${post.authorProfileId}`}>Profile</Link>
-                    </div>
-                    <p>{post.body}</p>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
+            </aside>
+          </div>
+        )}
 
+        {activeSection === 'projects' && (
           <section className="project-showcase">
             <div className="section-heading">
               <div>
                 <h2>Project portfolio</h2>
                 <span>{profile.projects.length} projects</span>
               </div>
-              <button className="primary-button project-add-button" type="button" onClick={() => setIsAddingProject((current) => !current)} aria-label="Add project">
+              <button className="primary-button project-add-button" type="button" onClick={() => {
+                if (isAddingProject) {
+                  resetProjectForm();
+                  return;
+                }
+                setIsAddingProject(true);
+              }} aria-label="Add project">
                 <Plus size={18} />
-                <span>Project</span>
+                <span>{isAddingProject ? 'Cancel' : 'Project'}</span>
               </button>
             </div>
+            <section className="portfolio-guidance-box">
+              <Code2 size={24} />
+              <div>
+                <h3>Show what you can build</h3>
+                <p>
+                  Add your most valuable, interesting, and well-documented projects here. Treat each one like proof:
+                  explain the problem, show the finished result, include screenshots, link the code, and make it easy
+                  for employers to understand what you personally built.
+                </p>
+              </div>
+            </section>
             {isAddingProject && (
               <section className="workspace-panel project-builder">
-                <form className="project-form" onSubmit={addProject}>
+                <form className="project-form" onSubmit={saveProject}>
                   <div className="two-column-fields">
                     <label htmlFor="project-name">
                       Project name
@@ -581,9 +838,9 @@ export default function DeveloperDashboard({ user, token }) {
                       ))}
                     </div>
                   )}
-                  <button className="primary-button" type="submit">
-                    <Plus size={17} />
-                    <span>Add project</span>
+                  <button className={`primary-button ${projectSaveStatus ? 'success-button' : ''}`} type="submit">
+                    {editingProjectId ? <CheckCircle2 size={17} /> : <Plus size={17} />}
+                    <span>{projectSaveStatus || (editingProjectId ? 'Save project' : 'Add project')}</span>
                   </button>
                 </form>
               </section>
@@ -611,6 +868,14 @@ export default function DeveloperDashboard({ user, token }) {
                           {project.featured && <span className="featured-badge">Featured</span>}
                         </div>
                         <div className="project-actions">
+                          <button
+                            className="delete-button"
+                            type="button"
+                            onClick={() => startEditingProject(project)}
+                            aria-label={`Edit ${project.name}`}
+                          >
+                            <Pencil size={16} />
+                          </button>
                           <button
                             className={`delete-button ${project.featured ? 'active-feature' : ''}`}
                             type="button"
@@ -650,110 +915,150 @@ export default function DeveloperDashboard({ user, token }) {
               </div>
             )}
           </section>
-        </div>
+        )}
 
-        <aside className="developer-preview">
-          <section className="workspace-panel">
-            <h2>Profile preview</h2>
-            <div className="preview-card">
-              {profile.photo ? <img src={profile.photo} alt={`${user.name} preview`} /> : <div className="profile-placeholder">{user.name?.[0] ?? 'D'}</div>}
-              <div>
-                <h3>{user.name}</h3>
-                <p>{profile.title}</p>
-              </div>
-              <p>{profile.summary || 'Add a summary so employers understand the kind of work you can take on.'}</p>
-              <div className="skill-list">
-                {profile.skills.map((skill) => (
-                  <span key={skill}>{skill}</span>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className="workspace-panel profile-editor">
-            <h2>Profile summary</h2>
-            <label htmlFor="developer-summary">
-              Summary
-              <textarea
-                id="developer-summary"
-                value={profile.summary}
-                onChange={(event) => updateProfile('summary', event.target.value)}
-                placeholder="Describe the kind of developer you are, what you build, and what roles you are looking for."
-              />
-            </label>
-          </section>
-
-          <section className="workspace-panel">
+        {activeSection === 'inbox' && (
+          <section className="workspace-panel connection-panel">
             <div className="panel-heading-row">
-              <h2>Main skills</h2>
-              <span>{profile.skills.length} added</span>
-            </div>
-            <form className="skill-entry" onSubmit={addSkill}>
-              <input
-                value={skillInput}
-                onChange={(event) => setSkillInput(event.target.value)}
-                placeholder="React, Java, AWS"
-              />
-              <button className="primary-button icon-button" type="submit" aria-label="Add skill">
-                <Plus size={18} />
-              </button>
-            </form>
-            <div className="editable-skill-list">
-              {profile.skills.map((skill) => (
-                <button className="remove-chip-button" key={skill} type="button" onClick={() => removeSkill(skill)}>
-                  <span>{skill}</span>
-                  <Trash2 size={14} />
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="workspace-panel">
-            <div className="publication-panel">
               <div>
-                <h2>Profile visibility</h2>
-                <p className="subtle">
-                  {profile.isDisplayed
-                    ? 'Your profile is visible in the public developer profiles.'
-                    : 'Your profile is hidden from public developer profiles.'}
-                </p>
+                <h2>Inbox</h2>
+                <p className="subtle">Incoming connection requests from developers who want to share work and stay in touch.</p>
               </div>
-              <label className="visibility-toggle" htmlFor="profile-publication">
-                <input
-                  id="profile-publication"
-                  type="checkbox"
-                  checked={profile.isDisplayed}
-                  onChange={(event) => updateDisplayStatus(event.target.checked)}
-                />
-                <span>{profile.isDisplayed ? 'Displayed' : 'Hidden'}</span>
-              </label>
-              <Link className="secondary-button" to="/profiles">
-                View profiles
+              <Link className="secondary-button" to="/profiles?type=DEVELOPER">
+                <UserRound size={16} />
+                <span>Find developers</span>
               </Link>
             </div>
+            {connectionRequests.length === 0 ? (
+              <p className="info-message">Connection requests from other developers will appear here.</p>
+            ) : (
+              <div className="connection-request-list">
+                {connectionRequests.map((request) => (
+                  <article className="connection-request-card" key={request.id}>
+                    {request.requesterImage ? (
+                      <img src={request.requesterImage} alt={request.requesterName} />
+                    ) : (
+                      <div className="profile-placeholder">{request.requesterName?.[0] ?? 'D'}</div>
+                    )}
+                    <div>
+                      <h3>{request.requesterName}</h3>
+                      <p>{request.requesterTitle}</p>
+                      <Link to={`/profiles/${request.requesterProfileId}`}>View profile</Link>
+                    </div>
+                    <div className="connection-actions">
+                      <button className="primary-button" type="button" onClick={() => acceptConnection(request.id)}>
+                        <CheckCircle2 size={17} />
+                        <span>Accept</span>
+                      </button>
+                      <button className="secondary-button" type="button" onClick={() => declineConnection(request.id)}>
+                        Decline
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
+        )}
 
-          <section className="workspace-panel">
-            <h2>Checklist</h2>
-            <ul className="feature-list">
-              {(proofQuality?.completedChecks?.length ? proofQuality.completedChecks.map((label) => ({ label, complete: true })) : completionItems).map((item) => (
-                <li key={item.label}>
-                  <CheckCircle2 size={18} className={item.complete ? 'complete' : ''} />
-                  <span>{item.label}</span>
-                </li>
-              ))}
-            </ul>
-            {(proofQuality?.missingChecks ?? []).length > 0 && (
-              <p className="info-message">Next proof step: {proofQuality.missingChecks[0]}.</p>
-            )}
-            {error && <p className="error">{error}</p>}
-            {backendData && (
-              <p className="info-message">
-                Database profile is {backendData.displayed ? 'displayed publicly' : 'hidden from public profiles'}.
-              </p>
-            )}
-          </section>
-        </aside>
+        {activeSection === 'feed' && (
+          <div className="developer-feed-grid">
+            <section className="workspace-panel candidate-panel">
+              <div className="panel-heading-row">
+                <div>
+                  <h2>Your updates</h2>
+                  <p className="subtle">Share project progress, learning notes, and what you are building next.</p>
+                </div>
+                <button className="primary-button" type="button" onClick={() => setIsComposingPost((current) => !current)}>
+                  <Plus size={18} />
+                  <span>Post</span>
+                </button>
+              </div>
+
+              {isComposingPost && (
+                <form className="post-form compact-post-form" onSubmit={addPost}>
+                  <textarea
+                    value={postInput}
+                    onChange={(event) => setPostInput(event.target.value)}
+                    placeholder="Working on my new React project, currently in development..."
+                  />
+                  <div className="composer-actions">
+                    <button className="secondary-button" type="button" onClick={() => setIsComposingPost(false)}>
+                      Cancel
+                    </button>
+                    <button className="primary-button" type="submit">
+                      <Send size={17} />
+                      <span>Post</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              <div className="feed-list compact-feed-list">
+                {posts.length === 0 ? (
+                  <article className="empty-feed">
+                    <MessageSquareText size={28} />
+                    <p>Post project progress, learning notes, goals, and what you are building next.</p>
+                  </article>
+                ) : (
+                  posts.map((post) => (
+                    <article className="feed-post" key={post.id}>
+                      <div className="feed-post-header">
+                        <div className="feed-author">
+                          {profile.photo ? <img src={profile.photo} alt={`${user.name} avatar`} /> : <div className="profile-placeholder">{user.name?.[0] ?? 'D'}</div>}
+                          <div>
+                            <strong>{user.name}</strong>
+                            <span>{formatPostDate(post.createdAt)}</span>
+                          </div>
+                        </div>
+                        <button className="delete-button destructive-button" type="button" onClick={() => removePost(post.id)} aria-label="Remove post">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                      <p>{post.body}</p>
+                    </article>
+                  ))
+                )}
+              </div>
+            </section>
+
+            <section className="workspace-panel connection-panel">
+              <div className="panel-heading-row">
+                <div>
+                  <h2>Developer activity</h2>
+                  <p className="subtle">Updates from developers you are connected with.</p>
+                </div>
+                <MessageSquareText size={20} />
+              </div>
+              {connectionFeed.length === 0 ? (
+                <p className="info-message">After you connect with developers, their project updates will show here.</p>
+              ) : (
+                <div className="feed-list connection-feed-list">
+                  {connectionFeed.map((post) => (
+                    <article className="feed-post" key={`${post.authorProfileId}-${post.postId ?? post.createdAt}`}>
+                      <div className="feed-post-header">
+                        <div className="feed-author">
+                          {post.authorImage ? (
+                            <img src={post.authorImage} alt={`${post.authorName} avatar`} />
+                          ) : (
+                            <div className="profile-placeholder">{post.authorName?.[0] ?? 'D'}</div>
+                          )}
+                          <div>
+                            <strong>{post.authorName}</strong>
+                            <span>{formatPostDate(post.createdAt)}</span>
+                          </div>
+                        </div>
+                        <Link className="secondary-button" to={`/profiles/${post.authorProfileId}`}>Profile</Link>
+                      </div>
+                      <p>{post.body}</p>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
       </section>
     </section>
   );

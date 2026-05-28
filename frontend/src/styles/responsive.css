@@ -67,6 +67,7 @@
     .hiring-need-list,
     .employer-profile-grid,
     .developer-layout,
+    .developer-feed-grid,
     .project-grid {
     grid-template-columns: 1fr;
   }
@@ -117,6 +118,7 @@
   }
 
   .two-column-fields,
+  .contact-link-fields,
   .screenshot-strip {
     grid-template-columns: 1fr;
   }

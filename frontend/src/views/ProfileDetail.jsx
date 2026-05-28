@@ -4,8 +4,8 @@ import { Link, useParams } from 'react-router-dom';
 import { apiRequest } from '../api/client.js';
 import { useAuth } from '../state/AuthContext.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
+import ContactLinks from './components/profile/ContactLinks.jsx';
 import EmployerNeedsList from './components/profile/EmployerNeedsList.jsx';
-import ProofQualityCard from './components/profile/ProofQualityCard.jsx';
 
 function normalizeProjects(projects = []) {
   return projects
@@ -35,6 +35,8 @@ function readStoredDeveloperProfile(user) {
       summary: storedProfile.summary,
       image: storedProfile.photo,
       skills: storedProfile.skills ?? [],
+      contactLinks: storedProfile.contactLinks ?? {},
+      preferences: storedProfile.preferences ?? {},
       projects: normalizeProjects(storedProfile.projects ?? []),
       posts: storedProfile.posts ?? [],
     };
@@ -110,6 +112,30 @@ function idealJuniorDevFor(need) {
   return 'Someone curious, reliable, quick to learn, and comfortable showing progress through small, well-explained improvements.';
 }
 
+function developerPreferenceChips(profile) {
+  if (profile?.type !== 'DEVELOPER') {
+    return [];
+  }
+
+  const preferences = profile.preferences ?? {};
+  return [
+    preferences.availability || 'Open to junior roles',
+    preferences.remotePreference || 'Remote or hybrid',
+    ...(preferences.workTypes ?? []),
+  ].filter(Boolean);
+}
+
+function candidateSignalLabel(proofQuality) {
+  const score = proofQuality?.score ?? 0;
+  if (score >= 75) {
+    return 'Strong candidate';
+  }
+  if (score >= 45) {
+    return 'Promising candidate';
+  }
+  return 'Early-stage candidate';
+}
+
 export default function ProfileDetail() {
   const { id } = useParams();
   const { user, token } = useAuth();
@@ -138,6 +164,7 @@ export default function ProfileDetail() {
   const posts = profile?.posts ?? [];
   const isEmployerProfile = profile?.type === 'EMPLOYER';
   const isDeveloperProfile = profile?.type === 'DEVELOPER';
+  const preferenceChips = developerPreferenceChips(profile);
   const canSendProof = Boolean(token && user?.role === 'DEVELOPER' && isEmployerProfile);
   const shouldShowDeveloperConnection = Boolean(token && user?.role === 'DEVELOPER' && isDeveloperProfile && !connectionStatus.includes('SELF'));
   const canRequestConnection = Boolean(shouldShowDeveloperConnection && profile?.acceptsConnections);
@@ -152,16 +179,19 @@ export default function ProfileDetail() {
       setProfile(null);
 
       try {
+        const isOwnPreviewRoute = id === 'me';
         let publicProfile = null;
         let ownProfile = null;
         let connectionActivity = [];
         let savedCandidates = [];
 
-        try {
-          publicProfile = await apiRequest(`/api/profiles/${id}`);
-        } catch (publicError) {
-          if (!token || !['DEVELOPER', 'EMPLOYER'].includes(user?.role)) {
-            throw publicError;
+        if (!isOwnPreviewRoute) {
+          try {
+            publicProfile = await apiRequest(`/api/profiles/${id}`);
+          } catch (publicError) {
+            if (!token || !['DEVELOPER', 'EMPLOYER'].includes(user?.role)) {
+              throw publicError;
+            }
           }
         }
 
@@ -193,19 +223,19 @@ export default function ProfileDetail() {
           savedCandidates = await apiRequest('/api/employer/saved-candidates', { token }).catch(() => []);
         }
 
-        const isOwnProfile = ownProfile && String(ownProfile.id) === String(id);
+        const isOwnProfile = Boolean(ownProfile && (isOwnPreviewRoute || String(ownProfile.id) === String(id)));
         const storedProfile = isOwnProfile && user?.role === 'DEVELOPER' ? readStoredDeveloperProfile(user) : null;
-        const shouldUseStoredProjects = storedProfile?.projects?.length > 0 && (ownProfile?.projects ?? []).length === 0;
-        const shouldUseStoredPosts = storedProfile?.posts?.length > 0 && (ownProfile?.posts ?? []).length === 0;
         const nextProfile = isOwnProfile
           ? {
               ...ownProfile,
-              title: ownProfile.title || storedProfile?.title,
-              summary: ownProfile.summary || storedProfile?.summary,
-              image: ownProfile.image || storedProfile?.image,
-              skills: ownProfile.skills?.length > 0 ? ownProfile.skills : storedProfile?.skills ?? [],
-              projects: normalizeProjects(shouldUseStoredProjects ? storedProfile.projects : ownProfile.projects ?? []),
-              posts: shouldUseStoredPosts ? storedProfile.posts : ownProfile.posts ?? [],
+              title: storedProfile?.title || ownProfile.title,
+              summary: storedProfile?.summary || ownProfile.summary,
+              image: storedProfile?.image || ownProfile.image,
+              skills: storedProfile?.skills?.length > 0 ? storedProfile.skills : ownProfile.skills ?? [],
+              contactLinks: storedProfile?.contactLinks ?? ownProfile.contactLinks ?? {},
+              preferences: storedProfile?.preferences ?? ownProfile.preferences ?? {},
+              projects: normalizeProjects(storedProfile?.projects ?? ownProfile.projects ?? []),
+              posts: storedProfile?.posts ?? ownProfile.posts ?? [],
             }
           : publicProfile ? { ...publicProfile, projects: normalizeProjects(publicProfile.projects ?? []), posts: publicProfile.posts ?? [] } : null;
 
@@ -433,15 +463,28 @@ export default function ProfileDetail() {
             ) : (
               <div className="profile-placeholder">{profile.name.slice(0, 2).toUpperCase()}</div>
             )}
-            <div>
+            <div className="profile-detail-copy">
               <p className="eyebrow">{isEmployerProfile ? 'Employer profile' : 'Developer profile'}</p>
               <h1>{profile.name}</h1>
               <p>{profile.title}</p>
+              {isDeveloperProfile && (
+                <span className={`candidate-signal-badge ${candidateSignalLabel(profile.proofQuality).toLowerCase().replaceAll(' ', '-')}`}>
+                  {candidateSignalLabel(profile.proofQuality)}
+                </span>
+              )}
               <div className="skill-list">
                 {skills.map((skill) => (
                   <span key={skill}>{skill}</span>
                 ))}
               </div>
+              {isDeveloperProfile && <ContactLinks contactLinks={profile.contactLinks} className="profile-detail-contact-links" />}
+              {preferenceChips.length > 0 && (
+                <div className="profile-preference-row" aria-label="Developer preferences">
+                  {preferenceChips.map((preference) => (
+                    <span key={preference}>{preference}</span>
+                  ))}
+                </div>
+              )}
               {shouldShowDeveloperConnection && (
                 <div className="profile-action-row">
                   <button
@@ -510,7 +553,6 @@ export default function ProfileDetail() {
                 <h2>About</h2>
                 <p className="subtle">{profile.summary}</p>
               </article>
-              {isDeveloperProfile && <ProofQualityCard proofQuality={profile.proofQuality} />}
 
               <article className="workspace-panel">
                 <h2>{isEmployerProfile ? 'Hiring needs' : 'Project proof'}</h2>
