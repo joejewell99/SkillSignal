@@ -5,6 +5,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillsignal.marketplace.model.MarketplaceProfile;
 import com.skillsignal.marketplace.repository.MarketplaceProfileRepository;
+import com.skillsignal.marketplace.dto.DeveloperPreferencesResponse;
+import com.skillsignal.marketplace.dto.ProfileContactLinksResponse;
 import com.skillsignal.marketplace.dto.ProfilePostResponse;
 import com.skillsignal.marketplace.dto.ProfileProjectResponse;
 import com.skillsignal.marketplace.model.ProfileType;
@@ -37,7 +39,7 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
                         profile.setDisplayed(true);
                         profileRepository.save(profile);
             });
-            supplementJoePortfolio();
+            supplementJojoDevProfile();
             supplementStockEmployerProfiles();
             return;
         }
@@ -66,7 +68,7 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
                 developer("Hannah Wright", "Junior QA-minded Developer", "Added unit tests, validation flows, and bug reproduction notes to full-stack projects.", "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=240&q=80", List.of("Testing", "JavaScript", "Validation", "APIs"), false, 21),
                 developer("Kai Bennett", "Cloud-ready Developer", "Prepared applications for deployment with environment config, Docker, and database setup.", "https://images.unsplash.com/photo-1463453091185-61582044d556?auto=format&fit=crop&w=240&q=80", List.of("Deployment", "Docker", "PostgreSQL", "Environment Config"), false, 22)
         ));
-        supplementJoePortfolio();
+        supplementJojoDevProfile();
         supplementStockEmployerProfiles();
     }
 
@@ -99,25 +101,51 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
         jdbcTemplate.execute("alter table marketplace_profiles add column if not exists user_id bigint");
         jdbcTemplate.execute("alter table marketplace_profiles add column if not exists projects_json text not null default '[]'");
         jdbcTemplate.execute("alter table marketplace_profiles add column if not exists posts_json text not null default '[]'");
+        jdbcTemplate.execute("alter table marketplace_profiles add column if not exists contact_links_json text default '{}'");
+        jdbcTemplate.execute("alter table marketplace_profiles add column if not exists preferences_json text default '{}'");
         jdbcTemplate.execute("alter table marketplace_profiles alter column image type text");
         jdbcTemplate.execute("create unique index if not exists idx_marketplace_profiles_user_id on marketplace_profiles(user_id) where user_id is not null");
     }
 
-    private void supplementJoePortfolio() {
+    private void supplementJojoDevProfile() {
         profileRepository.findAll().stream()
                 .filter(profile -> profile.getType() == ProfileType.DEVELOPER)
-                .filter(profile -> isJoeProfile(profile.getName()))
+                .filter(profile -> isJojoDevProfile(profile.getName()))
                 .forEach(profile -> {
+                    profile.setTitle("Junior Ruby and Python developer building practical workflow tools");
+                    profile.setSummary("I am jojodev, a junior backend-leaning developer focused on Ruby, Python, SQL, and practical workflow tools. I like building Rails-style CRUD apps, Python automation scripts, CSV/data cleanup utilities, and small APIs that help people import, validate, organize, and act on information without wrestling with messy spreadsheets. My strongest project work shows readable backend code, clear database relationships, useful validation, and short notes explaining what I built, why I made each technical choice, and how the tool could help a real team.");
+                    profile.setSkills(List.of("Ruby", "Rails", "Python", "SQL", "PostgreSQL", "Flask", "Data cleanup"));
+                    profile.setContactLinksJson(writeContactLinks(new ProfileContactLinksResponse(
+                            "https://www.linkedin.com/in/jojodev",
+                            "https://github.com/jojodev",
+                            "jojodev@example.com",
+                            "https://github.com/jojodev/SkillSignal"
+                    )));
+                    profile.setPreferencesJson(writePreferences(new DeveloperPreferencesResponse(
+                            "Open to junior full-stack roles",
+                            List.of("Backend", "APIs", "Internal tools", "Data cleanup", "Admin workflows"),
+                            "Remote, hybrid, or UK-based"
+                    )));
+
                     List<ProfileProjectResponse> existingProjects = readProjects(profile.getProjectsJson());
-                    List<ProfileProjectResponse> sampleProjects = joePortfolioProjects().stream()
+                    List<ProfileProjectResponse> sampleProjects = jojoDevPortfolioProjects().stream()
                             .filter(sampleProject -> existingProjects.stream().noneMatch(existingProject -> sameProject(existingProject, sampleProject)))
+                            .toList();
+                    List<ProfilePostResponse> existingPosts = readPosts(profile.getPostsJson());
+                    List<ProfilePostResponse> samplePosts = jojoDevFeedPosts().stream()
+                            .filter(samplePost -> existingPosts.stream().noneMatch(existingPost -> samePost(existingPost, samplePost)))
                             .toList();
                     if (!sampleProjects.isEmpty()) {
                         profile.setProjectsJson(writeProjects(
                                 java.util.stream.Stream.concat(existingProjects.stream(), sampleProjects.stream()).toList()
                         ));
-                        profileRepository.save(profile);
                     }
+                    if (!samplePosts.isEmpty()) {
+                        profile.setPostsJson(writePosts(
+                                java.util.stream.Stream.concat(existingPosts.stream(), samplePosts.stream()).toList()
+                        ));
+                    }
+                    profileRepository.save(profile);
                 });
     }
 
@@ -263,40 +291,57 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
         return new ProfilePostResponse(id, body, createdAt);
     }
 
-    private boolean isJoeProfile(String name) {
+    private boolean isJojoDevProfile(String name) {
         String normalizedName = name == null ? "" : name.toLowerCase();
-        return normalizedName.contains("joe") || normalizedName.contains("joseph");
+        return normalizedName.equals("jojodev");
     }
 
-    private List<ProfileProjectResponse> joePortfolioProjects() {
+    private List<ProfileProjectResponse> jojoDevPortfolioProjects() {
         return List.of(
                 new ProfileProjectResponse(
-                        "SkillSignal Developer Marketplace",
-                        "Built a full-stack hiring platform where developers can publish project-backed profiles and employers can search by skills, proof, and technical focus. Implemented React dashboard flows, Spring Boot profile APIs, JWT-protected routes, and PostgreSQL persistence.",
-                        "https://github.com/joe/skillsignal",
+                        "Rails Client Tracker",
+                        "Built a small Rails-style client tracker for logging customer requests, updating statuses, and keeping account notes searchable. Focused on clean CRUD flows, simple SQL relationships, validation, and admin screens that make support work easier to follow.",
+                        "https://github.com/jojodev/rails-client-tracker",
                         "",
-                        List.of("React", "Spring Boot", "PostgreSQL", "JWT", "REST APIs"),
+                        List.of("Ruby", "Rails", "SQL", "CRUD", "Validation"),
+                        List.of("https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80"),
+                        true
+                ),
+                new ProfileProjectResponse(
+                        "Python CSV Quality Checker",
+                        "Created a Python tool that checks messy CSV uploads for missing fields, duplicate rows, invalid email formats, and inconsistent categories before the data reaches a database or report.",
+                        "https://github.com/jojodev/csv-quality-checker",
+                        "",
+                        List.of("Python", "Data cleanup", "Validation", "CSV", "Automation"),
                         List.of("https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=900&q=80"),
                         true
                 ),
                 new ProfileProjectResponse(
-                        "Developer Portfolio Dashboard",
-                        "Created an editable developer workspace for uploading a professional photo, adding main skills, publishing profile visibility, and presenting project evidence with screenshots, descriptions, GitHub links, and live demo links.",
-                        "https://github.com/joe/developer-dashboard",
+                        "Flask Skill Notes API",
+                        "Designed a lightweight Flask API for saving learning notes by topic, tagging them by skill, and returning filtered results for a simple frontend. Included predictable JSON responses and basic error handling.",
+                        "https://github.com/jojodev/flask-skill-notes-api",
                         "",
-                        List.of("React", "Local Storage", "UX Design", "File Uploads"),
-                        List.of("https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=900&q=80"),
-                        true
-                ),
-                new ProfileProjectResponse(
-                        "Project Proof API",
-                        "Designed the backend profile data model that stores project portfolios as JSON, supports featured work, keeps unpublished developer profiles hidden, and exposes safe read-only public profile endpoints.",
-                        "https://github.com/joe/project-proof-api",
-                        "",
-                        List.of("Java", "Spring Boot", "Jackson", "PostgreSQL", "Security"),
+                        List.of("Python", "Flask", "REST APIs", "JSON", "SQLite"),
                         List.of("https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=900&q=80"),
                         false
+                ),
+                new ProfileProjectResponse(
+                        "Ruby Task Importer",
+                        "Built a Ruby script that imports tasks from a spreadsheet-style export, normalizes labels, groups records by owner, and produces a clean summary report for a small operations workflow.",
+                        "https://github.com/jojodev/ruby-task-importer",
+                        "",
+                        List.of("Ruby", "Automation", "CSV", "Reporting", "CLI"),
+                        List.of("https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=900&q=80"),
+                        false
                 )
+        );
+    }
+
+    private List<ProfilePostResponse> jojoDevFeedPosts() {
+        return List.of(
+                post("jojodev-feed-rails-tracker", "Working on a Rails client tracker this week: request statuses, account notes, and a cleaner way for support teams to see what changed recently.", "2026-05-27T17:25:00.000Z"),
+                post("jojodev-feed-python-csv", "Improved my Python CSV checker so it catches duplicate rows and missing required fields before data gets imported into reports.", "2026-05-26T14:10:00.000Z"),
+                post("jojodev-feed-flask-api", "Practising small Flask APIs with predictable JSON responses, simple filtering, and better error messages for bad request data.", "2026-05-25T11:45:00.000Z")
         );
     }
 
@@ -347,6 +392,22 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
             return objectMapper.writeValueAsString(posts);
         } catch (JsonProcessingException exception) {
             return "[]";
+        }
+    }
+
+    private String writeContactLinks(ProfileContactLinksResponse contactLinks) {
+        try {
+            return objectMapper.writeValueAsString(contactLinks);
+        } catch (JsonProcessingException exception) {
+            return "{}";
+        }
+    }
+
+    private String writePreferences(DeveloperPreferencesResponse preferences) {
+        try {
+            return objectMapper.writeValueAsString(preferences);
+        } catch (JsonProcessingException exception) {
+            return "{}";
         }
     }
 

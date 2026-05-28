@@ -14,6 +14,8 @@ public record ProfileResponse(
         boolean featured,
         boolean displayed,
         boolean acceptsConnections,
+        ProfileContactLinksResponse contactLinks,
+        DeveloperPreferencesResponse preferences,
         List<ProfileProjectResponse> projects,
         List<EmployerNeedResponse> needs,
         ProofQualityResponse proofQuality,
@@ -38,6 +40,29 @@ public record ProfileResponse(
             ProofQualityResponse proofQuality,
             List<ProfilePostResponse> posts
     ) {
+        return from(profile, projects, needs, proofQuality, posts, null);
+    }
+
+    public static ProfileResponse from(
+            MarketplaceProfile profile,
+            List<ProfileProjectResponse> projects,
+            List<EmployerNeedResponse> needs,
+            ProofQualityResponse proofQuality,
+            List<ProfilePostResponse> posts,
+            ProfileContactLinksResponse contactLinks
+    ) {
+        return from(profile, projects, needs, proofQuality, posts, contactLinks, null);
+    }
+
+    public static ProfileResponse from(
+            MarketplaceProfile profile,
+            List<ProfileProjectResponse> projects,
+            List<EmployerNeedResponse> needs,
+            ProofQualityResponse proofQuality,
+            List<ProfilePostResponse> posts,
+            ProfileContactLinksResponse contactLinks,
+            DeveloperPreferencesResponse preferences
+    ) {
         return new ProfileResponse(
                 profile.getId(),
                 profile.getType().name(),
@@ -49,6 +74,8 @@ public record ProfileResponse(
                 profile.isFeatured(),
                 profile.isDisplayed(),
                 profile.getType().name().equals("DEVELOPER") && profile.getUserId() != null,
+                contactLinks,
+                preferences,
                 projects,
                 needs,
                 proofQuality,

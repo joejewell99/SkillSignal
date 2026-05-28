@@ -3,7 +3,9 @@ package com.skillsignal.marketplace.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.skillsignal.marketplace.dto.DeveloperPreferencesResponse;
 import com.skillsignal.marketplace.dto.EmployerNeedResponse;
+import com.skillsignal.marketplace.dto.ProfileContactLinksResponse;
 import com.skillsignal.marketplace.dto.ProfilePostResponse;
 import com.skillsignal.marketplace.dto.ProfileProjectResponse;
 import com.skillsignal.marketplace.dto.ProfileResponse;
@@ -87,6 +89,8 @@ public class MarketplaceProfileService {
             String summary,
             String image,
             List<String> skills,
+            ProfileContactLinksResponse contactLinks,
+            DeveloperPreferencesResponse preferences,
             List<ProfileProjectResponse> projects,
             List<ProfilePostResponse> posts,
             boolean displayed
@@ -97,6 +101,8 @@ public class MarketplaceProfileService {
         profile.setSummary(defaultIfBlank(summary, "Project-backed developer profile."));
         profile.setImage(image == null ? "" : image);
         profile.setSkills(skills == null ? new ArrayList<>() : skills.stream().map(String::trim).filter(skill -> !skill.isBlank()).toList());
+        profile.setContactLinksJson(writeContactLinks(contactLinks));
+        profile.setPreferencesJson(writePreferences(preferences));
         profile.setProjectsJson(writeProjects(projects));
         profile.setPostsJson(writePosts(posts));
         profile.setDisplayed(displayed);
@@ -164,7 +170,10 @@ public class MarketplaceProfileService {
         ProofQualityResponse proofQuality = profile.getType() == ProfileType.DEVELOPER
                 ? calculateProofQuality(projects)
                 : null;
-        return ProfileResponse.from(profile, projects, needs, proofQuality, readPosts(profile));
+        DeveloperPreferencesResponse preferences = profile.getType() == ProfileType.DEVELOPER
+                ? readPreferences(profile)
+                : null;
+        return ProfileResponse.from(profile, projects, needs, proofQuality, readPosts(profile), readContactLinks(profile), preferences);
     }
 
     private EmployerNeedResponse toEmployerNeed(ProfileProjectResponse project) {
@@ -278,6 +287,76 @@ public class MarketplaceProfileService {
         } catch (JsonProcessingException exception) {
             throw new IllegalArgumentException("Project data could not be saved.");
         }
+    }
+
+    private ProfileContactLinksResponse readContactLinks(MarketplaceProfile profile) {
+        try {
+            String contactLinksJson = profile.getContactLinksJson() == null || profile.getContactLinksJson().isBlank()
+                    ? "{}"
+                    : profile.getContactLinksJson();
+            ProfileContactLinksResponse contactLinks = objectMapper.readValue(contactLinksJson, ProfileContactLinksResponse.class);
+            return new ProfileContactLinksResponse(
+                    defaultIfNull(contactLinks.linkedinUrl()),
+                    defaultIfNull(contactLinks.githubUrl()),
+                    defaultIfNull(contactLinks.email()),
+                    defaultIfNull(contactLinks.websiteUrl())
+            );
+        } catch (JsonProcessingException exception) {
+            return new ProfileContactLinksResponse("", "", "", "");
+        }
+    }
+
+    private String writeContactLinks(ProfileContactLinksResponse contactLinks) {
+        try {
+            ProfileContactLinksResponse sanitized = contactLinks == null
+                    ? new ProfileContactLinksResponse("", "", "", "")
+                    : new ProfileContactLinksResponse(
+                            defaultIfNull(contactLinks.linkedinUrl()).trim(),
+                            defaultIfNull(contactLinks.githubUrl()).trim(),
+                            defaultIfNull(contactLinks.email()).trim(),
+                            defaultIfNull(contactLinks.websiteUrl()).trim()
+                    );
+            return objectMapper.writeValueAsString(sanitized);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("Contact links could not be saved.");
+        }
+    }
+
+    private DeveloperPreferencesResponse readPreferences(MarketplaceProfile profile) {
+        try {
+            String preferencesJson = profile.getPreferencesJson() == null || profile.getPreferencesJson().isBlank()
+                    ? "{}"
+                    : profile.getPreferencesJson();
+            DeveloperPreferencesResponse preferences = objectMapper.readValue(preferencesJson, DeveloperPreferencesResponse.class);
+            return new DeveloperPreferencesResponse(
+                    defaultIfNull(preferences.availability()),
+                    preferences.workTypes() == null ? List.of() : preferences.workTypes(),
+                    defaultIfNull(preferences.remotePreference())
+            );
+        } catch (JsonProcessingException exception) {
+            return new DeveloperPreferencesResponse("", List.of(), "");
+        }
+    }
+
+    private String writePreferences(DeveloperPreferencesResponse preferences) {
+        try {
+            DeveloperPreferencesResponse sanitized = preferences == null
+                    ? new DeveloperPreferencesResponse("", List.of(), "")
+                    : new DeveloperPreferencesResponse(
+                            defaultIfNull(preferences.availability()).trim(),
+                            preferences.workTypes() == null
+                                    ? List.of()
+                                    : preferences.workTypes().stream().map(String::trim).filter(item -> !item.isBlank()).toList(),
+                            defaultIfNull(preferences.remotePreference()).trim()
+                    );
+            return objectMapper.writeValueAsString(sanitized);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("Developer preferences could not be saved.");
+        }
+    }
+
+    private String defaultIfNull(String value) {
+        return value == null ? "" : value;
     }
 
     private List<ProfilePostResponse> readPosts(MarketplaceProfile profile) {

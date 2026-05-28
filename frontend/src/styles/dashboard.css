@@ -96,6 +96,13 @@
   gap: 24px;
 }
 
+.developer-dashboard > .developer-header,
+.developer-dashboard > .employer-dashboard-tabs {
+  justify-self: center;
+  max-width: 1440px;
+  width: min(100%, 1440px);
+}
+
 .developer-header {
   align-items: center;
   background: var(--surface);
@@ -119,6 +126,10 @@
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
+}
+
+.developer-header-side {
+  gap: 12px;
 }
 
 .employer-dashboard-tabs button:hover {
@@ -384,6 +395,20 @@
   gap: 18px;
 }
 
+.developer-workspace {
+  align-items: start;
+  justify-self: center;
+  max-width: 1440px;
+  width: min(100%, 1440px);
+}
+
+.developer-feed-grid {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.7fr);
+}
+
 .profile-editor textarea,
 .project-form textarea {
   min-height: 132px;
@@ -641,6 +666,77 @@
   margin-bottom: 14px;
 }
 
+.contact-links-editor {
+  display: grid;
+  gap: 16px;
+}
+
+.contact-link-fields {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.contact-link-fields label span {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.contact-link-fields svg {
+  color: var(--primary);
+}
+
+.developer-preferences-editor {
+  display: grid;
+  gap: 16px;
+}
+
+.work-type-picker,
+.developer-preference-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.work-type-picker button,
+.developer-preference-summary span {
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 900;
+  min-height: 34px;
+  padding: 7px 11px;
+}
+
+.work-type-picker button.active,
+.developer-preference-summary span {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--line));
+  color: var(--primary);
+}
+
+.preview-note {
+  margin: 0;
+}
+
+.profile-preview-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  max-width: 320px;
+  width: 100%;
+}
+
+.primary-button.success-button {
+  background: var(--signal);
+  border-color: var(--signal);
+  box-shadow: inset 0 2px 4px color-mix(in srgb, #000000 18%, transparent);
+  transform: translateY(1px);
+}
+
 .icon-button {
   aspect-ratio: 1;
   min-height: 44px;
@@ -836,9 +932,51 @@
   color: var(--signal);
 }
 
+.quality-heading {
+  margin-bottom: 16px;
+}
+
+.quality-checklist {
+  margin-bottom: 14px;
+}
+
+.quality-checklist svg:not(.complete) {
+  color: var(--muted);
+  opacity: 0.55;
+}
+
 .project-showcase {
   display: grid;
   gap: 16px;
+}
+
+.portfolio-guidance-box {
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--primary) 7%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--line));
+  border-radius: 8px;
+  color: var(--ink);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 18px;
+}
+
+.portfolio-guidance-box svg {
+  color: var(--primary);
+  margin-top: 2px;
+}
+
+.portfolio-guidance-box h3 {
+  font-size: 1rem;
+  margin: 0 0 6px;
+}
+
+.portfolio-guidance-box p {
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 880px;
 }
 
 .project-showcase .section-heading > div {

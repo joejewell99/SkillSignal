@@ -4,6 +4,17 @@
   photo: '',
   isDisplayed: false,
   skills: ['React', 'Spring Boot', 'PostgreSQL'],
+  contactLinks: {
+    linkedinUrl: '',
+    githubUrl: '',
+    email: '',
+    websiteUrl: '',
+  },
+  preferences: {
+    availability: 'Open to junior roles',
+    workTypes: ['Frontend', 'Full-stack'],
+    remotePreference: 'Remote or hybrid',
+  },
   projects: [],
   posts: [],
 };
@@ -212,6 +223,15 @@ export function readStoredDeveloperProfile(storageKey) {
       ...defaultDeveloperProfile,
       ...parsedProfile,
       isDisplayed: parsedProfile.isDisplayed ?? parsedProfile.isPublished ?? false,
+      contactLinks: {
+        ...defaultDeveloperProfile.contactLinks,
+        ...(parsedProfile.contactLinks ?? {}),
+      },
+      preferences: {
+        ...defaultDeveloperProfile.preferences,
+        ...(parsedProfile.preferences ?? {}),
+        workTypes: parsedProfile.preferences?.workTypes ?? defaultDeveloperProfile.preferences.workTypes,
+      },
       projects: normalizeProjects(parsedProfile.projects ?? []),
       posts: parsedProfile.posts ?? [],
     };
@@ -286,6 +306,8 @@ export function toProfilePayload(profile, displayed = profile.isDisplayed) {
     summary: profile.summary,
     image: profile.photo,
     skills: profile.skills,
+    contactLinks: profile.contactLinks ?? defaultDeveloperProfile.contactLinks,
+    preferences: profile.preferences ?? defaultDeveloperProfile.preferences,
     projects: profile.projects.map((project) => ({
       name: project.name,
       description: project.description,

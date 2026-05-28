@@ -153,6 +153,34 @@
   gap: 8px;
 }
 
+.contact-link-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.contact-link-icons a {
+  align-items: center;
+  background: var(--surface-strong);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: var(--primary);
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.contact-link-icons.compact a {
+  height: 34px;
+  width: 34px;
+}
+
+.contact-link-icons a:hover {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--line));
+}
+
 .proof-text {
   align-self: start;
   border-top: 1px solid var(--line);

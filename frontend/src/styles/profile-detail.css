@@ -25,10 +25,66 @@
   width: 100%;
 }
 
+.profile-detail-copy {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
 .profile-detail-header p:not(.eyebrow) {
   color: var(--muted);
   font-size: 1.08rem;
-  margin-bottom: 16px;
+  margin: 0;
+}
+
+.profile-detail-header .skill-list {
+  margin-top: 4px;
+}
+
+.candidate-signal-badge {
+  background: color-mix(in srgb, var(--signal) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--signal) 34%, var(--line));
+  border-radius: 999px;
+  color: var(--signal);
+  font-size: 0.78rem;
+  font-weight: 900;
+  justify-self: start;
+  padding: 6px 10px;
+  text-transform: uppercase;
+}
+
+.candidate-signal-badge.promising-candidate {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--line));
+  color: var(--primary);
+}
+
+.candidate-signal-badge.early-stage-candidate {
+  background: var(--surface-strong);
+  border-color: var(--line-strong);
+  color: var(--muted);
+}
+
+.profile-detail-contact-links {
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+  padding-top: 14px;
+}
+
+.profile-preference-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-preference-row span {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--line));
+  border-radius: 999px;
+  color: var(--primary);
+  font-size: 0.84rem;
+  font-weight: 900;
+  padding: 7px 11px;
 }
 
 .profile-action-row {
