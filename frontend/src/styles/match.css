@@ -1,7 +1,75 @@
 .match-grid {
+  align-items: stretch;
   display: grid;
   gap: 18px;
+  grid-auto-rows: auto;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ai-brief-summary.needs-detail {
+  background: #fff9e8;
+  border-color: #e0bd54;
+  box-shadow: none;
+  gap: 10px;
+  max-width: 680px;
+  padding: 14px 16px;
+}
+
+.ai-brief-summary.rejected {
+  background: #fff1ee;
+  border-color: #e09a8c;
+  box-shadow: none;
+  gap: 10px;
+  max-width: 680px;
+  padding: 14px 16px;
+}
+
+.ai-brief-summary.needs-detail p,
+.ai-brief-summary.rejected p {
+  color: #594727;
+  line-height: 1.45;
+}
+
+.ai-brief-summary.rejected p {
+  color: #653127;
+}
+
+.brief-guidance {
+  color: var(--muted);
+  font-weight: 700;
+  margin: 0;
+}
+
+.brief-followups {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  margin-top: 0;
+  padding: 0;
+}
+
+.brief-followups h3 {
+  color: #7a5b0a;
+  font-size: 0.88rem;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.brief-followups ul {
+  color: #594727;
+  line-height: 1.45;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.quota-note {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.35;
+  margin: -2px 0 0;
+  min-height: 20px;
+  text-align: center;
 }
 
 .match-card {
@@ -9,7 +77,9 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
-  gap: 16px;
+  gap: 14px;
+  grid-template-rows: auto auto auto auto auto 1fr auto;
+  height: 100%;
   padding: 18px;
   position: relative;
 }
@@ -50,17 +120,21 @@
 
 .match-profile img,
 .match-profile .profile-placeholder {
+  border-radius: 8px;
   height: 64px;
+  object-fit: cover;
   width: 64px;
 }
 
 .match-profile h3 {
   font-size: 1.1rem;
+  line-height: 1.25;
   margin: 0 0 4px;
 }
 
 .match-profile p {
   color: var(--muted);
+  line-height: 1.35;
   margin: 0;
 }
 
@@ -72,6 +146,7 @@
 
 .match-card h4 {
   font-size: 0.88rem;
+  line-height: 1.25;
   margin: 0 0 10px;
   text-transform: uppercase;
 }
@@ -81,6 +156,13 @@
   line-height: 1.55;
   margin: 0;
   padding-left: 18px;
+}
+
+.match-view-profile {
+  align-self: end;
+  min-height: 40px;
+  justify-self: start;
+  margin-top: 4px;
 }
 
 .match-evidence {
@@ -104,5 +186,79 @@
 .section-heading h2 {
   font-size: 1.65rem;
   margin-bottom: 0;
+}
+
+.score-info {
+  position: relative;
+}
+
+.search-score-info {
+  margin-left: auto;
+}
+
+.score-info button {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  padding: 0;
+  width: 40px;
+}
+
+.score-info button:hover,
+.score-info button:focus-visible {
+  border-color: var(--primary);
+  color: var(--primary);
+  outline: none;
+}
+
+.score-tooltip {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  color: var(--text);
+  display: none;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 16px;
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 0;
+  width: 360px;
+  z-index: 10;
+}
+
+.score-info:hover .score-tooltip,
+.score-info:focus-within .score-tooltip {
+  display: block;
+}
+
+.score-tooltip strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.score-tooltip p,
+.score-tooltip ul {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.score-tooltip ul {
+  margin-top: 8px;
+  padding-left: 18px;
+}
+
+.score-tooltip .tooltip-example {
+  border-top: 1px solid var(--line);
+  margin-top: 10px;
+  padding-top: 10px;
 }
 

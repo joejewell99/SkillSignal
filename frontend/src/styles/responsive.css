@@ -17,7 +17,6 @@
   .landing-callout,
   .signal-flow,
   .directory-metrics,
-  .match-grid,
   .match-columns,
   .developer-grid,
   .profile-grid,
@@ -121,5 +120,26 @@
   .contact-link-fields,
   .screenshot-strip {
     grid-template-columns: 1fr;
+  }
+
+  .search-score-info {
+    margin-left: 0;
+  }
+
+  .score-tooltip {
+    left: 0;
+    right: auto;
+    top: calc(100% + 10px);
+    width: min(360px, calc(100vw - 36px));
+  }
+
+  .match-grid {
+    grid-auto-rows: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .match-card {
+    grid-template-rows: none;
+    height: auto;
   }
 }
