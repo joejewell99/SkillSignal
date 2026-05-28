@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillsignal.marketplace.dto.DeveloperPreferencesResponse;
 import com.skillsignal.marketplace.dto.EmployerNeedResponse;
 import com.skillsignal.marketplace.dto.ProfileContactLinksResponse;
+import com.skillsignal.marketplace.dto.ProfileMetricsResponse;
 import com.skillsignal.marketplace.dto.ProfilePostResponse;
 import com.skillsignal.marketplace.dto.ProfileProjectResponse;
 import com.skillsignal.marketplace.dto.ProfileResponse;
@@ -13,6 +14,7 @@ import com.skillsignal.marketplace.dto.ProofQualityResponse;
 import com.skillsignal.marketplace.model.MarketplaceProfile;
 import com.skillsignal.marketplace.model.ProfileType;
 import com.skillsignal.marketplace.repository.MarketplaceProfileRepository;
+import com.skillsignal.user.repository.UserRepository;
 import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,11 +26,26 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class MarketplaceProfileService {
     private final MarketplaceProfileRepository profileRepository;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
-    public MarketplaceProfileService(MarketplaceProfileRepository profileRepository, ObjectMapper objectMapper) {
+    public MarketplaceProfileService(
+            MarketplaceProfileRepository profileRepository,
+            UserRepository userRepository,
+            ObjectMapper objectMapper
+    ) {
         this.profileRepository = profileRepository;
+        this.userRepository = userRepository;
         this.objectMapper = objectMapper;
+    }
+
+    public ProfileMetricsResponse metrics() {
+        return new ProfileMetricsResponse(
+                userRepository.count(),
+                profileRepository.countByDisplayedTrue(),
+                profileRepository.countByTypeAndDisplayedTrue(ProfileType.DEVELOPER),
+                profileRepository.countByTypeAndDisplayedTrue(ProfileType.EMPLOYER)
+        );
     }
 
     public List<ProfileResponse> search(String query, String name, ProfileType type) {
