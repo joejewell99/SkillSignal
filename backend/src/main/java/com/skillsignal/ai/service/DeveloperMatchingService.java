@@ -185,7 +185,7 @@ public class DeveloperMatchingService {
                 new ArrayList<>(strengths),
                 new ArrayList<>(gaps).stream().limit(3).toList(),
                 evidence.stream().distinct().limit(4).toList(),
-                buildReason(profile, strengths, gaps, matchedProjects, analysis),
+                buildReason(profile, strengths, gaps, matchedProjects),
                 buildQuestions(strengths, gaps, analysis)
         );
     }
@@ -334,24 +334,156 @@ public class DeveloperMatchingService {
             MarketplaceProfile profile,
             Set<String> strengths,
             Set<String> gaps,
-            List<ProfileProjectResponse> matchedProjects,
-            BriefAnalysis analysis
+            List<ProfileProjectResponse> matchedProjects
     ) {
         if (strengths.isEmpty()) {
-            return profile.getName() + " has some adjacent project proof, but the employer should review fit carefully.";
+            return profile.getName() + " has adjacent project proof, but the fit is not direct. The safest next step is to ask them to connect one project to this role before shortlisting.";
         }
 
-        String reason = profile.getName() + " matches because their profile shows " + String.join(", ", strengths) + ".";
-        if (!matchedProjects.isEmpty()) {
-            reason += " Start with " + matchedProjects.get(0).name() + " as the closest proof.";
+        if (matchedProjects.isEmpty()) {
+            return profile.getName() + " has profile-level overlap in " + naturalList(new ArrayList<>(strengths))
+                    + ", but there is no single project that cleanly proves the whole brief. Ask for the closest concrete example before treating them as a strong match.";
         }
-        if (!analysis.idealTraits().isEmpty()) {
-            reason += " The brief also values " + String.join(", ", analysis.idealTraits()) + ".";
+
+        ProfileProjectResponse primaryProject = matchedProjects.get(0);
+        Pronouns pronouns = pronounsFor(profile);
+        String projectDetail = projectReasonDetail(primaryProject, pronouns);
+        String summaryDetail = summaryReasonDetail(profile.getSummary(), pronouns);
+        String proofDetail = proofReasonDetail(primaryProject);
+        String strengthList = naturalList(reasonStrengths(strengths).stream().limit(3).toList());
+        String gapDetail = gaps.isEmpty()
+                ? ""
+                : " A sensible follow-up is " + naturalList(new ArrayList<>(gaps).stream().limit(2).toList()) + ".";
+
+        return switch (Math.floorMod(profile.getName().hashCode(), 5)) {
+            case 0 -> profile.getName() + " is a strong fit because " + primaryProject.name() + " proves more than skill tags: " + projectDetail + " " + proofDetail + summaryDetail + gapDetail;
+            case 1 -> primaryProject.name() + " is the strongest proof for " + profile.getName() + ". " + upperFirst(projectDetail) + " That makes " + pronouns.possessive() + " " + strengthList + " experience concrete rather than just claimed." + summaryDetail + gapDetail;
+            case 2 -> profile.getName() + " has proven " + strengthList + " through " + primaryProject.name() + ": " + projectDetail + " This is the project to inspect first for how " + pronouns.subject() + " " + pronouns.handleVerb() + " implementation details and risk." + gapDetail;
+            case 3 -> profile.getName() + " stands out for this search because " + primaryProject.name() + " maps directly to the work: " + projectDetail + " " + proofDetail + summaryDetail + gapDetail;
+            default -> profile.getName() + " has a practical match through " + primaryProject.name() + ". " + upperFirst(projectDetail) + " " + upperFirst(pronouns.subject()) + " " + pronouns.isVerb() + " still junior, but this project gives enough specific proof to justify an interview." + gapDetail;
+        };
+    }
+
+    private List<String> reasonStrengths(Set<String> strengths) {
+        List<String> values = new ArrayList<>(strengths);
+        if (values.contains("Security") && (values.contains("Spring Security") || values.contains("Authentication"))) {
+            values.remove("Security");
         }
-        if (!gaps.isEmpty()) {
-            reason += " Check " + String.join(", ", gaps.stream().limit(2).toList()) + " in interview.";
+        return values;
+    }
+
+    private String projectReasonDetail(ProfileProjectResponse project, Pronouns pronouns) {
+        String description = safe(project.description()).trim();
+        if (description.isBlank()) {
+            return "the project gives adjacent evidence for the role.";
         }
-        return reason;
+        return rewriteProjectDescriptionForReason(description, pronouns);
+    }
+
+    private String proofReasonDetail(ProfileProjectResponse project) {
+        List<String> proof = new ArrayList<>();
+        if (hasValue(project.githubUrl())) {
+            proof.add("code");
+        }
+        if (hasValue(project.liveUrl())) {
+            proof.add("a live demo");
+        }
+        if (project.images() != null && !project.images().isEmpty()) {
+            proof.add("screenshots");
+        }
+        if (proof.isEmpty()) {
+            return "";
+        }
+        return "The " + naturalList(proof) + " make the proof checkable, so this is more than a keyword match.";
+    }
+
+    private String summaryReasonDetail(String summary, Pronouns pronouns) {
+        String value = safe(summary).trim();
+        if (value.isBlank()) {
+            return "";
+        }
+        String[] sentences = value.split("(?<=[.!?])\\s+");
+        if (sentences.length < 2) {
+            return "";
+        }
+        return " " + upperFirst(pronouns.possessive()) + " profile adds useful context: " + rewriteSummarySentenceForReason(sentences[1].trim(), pronouns);
+    }
+
+    private String naturalList(List<String> values) {
+        if (values.isEmpty()) {
+            return "";
+        }
+        if (values.size() == 1) {
+            return values.get(0);
+        }
+        if (values.size() == 2) {
+            return values.get(0) + " and " + values.get(1);
+        }
+        return String.join(", ", values.subList(0, values.size() - 1)) + ", and " + values.get(values.size() - 1);
+    }
+
+    private String stripTrailingPeriod(String value) {
+        return value.endsWith(".") ? value.substring(0, value.length() - 1) : value;
+    }
+
+    private String rewriteProjectDescriptionForReason(String description, Pronouns pronouns) {
+        String value = stripTrailingPeriod(description.trim());
+        String rewritten = value
+                .replaceFirst("^I implemented ", pronouns.subject() + " implemented ")
+                .replaceFirst("^I built ", pronouns.subject() + " built ")
+                .replaceFirst("^I created ", pronouns.subject() + " created ")
+                .replaceFirst("^I documented ", pronouns.subject() + " documented ")
+                .replaceFirst("^I containerized ", pronouns.subject() + " containerized ")
+                .replaceFirst("^I wrote ", pronouns.subject() + " wrote ")
+                .replaceFirst("^I added ", pronouns.subject() + " added ");
+        if (rewritten.equals(value)) {
+            rewritten = pronouns.subject() + " shows " + value.substring(0, 1).toLowerCase(Locale.ROOT) + value.substring(1);
+        }
+        return rewritten + ".";
+    }
+
+    private String rewriteSummarySentenceForReason(String sentence, Pronouns pronouns) {
+        String value = stripTrailingPeriod(sentence.trim());
+        String rewritten = value
+                .replaceFirst("^I'm ", pronouns.subject() + " is ")
+                .replaceFirst("^I am ", pronouns.subject() + " is ")
+                .replaceFirst("^I use ", pronouns.subject() + " uses ")
+                .replaceFirst("^I build ", pronouns.subject() + " builds ")
+                .replaceFirst("^I like ", pronouns.subject() + " likes ")
+                .replaceFirst("^I care ", pronouns.subject() + " cares ")
+                .replaceFirst("^I want ", pronouns.subject() + " wants ")
+                .replaceFirst("^I try ", pronouns.subject() + " tries ")
+                .replaceFirst("^My ", pronouns.possessive() + " ")
+                .replaceFirst("^The projects here show ", pronouns.possessive() + " projects show ");
+        rewritten = rewritten
+                .replace(" where I can ", " where " + pronouns.subject() + " can ")
+                .replace(" how I ", " how " + pronouns.subject() + " ")
+                .replace(" what I ", " what " + pronouns.subject() + " ")
+                .replace(" that I ", " that " + pronouns.subject() + " ")
+                .replace(" I can ", " " + pronouns.subject() + " can ")
+                .replace(" I ", " " + pronouns.subject() + " ");
+        if (rewritten.equals(value)) {
+            rewritten = value.substring(0, 1).toLowerCase(Locale.ROOT) + value.substring(1);
+        }
+        return rewritten + ".";
+    }
+
+    private Pronouns pronounsFor(MarketplaceProfile profile) {
+        String image = safe(profile.getImage()).toLowerCase(Locale.ROOT);
+        if (image.contains("/women/")) {
+            return new Pronouns("she", "her", "her", "is", "handles");
+        }
+        if (image.contains("/men/")) {
+            return new Pronouns("he", "him", "his", "is", "handles");
+        }
+        return new Pronouns("they", "them", "their", "are", "handle");
+    }
+
+    private String upperFirst(String value) {
+        if (value.isBlank()) {
+            return value;
+        }
+        return value.substring(0, 1).toUpperCase(Locale.ROOT) + value.substring(1);
     }
 
     private List<String> buildQuestions(Set<String> strengths, Set<String> gaps, BriefAnalysis analysis) {
@@ -402,6 +534,15 @@ public class DeveloperMatchingService {
             MarketplaceProfile profile,
             List<ProfileProjectResponse> projects,
             int score
+    ) {
+    }
+
+    private record Pronouns(
+            String subject,
+            String object,
+            String possessive,
+            String isVerb,
+            String handleVerb
     ) {
     }
 }
