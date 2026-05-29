@@ -139,6 +139,10 @@ public class MarketplaceProfile {
         return name;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public String getTitle() {
         return title;
     }
@@ -221,5 +225,9 @@ public class MarketplaceProfile {
 
     public int getDisplayOrder() {
         return displayOrder;
+    }
+
+    public void setDisplayOrder(int displayOrder) {
+        this.displayOrder = displayOrder;
     }
 }

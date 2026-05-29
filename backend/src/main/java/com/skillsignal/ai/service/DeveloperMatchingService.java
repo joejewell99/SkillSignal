@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
@@ -245,8 +246,18 @@ public class DeveloperMatchingService {
 
     private boolean containsSignal(String text, String signal, Map<String, List<String>> signalMap) {
         String normalizedSignal = normalize(signal);
-        return text.contains(normalizedSignal)
-                || signalMap.getOrDefault(signal, List.of()).stream().anyMatch(text::contains);
+        return containsSearchTerm(text, normalizedSignal)
+                || signalMap.getOrDefault(signal, List.of()).stream().anyMatch(term -> containsSearchTerm(text, term));
+    }
+
+    private boolean containsSearchTerm(String text, String term) {
+        String normalizedTerm = normalize(term);
+        if (normalizedTerm.isBlank()) {
+            return false;
+        }
+        return Pattern.compile("(^|[^a-z0-9])" + Pattern.quote(normalizedTerm) + "([^a-z0-9]|$)")
+                .matcher(text)
+                .find();
     }
 
     private String candidateSearchText(MarketplaceProfile profile, List<ProfileProjectResponse> projects) {
