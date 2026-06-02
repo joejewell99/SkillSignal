@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BrainCircuit, ChevronDown, ExternalLink, Info, Sparkles, UserPlus } from 'lucide-react';
+import { AlertTriangle, BrainCircuit, CheckCircle2, ChevronDown, ExternalLink, Info, Sparkles, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import { apiRequest } from '../api/client.js';
@@ -104,35 +104,36 @@ function MatchResultCard({
           </ul>
         </div>
       )}
-      <div className="match-columns">
+      <div className={`match-columns ${isEmployerMode && (match.readinessScore ?? match.matchScore) < 75 ? 'needs-improvement' : ''}`}>
         <div>
-          <h4>{isEmployerMode ? 'Need overlap' : 'Proof signals'}</h4>
+          <h4>{isEmployerMode ? 'Skill overlap' : 'Proof signals'}</h4>
           <div className="skill-list">
             {match.strengths.map((strength) => <span key={strength}>{strength}</span>)}
           </div>
         </div>
         {isEmployerMode && (match.readinessScore ?? match.matchScore) < 75 ? (
-          <div className={`improvement-tips accordion-panel ${openPanelKey === 'improve' ? 'open' : ''}`}>
-            <button className="accordion-trigger" type="button" aria-expanded={openPanelKey === 'improve'} onClick={() => togglePanel('improve')}>
+          <div className="improvement-summary">
+            <AlertTriangle size={18} />
+            <div>
               <h4>Improve before applying</h4>
-              <ChevronDown size={16} />
-            </button>
-            {openPanelKey === 'improve' && (
-              <ul className="accordion-list">
-                {(match.improvementTips?.length ? match.improvementTips : match.gaps).map((tip) => (
+              <ul>
+                {(match.improvementTips?.length ? match.improvementTips : match.gaps).slice(0, 2).map((tip) => (
                   <li key={tip}>{tip}</li>
                 ))}
               </ul>
-            )}
+            </div>
           </div>
         ) : (
-          <div>
-            <h4>{isEmployerMode ? 'Ready signals' : 'Check before acting'}</h4>
-            <ul>
-              {(match.gaps.length ? match.gaps : ['No major gap from this search']).map((gap) => (
-                <li key={gap}>{gap}</li>
-              ))}
-            </ul>
+          <div className={isEmployerMode ? 'ready-summary' : ''}>
+            {isEmployerMode && <CheckCircle2 size={18} />}
+            <div>
+              <h4>{isEmployerMode ? 'Ready signals' : 'Check before acting'}</h4>
+              <ul>
+                {(isEmployerMode ? ['No major gaps in skill for this role'] : match.gaps.length ? match.gaps : ['No major gap from this search']).map((gap) => (
+                  <li key={gap}>{gap}</li>
+                ))}
+              </ul>
+            </div>
           </div>
         )}
       </div>
@@ -463,6 +464,7 @@ export default function Match() {
           {connectionMessage && <p className={connectionMessage.includes('sent') ? 'info-message' : 'error'}>{connectionMessage}</p>}
         </section>
       )}
+
     </main>
   );
 }

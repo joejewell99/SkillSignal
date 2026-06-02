@@ -211,6 +211,11 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.match-columns.needs-improvement {
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
 .match-card h4 {
   font-size: 0.88rem;
   line-height: 1.25;
@@ -225,49 +230,66 @@
   padding-left: 18px;
 }
 
-.improvement-tips {
-  background: #fff9e8;
-  border: 1px solid #e0bd54;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.improvement-tips .accordion-trigger {
-  align-items: center;
+.improvement-summary {
+  align-items: flex-start;
   background: transparent;
-  border: 0;
-  color: inherit;
-  cursor: pointer;
-  display: flex;
-  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
   gap: 10px;
-  justify-content: space-between;
-  min-height: 44px;
-  padding: 10px 12px;
-  text-align: left;
-  width: 100%;
+  grid-template-columns: 20px 1fr;
+  height: 104px;
+  overflow: hidden;
+  padding: 12px 12px 12px 14px;
 }
 
-.improvement-tips .accordion-trigger svg {
-  color: #7a5b0a;
-  flex: 0 0 auto;
-  transition: transform 0.18s ease;
+.improvement-summary svg {
+  color: #a16207;
+  margin-top: 1px;
 }
 
-.improvement-tips.open .accordion-trigger svg {
-  transform: rotate(180deg);
+.improvement-summary h4 {
+  color: var(--text);
+  margin: 0 0 8px;
 }
 
-.improvement-tips h4 {
-  color: #7a5b0a;
+.improvement-summary ul {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
   margin: 0;
+  padding-left: 18px;
 }
 
-.improvement-tips .accordion-list {
-  border-top: 1px solid #e0bd54;
-  color: #594727;
+.ready-summary {
+  align-items: flex-start;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 20px 1fr;
+  height: 104px;
+  overflow: hidden;
+  padding: 12px 12px 12px 14px;
+}
+
+.ready-summary svg {
+  color: #16803a;
+  margin-top: 1px;
+}
+
+.ready-summary h4 {
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.ready-summary ul {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
   margin: 0;
-  padding: 12px 12px 12px 30px;
+  padding-left: 18px;
 }
 
 .match-view-profile {
@@ -375,24 +397,6 @@
 
 :root[data-theme="dark"] .readiness-coach .accordion-body {
   color: #c4e8d2;
-}
-
-:root[data-theme="dark"] .improvement-tips {
-  background: #211a0c;
-  border-color: #8f6d1f;
-}
-
-:root[data-theme="dark"] .improvement-tips h4,
-:root[data-theme="dark"] .improvement-tips ul {
-  color: #e8d39a;
-}
-
-:root[data-theme="dark"] .improvement-tips .accordion-trigger svg {
-  color: #e8d39a;
-}
-
-:root[data-theme="dark"] .improvement-tips .accordion-list {
-  border-top-color: #8f6d1f;
 }
 
 .section-heading {
