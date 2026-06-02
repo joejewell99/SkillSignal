@@ -403,7 +403,15 @@ export default function EmployerDashboard({ user, token }) {
               </form>
             )}
             {profile.projects.length === 0 ? (
-              <p className="info-message">Add what you are looking for so developers know what proof to send you.</p>
+              <div className="empty-state">
+                <BriefcaseBusiness size={28} />
+                <h3>No hiring needs yet</h3>
+                <p>Add one clear requirement so developers know what proof, stack, or project experience to show you.</p>
+                <button className="secondary-button" type="button" onClick={() => setIsAddingNeed(true)}>
+                  <Plus size={16} />
+                  <span>Add requirement</span>
+                </button>
+              </div>
             ) : (
               <div className="candidate-list employer-need-editor-list">
                 {profile.projects.map((need) => (
@@ -461,7 +469,15 @@ export default function EmployerDashboard({ user, token }) {
               </Link>
             </div>
             {savedCandidates.length === 0 ? (
-              <p className="info-message">Save developers from their profile pages to build your shortlist.</p>
+              <div className="empty-state">
+                <Bookmark size={28} />
+                <h3>No saved candidates</h3>
+                <p>Save developers from profile pages when you want to compare or review them later.</p>
+                <Link className="secondary-button" to="/match">
+                  <Search size={16} />
+                  <span>Find developers</span>
+                </Link>
+              </div>
             ) : (
               <div className="candidate-list">
                 {savedCandidates.map((candidate) => (
@@ -518,7 +534,15 @@ export default function EmployerDashboard({ user, token }) {
               </Link>
             </div>
             {proofSignals.length === 0 ? (
-              <p className="info-message">When developers send proof of work from your employer profile, it will appear here.</p>
+              <div className="empty-state">
+                <Send size={28} />
+                <h3>No proof sent yet</h3>
+                <p>When developers send project proof from your employer profile, it will appear here for review.</p>
+                <Link className="secondary-button" to="/profiles?type=DEVELOPER">
+                  <Search size={16} />
+                  <span>Browse developers</span>
+                </Link>
+              </div>
             ) : (
               <div className="candidate-list proof-signal-list">
                 {proofSignals.map((signal) => (
@@ -572,7 +596,15 @@ export default function EmployerDashboard({ user, token }) {
             </div>
             {error && <p className="error">{error}</p>}
             {candidates.length === 0 ? (
-              <p className="info-message">Use the search panel to find developers by skill, stack, or project evidence.</p>
+              <div className="empty-state">
+                <Search size={28} />
+                <h3>No recommended developers</h3>
+                <p>Use AI Match to search by skill, stack, work type, or project evidence.</p>
+                <Link className="secondary-button" to="/match">
+                  <Search size={16} />
+                  <span>Open AI Match</span>
+                </Link>
+              </div>
             ) : (
               <div className="candidate-list">
                 {candidates.slice(0, 3).map((candidate, index) => {
@@ -669,7 +701,10 @@ export default function EmployerDashboard({ user, token }) {
                 )}
                 <div className="feed-list compact-feed-list">
                   {posts.length === 0 ? (
-                    <p className="info-message">Hiring updates can live here without taking over the main dashboard.</p>
+                    <article className="empty-feed">
+                      <Send size={28} />
+                      <p>Post a short hiring update when you want developers to see what you are actively looking for.</p>
+                    </article>
                   ) : (
                     posts.map((post) => (
                       <article className="feed-post" key={post.id}>

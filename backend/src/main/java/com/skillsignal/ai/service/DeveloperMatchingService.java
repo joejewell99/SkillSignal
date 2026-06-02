@@ -5,11 +5,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillsignal.ai.dto.AiMatchResponse;
 import com.skillsignal.ai.dto.DeveloperMatchResponse;
+import com.skillsignal.marketplace.dto.EmployerNeedResponse;
 import com.skillsignal.marketplace.dto.ProfileProjectResponse;
 import com.skillsignal.marketplace.dto.ProfileResponse;
 import com.skillsignal.marketplace.model.MarketplaceProfile;
 import com.skillsignal.marketplace.model.ProfileType;
 import com.skillsignal.marketplace.repository.MarketplaceProfileRepository;
+import com.skillsignal.security.UserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -45,7 +47,9 @@ public class DeveloperMatchingService {
         this.quotaService = quotaService;
     }
 
-    public AiMatchResponse matchDevelopers(String brief, Authentication authentication, HttpServletRequest request) {
+    public AiMatchResponse matchDevelopers(String brief, String mode, Authentication authentication, HttpServletRequest request) {
+        boolean employerMode = "EMPLOYER".equalsIgnoreCase(safe(mode));
+        boolean peerMode = !employerMode;
         AiSearchQuota quota = quotaService.consumeSearch(authentication, request);
         BriefAnalysis analysis = briefAnalysisService.analyze(brief);
         if (analysis.rejected()) {
@@ -56,7 +60,9 @@ public class DeveloperMatchingService {
                     analysis.quality(),
                     true,
                     analysis.rejectionReason(),
-                    "This request was not matched because it is outside SkillSignal's software hiring focus.",
+                    peerMode
+                            ? "This request was not matched because it is outside SkillSignal's profile discovery focus."
+                            : "This request was not matched because it is outside SkillSignal's software hiring focus.",
                     analysis.requiredSkills(),
                     analysis.problemTypes(),
                     List.of(),
@@ -64,7 +70,7 @@ public class DeveloperMatchingService {
                     List.of()
             );
         }
-        if ("NEEDS_MORE_DETAIL".equals(analysis.quality())) {
+        if ("NEEDS_MORE_DETAIL".equals(analysis.quality()) && !canProfileSearchWithPartialSignals(analysis)) {
             return new AiMatchResponse(
                     quota.dailyLimit(),
                     quota.used(),
@@ -72,7 +78,9 @@ public class DeveloperMatchingService {
                     analysis.quality(),
                     false,
                     "",
-                    "SkillSignal needs a little more detail before ranking developers.",
+                    peerMode
+                            ? "SkillSignal needs a skill, stack, project type, or collaboration goal before finding profiles."
+                            : "SkillSignal needs a little more detail before ranking developers.",
                     analysis.requiredSkills(),
                     analysis.problemTypes(),
                     buildEvidenceList(analysis),
@@ -81,17 +89,22 @@ public class DeveloperMatchingService {
             );
         }
 
-        List<CandidateScore> shortlist = prefilterCandidates(analysis);
-        List<DeveloperMatchResponse> matches = rankMatches(shortlist, analysis);
+        Long excludedUserId = peerMode ? authenticatedUserId(authentication) : null;
+        ProfileType targetType = employerMode ? ProfileType.EMPLOYER : ProfileType.DEVELOPER;
+        List<CandidateScore> shortlist = prefilterCandidates(analysis, excludedUserId, targetType);
+        List<DeveloperMatchResponse> matches = rankMatches(shortlist, analysis, employerMode);
+        String responseQuality = "NEEDS_MORE_DETAIL".equals(analysis.quality()) && canProfileSearchWithPartialSignals(analysis)
+                ? "GOOD"
+                : analysis.quality();
 
         return new AiMatchResponse(
                 quota.dailyLimit(),
                 quota.used(),
                 quota.remaining(),
-                analysis.quality(),
+                responseQuality,
                 false,
                 "",
-                buildSummary(analysis),
+                employerMode ? buildEmployerSummary(analysis) : buildPeerSummary(analysis),
                 analysis.requiredSkills(),
                 analysis.problemTypes(),
                 buildEvidenceList(analysis),
@@ -100,10 +113,22 @@ public class DeveloperMatchingService {
         );
     }
 
-    private List<CandidateScore> prefilterCandidates(BriefAnalysis analysis) {
+    private boolean canProfileSearchWithPartialSignals(BriefAnalysis analysis) {
+        return !analysis.requiredSkills().isEmpty() || !analysis.problemTypes().isEmpty();
+    }
+
+    private Long authenticatedUserId(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
+            return null;
+        }
+        return principal.id();
+    }
+
+    private List<CandidateScore> prefilterCandidates(BriefAnalysis analysis, Long excludedUserId, ProfileType targetType) {
         return profileRepository.findAllByOrderByDisplayOrderAsc().stream()
-                .filter(profile -> profile.getType() == ProfileType.DEVELOPER)
+                .filter(profile -> profile.getType() == targetType)
                 .filter(MarketplaceProfile::isDisplayed)
+                .filter(profile -> excludedUserId == null || profile.getUserId() == null || !excludedUserId.equals(profile.getUserId()))
                 .map(profile -> scoreCandidateForShortlist(profile, analysis))
                 .filter(candidate -> candidate.score() >= MIN_PREFILTER_SCORE)
                 .sorted(Comparator.comparing(CandidateScore::score).reversed())
@@ -133,15 +158,15 @@ public class DeveloperMatchingService {
         return new CandidateScore(profile, projects, score);
     }
 
-    private List<DeveloperMatchResponse> rankMatches(List<CandidateScore> shortlist, BriefAnalysis analysis) {
+    private List<DeveloperMatchResponse> rankMatches(List<CandidateScore> shortlist, BriefAnalysis analysis, boolean employerMode) {
         return shortlist.stream()
-                .map(candidate -> buildMatch(candidate, analysis))
+                .map(candidate -> buildMatch(candidate, analysis, employerMode))
                 .sorted(Comparator.comparing(DeveloperMatchResponse::matchScore).reversed())
                 .limit(MATCH_LIMIT)
                 .toList();
     }
 
-    private DeveloperMatchResponse buildMatch(CandidateScore candidate, BriefAnalysis analysis) {
+    private DeveloperMatchResponse buildMatch(CandidateScore candidate, BriefAnalysis analysis, boolean employerMode) {
         MarketplaceProfile profile = candidate.profile();
         List<ProfileProjectResponse> projects = candidate.projects();
         String candidateText = candidateSearchText(profile, projects);
@@ -185,13 +210,16 @@ public class DeveloperMatchingService {
                 new ArrayList<>(strengths),
                 new ArrayList<>(gaps).stream().limit(3).toList(),
                 evidence.stream().distinct().limit(4).toList(),
-                buildReason(profile, strengths, gaps, matchedProjects),
-                buildQuestions(strengths, gaps, analysis)
+                employerMode ? buildEmployerReason(profile, strengths, gaps, matchedProjects) : buildPeerReason(profile, strengths, gaps, matchedProjects),
+                employerMode ? buildEmployerQuestions(strengths, gaps, analysis) : buildPeerQuestions(strengths, gaps, analysis)
         );
     }
 
     private ProfileResponse toMatchProfile(MarketplaceProfile profile, List<ProfileProjectResponse> projects) {
-        ProfileResponse response = ProfileResponse.from(profile, projects);
+        List<EmployerNeedResponse> needs = profile.getType() == ProfileType.EMPLOYER
+                ? projects.stream().map(this::toEmployerNeed).toList()
+                : List.of();
+        ProfileResponse response = ProfileResponse.from(profile, projects, needs, null, List.of());
         return new ProfileResponse(
                 response.id(),
                 response.type(),
@@ -203,12 +231,23 @@ public class DeveloperMatchingService {
                 response.featured(),
                 response.displayed(),
                 response.acceptsConnections(),
+                response.demoProfile(),
                 response.contactLinks(),
                 response.preferences(),
                 response.projects(),
                 response.needs(),
                 response.proofQuality(),
                 response.posts()
+        );
+    }
+
+    private EmployerNeedResponse toEmployerNeed(ProfileProjectResponse project) {
+        return new EmployerNeedResponse(
+                project.name(),
+                project.description(),
+                project.skills() == null ? List.of() : project.skills(),
+                "A project link, code sample, or short explanation showing similar problem-solving evidence.",
+                project.featured()
         );
     }
 
@@ -330,6 +369,88 @@ public class DeveloperMatchingService {
         return summary;
     }
 
+    private String buildPeerSummary(BriefAnalysis analysis) {
+        String summary = "Matching developer profiles with visible proof around "
+                + String.join(", ", analysis.requiredSkills())
+                + " and "
+                + String.join(", ", analysis.problemTypes())
+                + ".";
+        if (!analysis.idealTraits().isEmpty()) {
+            summary += " Useful signals: " + String.join(", ", analysis.idealTraits()) + ".";
+        }
+        return summary;
+    }
+
+    private String buildEmployerSummary(BriefAnalysis analysis) {
+        String summary = "Matching employer needs around "
+                + String.join(", ", analysis.requiredSkills())
+                + " and "
+                + String.join(", ", analysis.problemTypes())
+                + ".";
+        if (!analysis.idealTraits().isEmpty()) {
+            summary += " Useful signals: " + String.join(", ", analysis.idealTraits()) + ".";
+        }
+        return summary;
+    }
+
+    private String buildPeerReason(
+            MarketplaceProfile profile,
+            Set<String> strengths,
+            Set<String> gaps,
+            List<ProfileProjectResponse> matchedProjects
+    ) {
+        if (strengths.isEmpty()) {
+            return profile.getName() + " has adjacent project proof. Open the profile and check whether their published work overlaps with the skills or collaboration you have in mind.";
+        }
+
+        if (matchedProjects.isEmpty()) {
+            return profile.getName() + " has profile-level overlap in " + naturalList(new ArrayList<>(strengths))
+                    + ". The next thing to inspect is whether one of their projects proves that work clearly enough.";
+        }
+
+        ProfileProjectResponse primaryProject = matchedProjects.get(0);
+        Pronouns pronouns = pronounsFor(profile);
+        String strengthList = naturalList(reasonStrengths(strengths).stream().limit(3).toList());
+        String proofDetail = proofReasonDetail(primaryProject);
+        String gapDetail = gaps.isEmpty()
+                ? ""
+                : " You may still want to ask about " + naturalList(new ArrayList<>(gaps).stream().limit(2).toList()) + ".";
+
+        return profile.getName() + " is worth inspecting because " + primaryProject.name()
+                + " gives concrete proof around " + strengthList + ". "
+                + upperFirst(projectReasonDetail(primaryProject, pronouns)) + " "
+                + proofDetail
+                + " That gives you a specific project to discuss if you view or connect." + gapDetail;
+    }
+
+    private String buildEmployerReason(
+            MarketplaceProfile profile,
+            Set<String> strengths,
+            Set<String> gaps,
+            List<ProfileProjectResponse> matchedProjects
+    ) {
+        if (strengths.isEmpty()) {
+            return profile.getName() + " has adjacent hiring signals. Open the profile and check whether their current needs fit the project proof you can show.";
+        }
+
+        if (matchedProjects.isEmpty()) {
+            return profile.getName() + " overlaps with your search in " + naturalList(new ArrayList<>(strengths))
+                    + ". Their profile is worth checking, but inspect the individual hiring needs before treating it as a direct fit.";
+        }
+
+        ProfileProjectResponse primaryNeed = matchedProjects.get(0);
+        String strengthList = naturalList(reasonStrengths(strengths).stream().limit(3).toList());
+        String evidenceDetail = employerNeedEvidenceDetail(primaryNeed);
+        String gapDetail = gaps.isEmpty()
+                ? ""
+                : " Check whether they also need " + naturalList(new ArrayList<>(gaps).stream().limit(2).toList()) + ".";
+
+        return profile.getName() + " is worth a look because " + primaryNeed.name()
+                + " maps to " + strengthList + ". "
+                + stripTrailingPeriod(primaryNeed.description()) + ". "
+                + evidenceDetail + gapDetail;
+    }
+
     private String buildReason(
             MarketplaceProfile profile,
             Set<String> strengths,
@@ -395,6 +516,20 @@ public class DeveloperMatchingService {
             return "";
         }
         return "The " + naturalList(proof) + " make the proof checkable, so this is more than a keyword match.";
+    }
+
+    private String employerNeedEvidenceDetail(ProfileProjectResponse need) {
+        List<String> signals = new ArrayList<>();
+        if (need.skills() != null && !need.skills().isEmpty()) {
+            signals.add("skills: " + naturalList(need.skills().stream().limit(3).toList()));
+        }
+        if (Boolean.TRUE.equals(need.featured())) {
+            signals.add("marked as a priority need");
+        }
+        if (signals.isEmpty()) {
+            return "The profile gives enough context to decide which project proof to show first.";
+        }
+        return "Useful signals to inspect: " + naturalList(signals) + ".";
     }
 
     private String summaryReasonDetail(String summary, Pronouns pronouns) {
@@ -502,6 +637,52 @@ public class DeveloperMatchingService {
         }
         if (questions.isEmpty()) {
             questions.add("Talk through one project where you had to understand and improve existing code.");
+        }
+        return questions.stream().limit(3).toList();
+    }
+
+    private List<String> buildPeerQuestions(Set<String> strengths, Set<String> gaps, BriefAnalysis analysis) {
+        List<String> questions = new ArrayList<>();
+        if (strengths.contains("React") || analysis.problemTypes().contains("Dashboard")) {
+            questions.add("Which React or dashboard project would be the best thing to inspect first?");
+        }
+        if (strengths.contains("Spring Boot") || strengths.contains("Spring Security") || strengths.contains("Authentication")) {
+            questions.add("Do they show a concrete backend, auth, or permissions flow?");
+        }
+        if (strengths.contains("PostgreSQL") || analysis.problemTypes().contains("Data Quality")) {
+            questions.add("Is there a data, SQL, or validation project with enough detail to learn from?");
+        }
+        if (strengths.contains("Docker") || analysis.problemTypes().contains("Deployment")) {
+            questions.add("Do they explain how the project runs, deploys, or handles environment setup?");
+        }
+        if (!gaps.isEmpty()) {
+            questions.add("Are you also learning " + naturalList(new ArrayList<>(gaps).stream().limit(2).toList()) + "?");
+        }
+        if (questions.isEmpty()) {
+            questions.add("What project are you building next, and where would another developer be useful?");
+        }
+        return questions.stream().limit(3).toList();
+    }
+
+    private List<String> buildEmployerQuestions(Set<String> strengths, Set<String> gaps, BriefAnalysis analysis) {
+        List<String> questions = new ArrayList<>();
+        if (strengths.contains("React") || analysis.problemTypes().contains("Dashboard")) {
+            questions.add("Which dashboard, UI state, or workflow need fits your strongest project?");
+        }
+        if (strengths.contains("Spring Boot") || strengths.contains("Spring Security") || strengths.contains("Authentication")) {
+            questions.add("What backend, authentication, or permissions proof would you show them?");
+        }
+        if (strengths.contains("PostgreSQL") || analysis.problemTypes().contains("Data Quality")) {
+            questions.add("Which data, SQL, reporting, or validation project would answer this need?");
+        }
+        if (strengths.contains("Docker") || analysis.problemTypes().contains("Deployment")) {
+            questions.add("Do they need deployment, environment setup, or production-style maintenance proof?");
+        }
+        if (!gaps.isEmpty()) {
+            questions.add("Check whether your profile already proves " + naturalList(new ArrayList<>(gaps).stream().limit(2).toList()) + ".");
+        }
+        if (questions.isEmpty()) {
+            questions.add("Which of your projects best matches this employer's current needs?");
         }
         return questions.stream().limit(3).toList();
     }

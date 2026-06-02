@@ -11,11 +11,13 @@ import com.skillsignal.marketplace.dto.ProfilePostResponse;
 import com.skillsignal.marketplace.dto.ProfileProjectResponse;
 import com.skillsignal.marketplace.model.ProfileType;
 import java.util.List;
+import org.springframework.core.annotation.Order;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
+@Order(10)
 public class MarketplaceProfileSeeder implements CommandLineRunner {
     private final MarketplaceProfileRepository profileRepository;
     private final JdbcTemplate jdbcTemplate;
@@ -39,6 +41,7 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
                         profile.setDisplayed(true);
                         profileRepository.save(profile);
             });
+            markStockProfilesAsDemo();
             supplementJojoDevProfile();
             supplementStockEmployerProfiles();
             return;
@@ -72,6 +75,15 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
         supplementStockEmployerProfiles();
     }
 
+    private void markStockProfilesAsDemo() {
+        profileRepository.findAll().stream()
+                .filter(profile -> profile.getUserId() == null)
+                .forEach(profile -> {
+                    profile.setDemoProfile(true);
+                    profileRepository.save(profile);
+                });
+    }
+
     private MarketplaceProfile developer(
             String name,
             String title,
@@ -81,7 +93,9 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
             boolean featured,
             int displayOrder
     ) {
-        return new MarketplaceProfile(ProfileType.DEVELOPER, name, title, summary, image, skills, featured, displayOrder);
+        MarketplaceProfile profile = new MarketplaceProfile(ProfileType.DEVELOPER, name, title, summary, image, skills, featured, displayOrder);
+        profile.setDemoProfile(true);
+        return profile;
     }
 
     private MarketplaceProfile employer(
@@ -93,7 +107,9 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
             boolean featured,
             int displayOrder
     ) {
-        return new MarketplaceProfile(ProfileType.EMPLOYER, name, title, summary, image, skills, featured, displayOrder);
+        MarketplaceProfile profile = new MarketplaceProfile(ProfileType.EMPLOYER, name, title, summary, image, skills, featured, displayOrder);
+        profile.setDemoProfile(true);
+        return profile;
     }
 
     private void ensureProfileVisibilityColumns() {
@@ -103,6 +119,7 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
         jdbcTemplate.execute("alter table marketplace_profiles add column if not exists posts_json text not null default '[]'");
         jdbcTemplate.execute("alter table marketplace_profiles add column if not exists contact_links_json text default '{}'");
         jdbcTemplate.execute("alter table marketplace_profiles add column if not exists preferences_json text default '{}'");
+        jdbcTemplate.execute("alter table marketplace_profiles add column if not exists demo_profile boolean not null default false");
         jdbcTemplate.execute("alter table marketplace_profiles alter column image type text");
         jdbcTemplate.execute("create unique index if not exists idx_marketplace_profiles_user_id on marketplace_profiles(user_id) where user_id is not null");
     }

@@ -1005,10 +1005,20 @@
   color: var(--primary);
 }
 
+.empty-state h3 {
+  color: var(--ink);
+  font-size: 1rem;
+  margin: 0;
+}
+
 .empty-state p {
   line-height: 1.55;
   margin: 0;
   max-width: 560px;
+}
+
+.empty-state .secondary-button {
+  margin-top: 4px;
 }
 
 .project-grid {

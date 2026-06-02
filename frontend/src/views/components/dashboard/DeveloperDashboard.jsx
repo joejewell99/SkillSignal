@@ -930,7 +930,15 @@ export default function DeveloperDashboard({ user, token }) {
               </Link>
             </div>
             {connectionRequests.length === 0 ? (
-              <p className="info-message">Connection requests from other developers will appear here.</p>
+              <div className="empty-state">
+                <UserRound size={28} />
+                <h3>No connection requests</h3>
+                <p>When another developer wants to connect, the request will appear here.</p>
+                <Link className="secondary-button" to="/match">
+                  <ExternalLink size={16} />
+                  <span>Find developers</span>
+                </Link>
+              </div>
             ) : (
               <div className="connection-request-list">
                 {connectionRequests.map((request) => (
@@ -1031,7 +1039,15 @@ export default function DeveloperDashboard({ user, token }) {
                 <MessageSquareText size={20} />
               </div>
               {connectionFeed.length === 0 ? (
-                <p className="info-message">After you connect with developers, their project updates will show here.</p>
+                <div className="empty-state">
+                  <MessageSquareText size={28} />
+                  <h3>No connection updates yet</h3>
+                  <p>Connect with developers from AI Match or public profiles, then their project updates will appear here.</p>
+                  <Link className="secondary-button" to="/match">
+                    <ExternalLink size={16} />
+                    <span>Find developers</span>
+                  </Link>
+                </div>
               ) : (
                 <div className="feed-list connection-feed-list">
                   {connectionFeed.map((post) => (

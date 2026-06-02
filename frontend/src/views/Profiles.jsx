@@ -189,9 +189,11 @@ export default function Profiles() {
                   <div className="profile-placeholder">{profile.name.slice(0, 2).toUpperCase()}</div>
                 )}
                 <div className="profile-card-heading">
-                  <span className={`profile-type ${profile.type.toLowerCase()}`}>
-                    {profile.type === 'DEVELOPER' ? 'Developer' : 'Employer'}
-                  </span>
+                  <div className="profile-badges">
+                    <span className={`profile-type ${profile.type.toLowerCase()}`}>
+                      {profile.type === 'DEVELOPER' ? 'Developer' : 'Employer'}
+                    </span>
+                  </div>
                   <h3>{profile.name}</h3>
                   <p>{profile.title}</p>
                 </div>

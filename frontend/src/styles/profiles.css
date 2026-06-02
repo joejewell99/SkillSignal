@@ -71,11 +71,17 @@
   gap: 4px;
 }
 
+.profile-badges {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .profile-type {
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 900;
-  justify-self: start;
   padding: 4px 8px;
   text-transform: uppercase;
 }

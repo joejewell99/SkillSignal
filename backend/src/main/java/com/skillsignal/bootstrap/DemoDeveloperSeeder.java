@@ -75,6 +75,7 @@ public class DemoDeveloperSeeder implements CommandLineRunner {
             profile.setImage(seed.image());
             profile.setSkills(seed.skills());
             profile.setDisplayOrder(seed.displayOrder());
+            profile.setDemoProfile(true);
             profile.setContactLinksJson(writeJson(new ProfileContactLinksResponse(
                     "https://www.linkedin.com/in/" + seed.slug(),
                     "https://github.com/" + seed.slug(),
@@ -106,6 +107,7 @@ public class DemoDeveloperSeeder implements CommandLineRunner {
                 .filter(profile -> !activeSeedIds.contains(profile.getId()))
                 .forEach(profile -> {
                     profile.setDisplayed(false);
+                    profile.setDemoProfile(true);
                     profile.setDisplayOrder(1000);
                     profileRepository.save(profile);
                 });

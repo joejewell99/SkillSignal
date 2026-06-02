@@ -280,9 +280,14 @@
   padding: 18px;
 }
 
+.hiring-need-heading {
+  display: grid;
+  gap: 8px;
+}
+
 .hiring-need-card h3 {
   font-size: 1.08rem;
-  margin: 10px 0 8px;
+  margin: 0;
 }
 
 .hiring-need-card p {

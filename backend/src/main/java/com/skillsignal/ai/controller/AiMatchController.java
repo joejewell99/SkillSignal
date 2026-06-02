@@ -26,6 +26,6 @@ public class AiMatchController {
             Authentication authentication,
             HttpServletRequest servletRequest
     ) {
-        return matchService.matchDevelopers(request.brief(), authentication, servletRequest);
+        return matchService.matchDevelopers(request.brief(), request.mode(), authentication, servletRequest);
     }
 }

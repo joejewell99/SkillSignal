@@ -19,8 +19,8 @@ export default function EmployerNeedsList({ needs = [], fallbackProjects = [], d
     <div className="hiring-need-list">
       {normalizedNeeds.map((need) => (
         <article className="hiring-need-card" key={need.title}>
-          <div>
-            <span className="profile-type employer">Hiring need</span>
+          <div className="hiring-need-heading">
+            <span className="profile-type employer">{need.featured ? 'Priority need' : 'Hiring need'}</span>
             <h3>{need.title}</h3>
             <p>{need.problem}</p>
           </div>
@@ -34,11 +34,11 @@ export default function EmployerNeedsList({ needs = [], fallbackProjects = [], d
               </div>
             </div>
             <div>
-              <h4>Evidence wanted</h4>
+              <h4>What to show</h4>
               <p>{need.evidenceWanted || describeIdealDeveloper(need)}</p>
             </div>
             <div>
-              <h4>Ideal junior dev</h4>
+              <h4>Good fit</h4>
               <p>{describeIdealDeveloper({ name: need.title, skills: need.requiredSkills })}</p>
             </div>
           </div>

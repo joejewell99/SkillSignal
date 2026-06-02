@@ -301,7 +301,7 @@ export default function ProfileDetail() {
         body: JSON.stringify({ receiverProfileId: profile.id }),
       });
       setConnectionStatus(connection.status);
-      setConnectionMessage(connection.status === 'ACCEPTED' ? 'Connected' : 'Sent');
+      setConnectionMessage(connection.status === 'ACCEPTED' ? 'Connected' : 'Request sent');
       window.setTimeout(() => setIsConnectionMessageLeaving(true), 1200);
       window.setTimeout(() => setConnectionMessage(''), 1800);
     } catch (err) {
@@ -395,7 +395,7 @@ export default function ProfileDetail() {
           body: JSON.stringify({ developerProfileId: profile.id }),
         });
         setSavedCandidateId(savedCandidate.id);
-        setSaveMessage('Saved');
+        setSaveMessage('Saved candidate');
       }
       window.setTimeout(() => setIsSaveMessageLeaving(true), 1200);
       window.setTimeout(() => setSaveMessage(''), 1800);
@@ -485,7 +485,7 @@ export default function ProfileDetail() {
                   ))}
                 </div>
               )}
-              {shouldShowDeveloperConnection && (
+              {shouldShowDeveloperConnection && profile.acceptsConnections && (
                 <div className="profile-action-row">
                   <button
                     className="primary-button"
@@ -495,18 +495,13 @@ export default function ProfileDetail() {
                   >
                     <UserPlus size={17} />
                     <span>
-                      {!profile.acceptsConnections
-                        ? 'Demo profile'
-                        : connectionStatus === 'ACCEPTED'
+                      {connectionStatus === 'ACCEPTED'
                         ? 'Connected'
                         : connectionStatus === 'PENDING' && connectionDirection === 'OUTGOING'
                           ? 'Request sent'
                           : isConnecting ? 'Sending request...' : 'Connect'}
                     </span>
                   </button>
-                  {!profile.acceptsConnections && (
-                    <p className="info-message">This demo developer is not accepting connection requests yet.</p>
-                  )}
                   {connectionMessage && (
                     <p className={
                       connectionMessage.includes('not') || connectionMessage.includes('cannot')

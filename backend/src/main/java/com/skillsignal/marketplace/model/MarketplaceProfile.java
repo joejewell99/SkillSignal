@@ -67,6 +67,9 @@ public class MarketplaceProfile {
     private boolean displayed = true;
 
     @Column(nullable = false)
+    private boolean demoProfile = false;
+
+    @Column(nullable = false)
     private int displayOrder;
 
     protected MarketplaceProfile() {
@@ -221,6 +224,14 @@ public class MarketplaceProfile {
 
     public void setDisplayed(boolean displayed) {
         this.displayed = displayed;
+    }
+
+    public boolean isDemoProfile() {
+        return demoProfile;
+    }
+
+    public void setDemoProfile(boolean demoProfile) {
+        this.demoProfile = demoProfile;
     }
 
     public int getDisplayOrder() {
