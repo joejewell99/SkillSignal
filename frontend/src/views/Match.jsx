@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BrainCircuit, ExternalLink, Info, Sparkles, UserPlus } from 'lucide-react';
+import { BrainCircuit, ChevronDown, ExternalLink, Info, Sparkles, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import { apiRequest } from '../api/client.js';
@@ -32,6 +32,145 @@ function readStoredMatchState(storageKey) {
     sessionStorage.removeItem(storageKey);
     return { brief: '', mode: '', results: null };
   }
+}
+
+function MatchResultCard({
+  match,
+  matchIndex,
+  isEmployerMode,
+  user,
+  connectionForProfile,
+  connectingProfileId,
+  connectWithDeveloper,
+}) {
+  const [openPanelKey, setOpenPanelKey] = useState('');
+  const cardKey = `${match.profile.id ?? match.profile.name}-${matchIndex}`;
+  const togglePanel = (panelKey) => {
+    setOpenPanelKey((currentKey) => currentKey === panelKey ? '' : panelKey);
+  };
+
+  return (
+    <article className="match-card">
+      <div className="match-score">
+        <strong>{isEmployerMode ? match.readinessScore ?? match.matchScore : match.matchScore}%</strong>
+        <span>{isEmployerMode ? match.readinessLabel ?? 'readiness' : 'match'}</span>
+      </div>
+      <div className="match-profile">
+        {match.profile.image ? (
+          <img src={match.profile.image} alt={match.profile.name} />
+        ) : (
+          <div className="profile-placeholder">{match.profile.name.slice(0, 2).toUpperCase()}</div>
+        )}
+        <div>
+          <div className="match-name-row">
+            <h3>{match.profile.name}</h3>
+          </div>
+          <p>{match.profile.title}</p>
+        </div>
+      </div>
+      <p className="proof-text">{match.reason}</p>
+      {isEmployerMode && (
+        <div className="readiness-coach">
+          <div className={`accordion-panel ${openPanelKey === 'hiring' ? 'open' : ''}`}>
+            <button className="accordion-trigger" type="button" aria-expanded={openPanelKey === 'hiring'} onClick={() => togglePanel('hiring')}>
+              <h4>Are they likely to hire around this?</h4>
+              <ChevronDown size={16} />
+            </button>
+            {openPanelKey === 'hiring' && <p className="accordion-body">{match.hiringOutlook}</p>}
+          </div>
+          <div className={`accordion-panel ${openPanelKey === 'proof' ? 'open' : ''}`}>
+            <button className="accordion-trigger" type="button" aria-expanded={openPanelKey === 'proof'} onClick={() => togglePanel('proof')}>
+              <h4>What should you show them?</h4>
+              <ChevronDown size={16} />
+            </button>
+            {openPanelKey === 'proof' && <p className="accordion-body">{match.proofToShow}</p>}
+          </div>
+          <div className={`accordion-panel ${openPanelKey === 'next' ? 'open' : ''}`}>
+            <button className="accordion-trigger" type="button" aria-expanded={openPanelKey === 'next'} onClick={() => togglePanel('next')}>
+              <h4>Your next move</h4>
+              <ChevronDown size={16} />
+            </button>
+            {openPanelKey === 'next' && <p className="accordion-body">{match.nextStep}</p>}
+          </div>
+        </div>
+      )}
+      {(match.evidence ?? []).length > 0 && (
+        <div className="match-evidence">
+          <h4>{isEmployerMode ? 'Hiring need evidence' : 'Project evidence'}</h4>
+          <ul>
+            {match.evidence.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className="match-columns">
+        <div>
+          <h4>{isEmployerMode ? 'Need overlap' : 'Proof signals'}</h4>
+          <div className="skill-list">
+            {match.strengths.map((strength) => <span key={strength}>{strength}</span>)}
+          </div>
+        </div>
+        {isEmployerMode && (match.readinessScore ?? match.matchScore) < 75 ? (
+          <div className={`improvement-tips accordion-panel ${openPanelKey === 'improve' ? 'open' : ''}`}>
+            <button className="accordion-trigger" type="button" aria-expanded={openPanelKey === 'improve'} onClick={() => togglePanel('improve')}>
+              <h4>Improve before applying</h4>
+              <ChevronDown size={16} />
+            </button>
+            {openPanelKey === 'improve' && (
+              <ul className="accordion-list">
+                {(match.improvementTips?.length ? match.improvementTips : match.gaps).map((tip) => (
+                  <li key={tip}>{tip}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : (
+          <div>
+            <h4>{isEmployerMode ? 'Ready signals' : 'Check before acting'}</h4>
+            <ul>
+              {(match.gaps.length ? match.gaps : ['No major gap from this search']).map((gap) => (
+                <li key={gap}>{gap}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      <div>
+        <h4>{isEmployerMode ? 'Questions to answer' : 'Connection prompts'}</h4>
+        <ul>
+          {match.interviewQuestions.map((question) => (
+            <li key={question}>{question}</li>
+          ))}
+        </ul>
+      </div>
+      <div className="match-action-row">
+        <Link className="secondary-button match-view-profile" to={`/profiles/${match.profile.id}`}>
+          <ExternalLink size={16} />
+          <span>{isEmployerMode ? 'View employer' : 'View profile'}</span>
+        </Link>
+        {!isEmployerMode && user?.role === 'DEVELOPER' && match.profile.acceptsConnections && (
+          <button
+            className="primary-button"
+            type="button"
+            disabled={Boolean(connectionForProfile(match.profile.id)) || connectingProfileId === match.profile.id}
+            onClick={() => connectWithDeveloper(match.profile.id)}
+          >
+            <UserPlus size={16} />
+            <span>
+              {connectingProfileId === match.profile.id
+                ? 'Connecting...'
+                : connectionForProfile(match.profile.id)?.status === 'ACCEPTED'
+                  ? 'Connected'
+                  : connectionForProfile(match.profile.id)
+                    ? 'Request sent'
+                    : 'Connect'}
+            </span>
+          </button>
+        )}
+      </div>
+    </article>
+  );
 }
 
 export default function Match() {
@@ -307,86 +446,17 @@ export default function Match() {
 
           {hasUnlockedResults && aiResults.matches.length > 0 && (
             <div className="match-grid">
-            {aiResults.matches.map((match) => (
-              <article className="match-card" key={match.profile.id}>
-                <div className="match-score">
-                  <strong>{match.matchScore}%</strong>
-                  <span>match</span>
-                </div>
-                <div className="match-profile">
-                  {match.profile.image ? (
-                    <img src={match.profile.image} alt={match.profile.name} />
-                  ) : (
-                    <div className="profile-placeholder">{match.profile.name.slice(0, 2).toUpperCase()}</div>
-                  )}
-                  <div>
-                    <div className="match-name-row">
-                      <h3>{match.profile.name}</h3>
-                    </div>
-                    <p>{match.profile.title}</p>
-                  </div>
-                </div>
-                <p className="proof-text">{match.reason}</p>
-                {(match.evidence ?? []).length > 0 && (
-                  <div className="match-evidence">
-                    <h4>{isEmployerMode ? 'Hiring need evidence' : 'Project evidence'}</h4>
-                    <ul>
-                      {match.evidence.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                <div className="match-columns">
-                  <div>
-                    <h4>{isEmployerMode ? 'Need overlap' : 'Proof signals'}</h4>
-                    <div className="skill-list">
-                      {match.strengths.map((strength) => <span key={strength}>{strength}</span>)}
-                    </div>
-                  </div>
-                  <div>
-                    <h4>Check before acting</h4>
-                    <ul>
-                      {(match.gaps.length ? match.gaps : ['No major gap from this search']).map((gap) => (
-                        <li key={gap}>{gap}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                <div>
-                  <h4>{isEmployerMode ? 'Fit checks' : 'Connection prompts'}</h4>
-                  <ul>
-                    {match.interviewQuestions.map((question) => (
-                      <li key={question}>{question}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="match-action-row">
-                  <Link className="secondary-button match-view-profile" to={`/profiles/${match.profile.id}`}>
-                    <ExternalLink size={16} />
-                    <span>{isEmployerMode ? 'View employer' : 'View profile'}</span>
-                  </Link>
-                  {!isEmployerMode && user?.role === 'DEVELOPER' && match.profile.acceptsConnections && (
-                    <button
-                      className="primary-button"
-                      type="button"
-                      disabled={Boolean(connectionForProfile(match.profile.id)) || connectingProfileId === match.profile.id}
-                      onClick={() => connectWithDeveloper(match.profile.id)}
-                    >
-                      <UserPlus size={16} />
-                      <span>
-                        {connectingProfileId === match.profile.id
-                          ? 'Connecting...'
-                          : connectionForProfile(match.profile.id)?.status === 'ACCEPTED'
-                            ? 'Connected'
-                            : connectionForProfile(match.profile.id)
-                              ? 'Request sent'
-                              : 'Connect'}
-                      </span>
-                    </button>
-                  )}
-                </div>
-              </article>
+            {aiResults.matches.map((match, matchIndex) => (
+              <MatchResultCard
+                key={`${match.profile.id ?? match.profile.name}-${matchIndex}`}
+                match={match}
+                matchIndex={matchIndex}
+                isEmployerMode={isEmployerMode}
+                user={user}
+                connectionForProfile={connectionForProfile}
+                connectingProfileId={connectingProfileId}
+                connectWithDeveloper={connectWithDeveloper}
+              />
             ))}
             </div>
           )}

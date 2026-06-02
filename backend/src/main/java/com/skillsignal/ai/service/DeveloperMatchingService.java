@@ -91,8 +91,9 @@ public class DeveloperMatchingService {
 
         Long excludedUserId = peerMode ? authenticatedUserId(authentication) : null;
         ProfileType targetType = employerMode ? ProfileType.EMPLOYER : ProfileType.DEVELOPER;
+        DeveloperContext developerContext = employerMode ? authenticatedDeveloperContext(authentication) : null;
         List<CandidateScore> shortlist = prefilterCandidates(analysis, excludedUserId, targetType);
-        List<DeveloperMatchResponse> matches = rankMatches(shortlist, analysis, employerMode);
+        List<DeveloperMatchResponse> matches = rankMatches(shortlist, analysis, employerMode, developerContext);
         String responseQuality = "NEEDS_MORE_DETAIL".equals(analysis.quality()) && canProfileSearchWithPartialSignals(analysis)
                 ? "GOOD"
                 : analysis.quality();
@@ -122,6 +123,17 @@ public class DeveloperMatchingService {
             return null;
         }
         return principal.id();
+    }
+
+    private DeveloperContext authenticatedDeveloperContext(Authentication authentication) {
+        Long userId = authenticatedUserId(authentication);
+        if (userId == null) {
+            return null;
+        }
+        return profileRepository.findByUserId(userId)
+                .filter(profile -> profile.getType() == ProfileType.DEVELOPER)
+                .map(profile -> new DeveloperContext(profile, readProjects(profile)))
+                .orElse(null);
     }
 
     private List<CandidateScore> prefilterCandidates(BriefAnalysis analysis, Long excludedUserId, ProfileType targetType) {
@@ -158,15 +170,25 @@ public class DeveloperMatchingService {
         return new CandidateScore(profile, projects, score);
     }
 
-    private List<DeveloperMatchResponse> rankMatches(List<CandidateScore> shortlist, BriefAnalysis analysis, boolean employerMode) {
+    private List<DeveloperMatchResponse> rankMatches(
+            List<CandidateScore> shortlist,
+            BriefAnalysis analysis,
+            boolean employerMode,
+            DeveloperContext developerContext
+    ) {
         return shortlist.stream()
-                .map(candidate -> buildMatch(candidate, analysis, employerMode))
+                .map(candidate -> buildMatch(candidate, analysis, employerMode, developerContext))
                 .sorted(Comparator.comparing(DeveloperMatchResponse::matchScore).reversed())
                 .limit(MATCH_LIMIT)
                 .toList();
     }
 
-    private DeveloperMatchResponse buildMatch(CandidateScore candidate, BriefAnalysis analysis, boolean employerMode) {
+    private DeveloperMatchResponse buildMatch(
+            CandidateScore candidate,
+            BriefAnalysis analysis,
+            boolean employerMode,
+            DeveloperContext developerContext
+    ) {
         MarketplaceProfile profile = candidate.profile();
         List<ProfileProjectResponse> projects = candidate.projects();
         String candidateText = candidateSearchText(profile, projects);
@@ -203,14 +225,38 @@ public class DeveloperMatchingService {
 
         score += proofDepthScore(projects);
         score = Math.min(score, 97);
+        ProfileProjectResponse primaryMatch = matchedProjects.isEmpty() ? null : matchedProjects.get(0);
+        ProfileProjectResponse developerProject = employerMode
+                ? bestDeveloperProjectForEmployer(developerContext, primaryMatch, analysis, strengths)
+                : null;
+        int readinessScore = employerMode
+                ? readinessScore(score, strengths, gaps, matchedProjects, developerContext, developerProject)
+                : score;
+        String readinessLabel = readinessLabel(readinessScore);
 
         return new DeveloperMatchResponse(
                 toMatchProfile(profile, projects),
                 score,
+                readinessScore,
+                readinessLabel,
                 new ArrayList<>(strengths),
                 new ArrayList<>(gaps).stream().limit(3).toList(),
                 evidence.stream().distinct().limit(4).toList(),
-                employerMode ? buildEmployerReason(profile, strengths, gaps, matchedProjects) : buildPeerReason(profile, strengths, gaps, matchedProjects),
+                employerMode
+                        ? buildEmployerReason(profile, strengths, gaps, matchedProjects, developerContext, developerProject, readinessScore)
+                        : buildPeerReason(profile, strengths, gaps, matchedProjects),
+                employerMode
+                        ? buildHiringOutlook(profile, primaryMatch, strengths, gaps, readinessScore)
+                        : "This is a peer discovery match. Use the score to decide whether their project proof is worth inspecting.",
+                employerMode
+                        ? buildProofToShow(primaryMatch, developerProject, strengths)
+                        : "Open the project proof and look for code, screenshots, live demos, or notes that explain the implementation.",
+                employerMode
+                        ? buildEmployerNextStep(profile, primaryMatch, developerProject, gaps, readinessScore)
+                        : "View the profile and start with a specific project question rather than a generic connection request.",
+                employerMode
+                        ? buildImprovementTips(primaryMatch, developerProject, strengths, gaps, readinessScore)
+                        : List.of(),
                 employerMode ? buildEmployerQuestions(strengths, gaps, analysis) : buildPeerQuestions(strengths, gaps, analysis)
         );
     }
@@ -427,28 +473,407 @@ public class DeveloperMatchingService {
             MarketplaceProfile profile,
             Set<String> strengths,
             Set<String> gaps,
-            List<ProfileProjectResponse> matchedProjects
+            List<ProfileProjectResponse> matchedProjects,
+            DeveloperContext developerContext,
+            ProfileProjectResponse developerProject,
+            int readinessScore
     ) {
+        String companyValues = companyValues(profile);
         if (strengths.isEmpty()) {
-            return profile.getName() + " has adjacent hiring signals. Open the profile and check whether their current needs fit the project proof you can show.";
+            return profile.getName() + " might be adjacent, but I would treat this as a longer shot until you can show one project that speaks to their current work. "
+                    + "They seem to value " + companyValues + ", so your message needs to be specific rather than just enthusiastic.";
         }
 
         if (matchedProjects.isEmpty()) {
-            return profile.getName() + " overlaps with your search in " + naturalList(new ArrayList<>(strengths))
-                    + ". Their profile is worth checking, but inspect the individual hiring needs before treating it as a direct fit.";
+            return profile.getName() + " could suit you because your profile overlaps with " + naturalList(new ArrayList<>(strengths))
+                    + ". I would still inspect their hiring needs before applying, because the fit is not yet tied to one clear piece of work. "
+                    + "Lead with a project that proves you can learn carefully and communicate tradeoffs.";
         }
 
         ProfileProjectResponse primaryNeed = matchedProjects.get(0);
-        String strengthList = naturalList(reasonStrengths(strengths).stream().limit(3).toList());
-        String evidenceDetail = employerNeedEvidenceDetail(primaryNeed);
-        String gapDetail = gaps.isEmpty()
+        String needWork = cleanNeedDescription(primaryNeed.description());
+        String projectName = developerProject == null ? "your closest relevant project" : developerProject.name();
+        String gapLine = gaps.isEmpty()
                 ? ""
-                : " Check whether they also need " + naturalList(new ArrayList<>(gaps).stream().limit(2).toList()) + ".";
+                : " Before you approach them, tidy up the " + naturalList(new ArrayList<>(gaps).stream().limit(2).toList()) + " gap.";
+        boolean strongLead = readinessScore >= 82;
 
-        return profile.getName() + " is worth a look because " + primaryNeed.name()
-                + " maps to " + strengthList + ". "
-                + stripTrailingPeriod(primaryNeed.description()) + ". "
-                + evidenceDetail + gapDetail;
+        return switch (needCategory(primaryNeed)) {
+            case "AUTH" -> switch (authSubtype(primaryNeed)) {
+                case "JWT" -> profile.getName() + " is a good lead if you want backend auth work rather than generic full-stack noise. Their need is about " + needWork + ", so the proof they will care about is whether you can trace a token/login flow, explain protected endpoints, and make auth failures easier for another team to debug. Point them to the exact auth path in " + projectName + "; a general portfolio link would waste the strongest part of your fit." + gapLine;
+                case "PERMISSIONS" -> profile.getName() + " is more about product-safe permissions than raw backend security. The work is " + needWork + ", which means your best angle is showing that you can make admin access, role changes, failed requests, and permission feedback understandable to users. " + projectName + " should be framed as a workflow/control example, not just an auth example." + gapLine;
+                case "LOGIN" -> profile.getName() + " is worth checking because the pain is close to the user: " + needWork + ". If " + projectName + " shows clean validation and sensible failed-login states, you have a practical story to tell. Lead with the user-facing failure path, not the library names." + gapLine;
+                default -> profile.getName() + " is showing an auth need with real edges: " + needWork + ". Your fit depends on whether " + projectName + " shows careful access-control decisions, not just Spring Security or Authentication tags." + gapLine;
+            };
+            case "DASHBOARD" -> profile.getName() + " is looking for someone who can turn internal data into decisions. The need is " + needWork + ", so your strongest angle is not \"I build dashboards\"; it is showing how you handle loading states, filters, warnings, and the moment a user understands what to do next. Use " + projectName + " to show one screen where the UI reduces confusion for an internal user." + gapLine;
+            case "SQL" -> profile.getName() + " is a fit if you want careful backend/data work. Their need around " + primaryNeed.name() + " is really about trust: records should be shaped, queried, paginated, or audited without surprising the UI. Do not lead with screenshots; lead with the table, endpoint, or response-shape decision in " + projectName + "." + gapLine;
+            case "DATA" -> profile.getName() + " has the kind of work where a junior can stand out by being patient. They need " + needWork + ", which means messy inputs, validation rules, and clear explanations matter more than a flashy stack list. " + projectName + " is useful only if it shows bad cases and how you handled them." + gapLine;
+            case "DEPLOYMENT" -> profile.getName() + " is not necessarily looking for a deep DevOps specialist here. Their need is " + needWork + ", so a junior with solid setup notes, environment checks, and calm debugging habits could be genuinely useful. Frame " + projectName + " around making the app easier for another person to run, verify, and recover." + gapLine;
+            case "DOCS" -> profile.getName() + " is a good lead if you like making confusing technical behaviour easier for other developers. The work is " + needWork + ", so examples, auth notes, failure cases, and small sandbox-style guidance are the evidence that would make you credible. Show the part of " + projectName + " where another developer would actually save time." + gapLine;
+            default -> profile.getName() + " is worth inspecting because " + primaryNeed.name() + " is close enough to your search to deserve a look. The fit will come down to whether " + projectName + " explains your judgment clearly, not whether the keywords line up. " + (strongLead ? "The readiness score says this is worth opening." : "The readiness score says to be selective.") + gapLine + " They seem to value " + companyValues + ".";
+        };
+    }
+
+    private int readinessScore(
+            int matchScore,
+            Set<String> strengths,
+            Set<String> gaps,
+            List<ProfileProjectResponse> matchedProjects,
+            DeveloperContext developerContext,
+            ProfileProjectResponse developerProject
+    ) {
+        int score = matchScore;
+        score += Math.min(10, strengths.size() * 2);
+        score += matchedProjects.stream().anyMatch(need -> Boolean.TRUE.equals(need.featured())) ? 5 : 0;
+        score -= Math.min(18, gaps.size() * 6);
+        if (developerContext == null) {
+            score = Math.min(score, 74);
+        } else if (developerProject == null) {
+            score = Math.min(score, 82);
+        }
+        return Math.max(18, Math.min(98, score));
+    }
+
+    private String readinessLabel(int score) {
+        if (score >= 82) {
+            return "Strong fit";
+        }
+        if (score >= 65) {
+            return "Realistic stretch";
+        }
+        if (score >= 45) {
+            return "Early fit";
+        }
+        return "Longer shot";
+    }
+
+    private String readinessSentence(int score) {
+        if (score >= 82) {
+            return "I would treat this as a strong lead if your project proof is polished.";
+        }
+        if (score >= 65) {
+            return "This is a realistic stretch: good enough to approach, but your message has to connect the dots.";
+        }
+        if (score >= 45) {
+            return "This is possible, but you should improve the proof before expecting a reply.";
+        }
+        return "This is a longer shot unless you build or publish more directly relevant evidence.";
+    }
+
+    private String buildHiringOutlook(
+            MarketplaceProfile employer,
+            ProfileProjectResponse primaryNeed,
+            Set<String> strengths,
+            Set<String> gaps,
+            int readinessScore
+    ) {
+        if (primaryNeed == null) {
+            return "They have some adjacent signals, but I cannot see a specific current need that cleanly matches your search yet.";
+        }
+
+        String priority = Boolean.TRUE.equals(primaryNeed.featured()) ? "priority" : "published";
+        String gapText = gaps.isEmpty()
+                ? ""
+                : " Watch the " + naturalList(new ArrayList<>(gaps).stream().limit(2).toList()) + " gap before you treat it as a clean fit.";
+        String needWork = cleanNeedDescription(primaryNeed.description());
+        int variant = Math.floorMod((employer.getName() + primaryNeed.name()).hashCode(), 3);
+        return switch (needCategory(primaryNeed)) {
+            case "AUTH" -> switch (authSubtype(primaryNeed)) {
+                case "JWT" -> employer.getName() + " is describing backend auth cleanup, not a generic security wishlist: " + needWork + ". That is a credible junior target because the useful work is traceable: follow the token flow, document protected endpoints, and make failures easier for the frontend team to reason about." + gapText;
+                case "PERMISSIONS" -> employer.getName() + " is hiring around permission workflow, not just auth theory: " + needWork + ". This is realistic if your proof shows you can make role changes understandable in the UI and still respect the access rules underneath." + gapText;
+                case "LOGIN" -> primaryNeed.name() + " is about the part of auth users actually feel: " + needWork + ". A junior can be useful here if your project shows careful validation, useful failed states, and no loose ends around protected screens." + gapText;
+                default -> switch (variant) {
+                    case 0 -> employer.getName() + " is signalling " + priority + " auth work with a real shape: " + needWork + ". That is a plausible junior opening if you can show careful flow-tracing rather than broad security claims." + gapText;
+                    case 1 -> primaryNeed.name() + " sounds reviewable rather than vague: " + needWork + ". For a junior developer, that matters because small access-control improvements can be judged from code, screenshots, endpoint examples, or error states." + gapText;
+                    default -> "The hiring signal is strongest where the auth work gets concrete: " + needWork + ". " + employer.getName() + " is more likely to respond if your profile shows disciplined handling of access, failure cases, and user feedback." + gapText;
+                };
+            };
+            case "DASHBOARD" -> switch (variant) {
+                case 0 -> employer.getName() + " looks like they need product judgment around data: " + needWork + ". A junior can fit this if your dashboard proof shows how raw API data becomes something a busy user can act on.";
+                case 1 -> "This is less about making charts and more about making a workflow legible. " + primaryNeed.name() + " asks for " + needWork + ", so the employer will probably care about states, filters, warnings, and whether the screen helps someone decide faster.";
+                default -> employer.getName() + " has a dashboard need with practical stakes: " + needWork + ". Your chances depend on whether your project proof shows product thinking, not just component styling.";
+            };
+            case "SQL" -> switch (variant) {
+                case 0 -> "This reads like backend trust work: " + upperFirst(needWork) + ". A junior can be credible here if the scope stays small and your project shows careful schema/API thinking.";
+                case 1 -> employer.getName() + " is likely hiring around predictable data, not glamorous features. " + primaryNeed.name() + " needs someone who can keep records, queries, or pagination understandable when the edge cases show up.";
+                default -> "The opportunity is realistic if you can prove data discipline. " + upperFirst(needWork) + " is the sort of task where a clean table shape, clear endpoint, or pagination decision matters more than a flashy UI.";
+            };
+            case "DATA" -> switch (variant) {
+                case 0 -> employer.getName() + " has the kind of messy-input problem teams actually hand to juniors: " + needWork + ". It is believable if your project proves patience with edge cases, not just a script that works on perfect data.";
+                case 1 -> primaryNeed.name() + " is a fit signal because it involves imperfect user input. If your portfolio shows validation decisions, duplicate handling, or useful error messages, you have a realistic way to start the conversation.";
+                default -> "This need is about trust before data reaches the rest of the system: " + needWork + ". The employer is likely to value careful thinking and plain-English error feedback more than advanced architecture.";
+            };
+            case "DEPLOYMENT" -> switch (variant) {
+                case 0 -> "This is likely to suit a junior who enjoys reliability polish: " + needWork + ". " + employer.getName() + " may not need a platform engineer here; they need someone careful enough to make the app easier to run and verify.";
+                case 1 -> primaryNeed.name() + " sounds like release friction, not deep infrastructure ownership. That is junior-realistic if your proof shows setup steps, checks, and docs another person could actually follow.";
+                default -> "The hiring signal is around reducing deployment uncertainty. If you can show environment setup, health checks, or run instructions that remove guesswork, this employer has a practical reason to look at you.";
+            };
+            case "DOCS" -> switch (variant) {
+                case 0 -> employer.getName() + " is asking for developer-experience work: " + needWork + ". That makes clarity part of the hiring bar, not just code.";
+                case 1 -> primaryNeed.name() + " is realistic for a junior if you can turn confusing API behaviour into examples another engineer can use. They will be looking for patience and precision.";
+                default -> "This employer likely needs someone who can make technical behaviour explainable. Good docs, endpoint examples, and failure cases could matter as much as implementation here.";
+            };
+            default -> employer.getName() + " has a real enough need to inspect: " + needWork + ". I would still look for one project that lands close to " + primaryNeed.name() + " before treating it as a strong lead." + gapText;
+        };
+    }
+
+    private String buildProofToShow(
+            ProfileProjectResponse primaryNeed,
+            ProfileProjectResponse developerProject,
+            Set<String> strengths
+    ) {
+        String skillText = strengths.isEmpty()
+                ? "the problem they need solved"
+                : naturalList(reasonStrengths(strengths).stream().limit(3).toList());
+        String projectName = developerProject == null ? "your closest relevant project" : developerProject.name();
+        String noPerfectMatch = developerProject == null
+                ? " If none of your projects match perfectly, say exactly which part transfers and which part you would need to learn."
+                : "";
+        String category = needCategory(primaryNeed);
+        if (developerProject != null) {
+            return switch (category) {
+                case "AUTH" -> projectName + " only helps if you point to the exact access-control moment: " + authProofAngle(primaryNeed) + ". A screenshot, request example, or README excerpt would make this much more convincing than a general repo link.";
+                case "DASHBOARD" -> "Use " + projectName + " as a product proof piece. Show one screen where raw API data becomes a decision: loading state, empty state, warning, filter, chart, or table. The employer should be able to see that you understand the user workflow, not just React components.";
+                case "SQL" -> "Lead with the data model in " + projectName + ". Show the table shape, query or endpoint, and how the result stays predictable with filtering, pagination, or history. A short README note explaining the tradeoff is stronger than another screenshot.";
+                case "DATA" -> projectName + " should prove how you handle bad inputs. Show the validation cases, the failing examples, and the message a non-technical user would see. That is the bit this employer will trust more than a polished UI.";
+                case "DEPLOYMENT" -> "Show the runbook side of " + projectName + ": environment variables, Docker or setup steps, seed data, health check, and what you check when something fails. The proof is that another person could run it without guessing.";
+                case "DOCS" -> "Use " + projectName + " to show developer empathy: endpoint examples, auth requirements, failure cases, and a README section that would help another engineer avoid a mistake.";
+                default -> "Use " + projectName + ", but narrow the proof to " + skillText + ". Show the exact code path, screenshot, or README paragraph that makes the overlap obvious.";
+            };
+        }
+        return switch (category) {
+            case "AUTH" -> "Use a project that proves an auth decision: " + authProofAngle(primaryNeed) + "." + noPerfectMatch;
+            case "DASHBOARD" -> "Use a project that turns data into an action: filters, warnings, empty/loading states, or an API-backed dashboard screen." + noPerfectMatch;
+            case "SQL" -> "Use a project with a visible data decision: schema, query, pagination, audit history, or predictable API response shape." + noPerfectMatch;
+            case "DATA" -> "Use a project with messy inputs and validation rules. Show examples that failed and how your tool explained the issue." + noPerfectMatch;
+            case "DEPLOYMENT" -> "Use a project where setup and reliability are visible: Docker, environment docs, health checks, or deployment notes." + noPerfectMatch;
+            case "DOCS" -> "Use a project where another developer can understand how to call the API, handle auth, and recover from errors." + noPerfectMatch;
+            default -> "Use one checkable project, but make the evidence specific: problem, code path, result, and what you learned." + noPerfectMatch;
+        };
+    }
+
+    private String buildEmployerNextStep(
+            MarketplaceProfile employer,
+            ProfileProjectResponse primaryNeed,
+            ProfileProjectResponse developerProject,
+            Set<String> gaps,
+            int readinessScore
+    ) {
+        if (readinessScore < 45) {
+            return "Build or improve one small proof piece before contacting " + employer.getName()
+                    + ": a README section, screenshot, or tiny feature that directly answers their need.";
+        }
+        String needName = primaryNeed == null ? "their current need" : primaryNeed.name();
+        String projectName = developerProject == null ? "your closest matching project" : developerProject.name();
+        String gapText = gaps.isEmpty()
+                ? ""
+                : " Then mention how you would close the " + naturalList(new ArrayList<>(gaps).stream().limit(2).toList()) + " gap without pretending you already know it.";
+        return switch (needCategory(primaryNeed)) {
+            case "AUTH" -> switch (authSubtype(primaryNeed)) {
+                case "JWT" -> "Make the note backend-specific: \"I saw " + needName + ". My closest proof is " + projectName + ", especially the JWT/protected-endpoint flow. I would start by tracing login/register failures, checking which endpoints need clearer docs, and shipping one safe validation or error-message improvement.\"" + gapText;
+                case "PERMISSIONS" -> "Frame it around the admin workflow: \"I saw " + needName + ". In " + projectName + " I can point to similar route/permission handling. I would start by testing invite, role-change, denied-access, and failed-request states so the UI makes permission changes obvious.\"" + gapText;
+                case "LOGIN" -> "Keep the outreach focused on user pain: \"I saw " + needName + ". My closest proof is " + projectName + "; I would start by reproducing failed login/register cases and tightening the validation/error feedback before touching broader auth behaviour.\"" + gapText;
+                default -> "Send a note that names the risk, not the stack: \"I saw " + needName + ". My closest proof is " + projectName + ", especially the part around " + authProofAngle(primaryNeed) + ". I would start by checking the current flow, writing down the failure cases, and fixing one small edge case safely.\"" + gapText;
+            };
+            case "DASHBOARD" -> "Do not open with \"I know React\". Open with a useful observation: \"Your " + needName + " work sounds like it needs clearer states around data, warnings, and user decisions. Here is a dashboard project where I handled that pattern, and one screen I would improve first.\"" + gapText;
+            case "SQL" -> "Make the first message about care with data: \"I noticed " + needName + ". My closest proof is " + projectName + ", where I worked on predictable records/API responses. I would start by checking the schema, pagination rules, and edge cases before changing UI.\"" + gapText;
+            case "DATA" -> "Pitch yourself as the person who will not ignore messy inputs: \"I saw " + needName + ". I have proof around validation/data cleanup in " + projectName + "; I would start by listing bad-input cases and turning them into clear checks users can understand.\"" + gapText;
+            case "DEPLOYMENT" -> "Frame the message around reducing release stress: \"I saw " + needName + ". My closest proof is " + projectName + "; I would start by making setup, checks, and failure notes clearer so the team can tell when the app is ready.\"" + gapText;
+            case "DOCS" -> "Offer one concrete documentation improvement: \"I saw " + needName + ". I can help turn confusing auth/API behaviour into examples, failure cases, and a short sandbox-style guide. Here is the project proof I would use as a reference.\"" + gapText;
+            default -> "Make the outreach specific: name " + needName + ", link " + projectName + ", and offer one small first-week contribution that matches their actual problem." + gapText;
+        };
+    }
+
+    private List<String> buildImprovementTips(
+            ProfileProjectResponse primaryNeed,
+            ProfileProjectResponse developerProject,
+            Set<String> strengths,
+            Set<String> gaps,
+            int readinessScore
+    ) {
+        List<String> tips = new ArrayList<>();
+        String projectName = developerProject == null ? "one portfolio project" : developerProject.name();
+        String needName = primaryNeed == null ? "this role" : primaryNeed.name();
+
+        for (String gap : gaps) {
+            if (!isFallbackSkill(gap)) {
+                tips.add("Add " + gap + " proof for " + needName + ".");
+            }
+        }
+
+        switch (needCategory(primaryNeed)) {
+            case "AUTH" -> {
+                if ("JWT".equals(authSubtype(primaryNeed))) {
+                    tips.add("Add a JWT flow note for " + needName + ": login, token, protected endpoint, failure state.");
+                    tips.add("Add one auth edge-case test in " + projectName + ".");
+                } else if ("PERMISSIONS".equals(authSubtype(primaryNeed))) {
+                    tips.add("Build a tiny admin-role demo for " + needName + ": invite, role change, denied state.");
+                    tips.add("Show failed-request feedback in " + projectName + ".");
+                } else {
+                    tips.add("Make one auth decision inspectable for " + needName + ".");
+                }
+            }
+            case "DASHBOARD" -> {
+                tips.add("Build a mini " + needName + " dashboard using API data, filters, and warning states.");
+                tips.add("Add one screenshot showing what decision the dashboard helps users make.");
+            }
+            case "SQL" -> {
+                tips.add("Add a " + needName + " data model: table, endpoint, pagination or history.");
+                tips.add("Show why the API response is predictable for the frontend.");
+            }
+            case "DATA" -> {
+                tips.add("Add messy-input examples for " + needName + ": missing fields, duplicates, invalid values.");
+                tips.add("Show the exact validation message a user would see.");
+            }
+            case "DEPLOYMENT" -> {
+                tips.add("Add setup proof for " + needName + ": env vars, run steps, seed data, health check.");
+                tips.add("Add one troubleshooting note for a likely setup failure.");
+            }
+            case "DOCS" -> {
+                tips.add("Add API examples for " + needName + ": success response, failure response, auth note.");
+                tips.add("Create a tiny sandbox/README section for trying the endpoint.");
+            }
+            default -> {
+                tips.add("Add one small feature that mirrors " + needName + ".");
+                tips.add("Show the proof: code path, screenshot, live demo, or test.");
+            }
+        }
+
+        if (readinessScore < 60) {
+            tips.add("Build this proof before applying.");
+        } else if (readinessScore < 75) {
+            tips.add("Mention " + needName + " in your outreach, not just your skill list.");
+        }
+
+        return tips.stream().distinct().limit(3).toList();
+    }
+
+    private String needCategory(ProfileProjectResponse need) {
+        if (need == null) {
+            return "GENERAL";
+        }
+        String text = projectSearchText(need);
+        if (text.contains("jwt") || text.contains("auth") || text.contains("login") || text.contains("protected")) {
+            return "AUTH";
+        }
+        if (text.contains("dashboard") || text.contains("chart") || text.contains("report")) {
+            return "DASHBOARD";
+        }
+        if (text.contains("postgres") || text.contains("sql") || text.contains("audit") || text.contains("pagination")) {
+            return "SQL";
+        }
+        if (text.contains("csv") || text.contains("validation") || text.contains("data cleanup")) {
+            return "DATA";
+        }
+        if (text.contains("deploy") || text.contains("environment") || text.contains("health")) {
+            return "DEPLOYMENT";
+        }
+        if (text.contains("api documentation") || text.contains("sandbox") || text.contains("developer experience") || text.contains("docs")) {
+            return "DOCS";
+        }
+        return "GENERAL";
+    }
+
+    private String authProofAngle(ProfileProjectResponse need) {
+        String text = projectSearchText(need);
+        if (text.contains("jwt") || text.contains("token")) {
+            return "JWT/token handling, protected endpoint behaviour, validation, and clearer login/register failures";
+        }
+        if (text.contains("role") || text.contains("admin") || text.contains("permission") || text.contains("access control")) {
+            return "role assignment, admin-only route protection, permission feedback, and failed-request handling";
+        }
+        if (text.contains("login") || text.contains("register")) {
+            return "the login/register path, validation rules, failed states, and what the user sees when auth goes wrong";
+        }
+        return "route protection, access checks, validation, and the user-facing failure state";
+    }
+
+    private String authSubtype(ProfileProjectResponse need) {
+        String text = projectSearchText(need);
+        if (text.contains("jwt") || text.contains("token")) {
+            return "JWT";
+        }
+        if (text.contains("role") || text.contains("admin") || text.contains("permission") || text.contains("access control")) {
+            return "PERMISSIONS";
+        }
+        if (text.contains("login") || text.contains("register")) {
+            return "LOGIN";
+        }
+        return "GENERAL";
+    }
+
+    private ProfileProjectResponse bestDeveloperProjectForEmployer(
+            DeveloperContext developerContext,
+            ProfileProjectResponse primaryNeed,
+            BriefAnalysis analysis,
+            Set<String> strengths
+    ) {
+        if (developerContext == null || developerContext.projects().isEmpty()) {
+            return null;
+        }
+        return developerContext.projects().stream()
+                .max(Comparator.comparing(project -> developerProjectFitScore(project, primaryNeed, analysis, strengths)))
+                .filter(project -> developerProjectFitScore(project, primaryNeed, analysis, strengths) > 0)
+                .orElse(null);
+    }
+
+    private int developerProjectFitScore(
+            ProfileProjectResponse project,
+            ProfileProjectResponse primaryNeed,
+            BriefAnalysis analysis,
+            Set<String> strengths
+    ) {
+        String projectText = projectSearchText(project);
+        int score = 0;
+        for (String skill : strengths) {
+            score += containsSignal(projectText, skill, briefAnalysisService.skillSignals()) ? 8 : 0;
+            score += containsSignal(projectText, skill, briefAnalysisService.problemSignals()) ? 5 : 0;
+        }
+        for (String skill : analysis.requiredSkills()) {
+            score += containsSignal(projectText, skill, briefAnalysisService.skillSignals()) ? 4 : 0;
+        }
+        for (String problemType : analysis.problemTypes()) {
+            score += containsSignal(projectText, problemType, briefAnalysisService.problemSignals()) ? 4 : 0;
+        }
+        if (primaryNeed != null && project.skills() != null && primaryNeed.skills() != null) {
+            for (String skill : project.skills()) {
+                if (primaryNeed.skills().stream().anyMatch(needSkill -> normalize(needSkill).equals(normalize(skill)))) {
+                    score += 6;
+                }
+            }
+        }
+        if (hasValue(project.githubUrl())) {
+            score += 2;
+        }
+        if (hasValue(project.liveUrl())) {
+            score += 2;
+        }
+        if (project.images() != null && !project.images().isEmpty()) {
+            score += 2;
+        }
+        return score;
+    }
+
+    private String companyValues(MarketplaceProfile profile) {
+        String text = candidateSearchText(profile, readProjects(profile));
+        List<String> values = new ArrayList<>();
+        if (text.contains("explain") || text.contains("documentation") || text.contains("readme")) {
+            values.add("clear communication");
+        }
+        if (text.contains("junior")) {
+            values.add("junior-friendly scope");
+        }
+        if (text.contains("validation") || text.contains("protected") || text.contains("permission") || text.contains("auth")) {
+            values.add("careful, safe changes");
+        }
+        if (text.contains("dashboard") || text.contains("admin") || text.contains("internal")) {
+            values.add("practical internal tools");
+        }
+        if (values.isEmpty()) {
+            values.add("practical project evidence");
+            values.add("clear explanations");
+        }
+        return naturalList(values.stream().distinct().limit(3).toList());
     }
 
     private String buildReason(
@@ -561,6 +986,22 @@ public class DeveloperMatchingService {
         return value.endsWith(".") ? value.substring(0, value.length() - 1) : value;
     }
 
+    private String cleanNeedDescription(String description) {
+        String value = stripTrailingPeriod(safe(description).trim());
+        if (value.isBlank()) {
+            return "a practical junior-friendly software task";
+        }
+        value = value
+                .replaceFirst("(?i)^we need a junior developer to\\s+", "")
+                .replaceFirst("(?i)^we need someone to\\s+", "")
+                .replaceFirst("(?i)^we need a developer to\\s+", "")
+                .replaceFirst("(?i)^a junior developer could help\\s+", "")
+                .replaceFirst("(?i)^build\\s+", "building ")
+                .replaceFirst("(?i)^create\\s+", "creating ")
+                .replaceFirst("(?i)^improve\\s+", "improving ");
+        return lowerFirst(value);
+    }
+
     private String rewriteProjectDescriptionForReason(String description, Pronouns pronouns) {
         String value = stripTrailingPeriod(description.trim());
         String rewritten = value
@@ -619,6 +1060,13 @@ public class DeveloperMatchingService {
             return value;
         }
         return value.substring(0, 1).toUpperCase(Locale.ROOT) + value.substring(1);
+    }
+
+    private String lowerFirst(String value) {
+        if (value.isBlank()) {
+            return value;
+        }
+        return value.substring(0, 1).toLowerCase(Locale.ROOT) + value.substring(1);
     }
 
     private List<String> buildQuestions(Set<String> strengths, Set<String> gaps, BriefAnalysis analysis) {
@@ -715,6 +1163,12 @@ public class DeveloperMatchingService {
             MarketplaceProfile profile,
             List<ProfileProjectResponse> projects,
             int score
+    ) {
+    }
+
+    private record DeveloperContext(
+            MarketplaceProfile profile,
+            List<ProfileProjectResponse> projects
     ) {
     }
 
