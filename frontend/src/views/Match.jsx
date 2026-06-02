@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, BrainCircuit, CheckCircle2, ChevronDown, ExternalLink, Info, Sparkles, UserPlus } from 'lucide-react';
+import { AlertTriangle, BrainCircuit, CheckCircle2, ChevronDown, ExternalLink, Info, LayoutGrid, List, Sparkles, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import { apiRequest } from '../api/client.js';
@@ -137,7 +137,7 @@ function MatchResultCard({
           </div>
         )}
       </div>
-      <div>
+      <div className="match-questions">
         <h4>{isEmployerMode ? 'Questions to answer' : 'Connection prompts'}</h4>
         <ul>
           {match.interviewQuestions.map((question) => (
@@ -187,6 +187,7 @@ export default function Match() {
   const [connectionActivity, setConnectionActivity] = useState([]);
   const [connectingProfileId, setConnectingProfileId] = useState(null);
   const [connectionMessage, setConnectionMessage] = useState('');
+  const [resultView, setResultView] = useState('detail');
 
   useEffect(() => {
     const storedState = readStoredMatchState(matchStorageKey);
@@ -379,7 +380,7 @@ export default function Match() {
       </section>
 
       {aiResults && (
-        <section className="ai-results-section">
+        <section className={`ai-results-section ${resultView === 'grid' ? 'compact-results' : ''}`}>
           <div className="section-heading">
             <div>
               <p className="eyebrow">Results</p>
@@ -392,23 +393,45 @@ export default function Match() {
               </h2>
             </div>
             {!aiResults.rejected && aiResults.briefQuality !== 'NEEDS_MORE_DETAIL' && (
-              <div className="score-info results-score-info">
-                <button type="button" aria-label="How match percentages are calculated">
-                  <Info size={18} />
-                </button>
-                <div className="score-tooltip" role="tooltip">
-                  <strong>How percentages work</strong>
-                  <p>
-                    {!isEmployerMode
-                      ? 'Match scores compare your search with developer skills, project evidence, proof depth, and useful overlap for connection.'
-                      : 'Match scores compare your search with employer needs, skills, problem areas, and useful fit signals.'}
-                  </p>
-                  <ul>
-                    <li>Skills and stack overlap</li>
-                    <li>Similar project proof</li>
-                    <li>GitHub, live demo, screenshots, or featured work</li>
-                    <li>Relevant risks like auth, performance, data, or deployment</li>
-                  </ul>
+              <div className="results-tools">
+                <div className="result-view-toggle" aria-label="Results view">
+                  <button
+                    className={resultView === 'detail' ? 'active' : ''}
+                    type="button"
+                    aria-label="Detailed result view"
+                    aria-pressed={resultView === 'detail'}
+                    onClick={() => setResultView('detail')}
+                  >
+                    <List size={18} />
+                  </button>
+                  <button
+                    className={resultView === 'grid' ? 'active' : ''}
+                    type="button"
+                    aria-label="Grid result view"
+                    aria-pressed={resultView === 'grid'}
+                    onClick={() => setResultView('grid')}
+                  >
+                    <LayoutGrid size={18} />
+                  </button>
+                </div>
+                <div className="score-info results-score-info">
+                  <button type="button" aria-label="How match percentages are calculated">
+                    <Info size={18} />
+                  </button>
+                  <div className="score-tooltip" role="tooltip">
+                    <strong>How percentages work</strong>
+                    <p>
+                      {!isEmployerMode
+                        ? 'Match scores compare your search with developer skills, project evidence, proof depth, and useful overlap for connection.'
+                        : 'Match scores compare your search with employer needs, skills, problem areas, and useful fit signals.'}
+                    </p>
+                    <ul>
+                      <li>Skills and stack overlap</li>
+                      <li>Similar project proof</li>
+                      <li>GitHub, live demo, screenshots, or featured work</li>
+                      <li>Relevant risks like auth, performance, data, or deployment</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             )}
@@ -446,7 +469,7 @@ export default function Match() {
           )}
 
           {hasUnlockedResults && aiResults.matches.length > 0 && (
-            <div className="match-grid">
+            <div className={`match-grid ${resultView === 'grid' ? 'compact-view' : ''}`}>
             {aiResults.matches.map((match, matchIndex) => (
               <MatchResultCard
                 key={`${match.profile.id ?? match.profile.name}-${matchIndex}`}
