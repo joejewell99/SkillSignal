@@ -14,6 +14,11 @@ spring:
         format_sql: true
     open-in-view: false
 
+logging:
+  level:
+    org.springframework.web.client.RestClient: INFO
+    org.springframework.http.converter.json: INFO
+
 app:
   jwt:
     secret: ${JWT_SECRET:skillsignal-development-secret-key-change-this-before-production}
@@ -23,3 +28,6 @@ app:
   admin:
     email: ${SKILLSIGNAL_ADMIN_EMAIL:admin@skillsignal.dev}
     password: ${SKILLSIGNAL_ADMIN_PASSWORD:Admin123!}
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:gpt-4o-mini}

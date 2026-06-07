@@ -64,11 +64,28 @@ function MatchResultCard({
         <div>
           <div className="match-name-row">
             <h3>{match.profile.name}</h3>
+            {match.profile.demoProfile && <span className="demo-profile-badge">Demo profile</span>}
           </div>
           <p>{match.profile.title}</p>
         </div>
       </div>
       <p className="proof-text">{match.reason}</p>
+      {!isEmployerMode && (match.hiringOutlook || match.proofToShow) && (
+        <div className="candidate-fit-summary">
+          {match.hiringOutlook && (
+            <div>
+              <h4>Best fit for</h4>
+              <p>{match.hiringOutlook}</p>
+            </div>
+          )}
+          {match.proofToShow && (
+            <div>
+              <h4>Proof to inspect</h4>
+              <p>{match.proofToShow}</p>
+            </div>
+          )}
+        </div>
+      )}
       {isEmployerMode && (
         <div className="readiness-coach">
           <div className={`accordion-panel ${openPanelKey === 'hiring' ? 'open' : ''}`}>
@@ -127,7 +144,7 @@ function MatchResultCard({
           <div className={isEmployerMode ? 'ready-summary' : ''}>
             {isEmployerMode && <CheckCircle2 size={18} />}
             <div>
-              <h4>{isEmployerMode ? 'Ready signals' : 'Check before acting'}</h4>
+              <h4>{isEmployerMode ? 'Ready signals' : 'Risk to check'}</h4>
               <ul>
                 {(isEmployerMode ? ['No major gaps in skill for this role'] : match.gaps.length ? match.gaps : ['No major gap from this search']).map((gap) => (
                   <li key={gap}>{gap}</li>
@@ -136,14 +153,6 @@ function MatchResultCard({
             </div>
           </div>
         )}
-      </div>
-      <div className="match-questions">
-        <h4>{isEmployerMode ? 'Questions to answer' : 'Connection prompts'}</h4>
-        <ul>
-          {match.interviewQuestions.map((question) => (
-            <li key={question}>{question}</li>
-          ))}
-        </ul>
       </div>
       <div className="match-action-row">
         <Link className="secondary-button match-view-profile" to={`/profiles/${match.profile.id}`}>
@@ -225,6 +234,7 @@ export default function Match() {
     apiRequest('/api/ai/matches', {
       token,
       method: 'POST',
+      timeoutMs: 60000,
       body: JSON.stringify({ brief: aiBrief, mode: matchMode }),
     })
       .then((results) => {

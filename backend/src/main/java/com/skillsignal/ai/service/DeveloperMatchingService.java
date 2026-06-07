@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillsignal.ai.dto.AiMatchResponse;
 import com.skillsignal.ai.dto.DeveloperMatchResponse;
 import com.skillsignal.marketplace.dto.EmployerNeedResponse;
+import com.skillsignal.marketplace.dto.ProfilePostResponse;
 import com.skillsignal.marketplace.dto.ProfileProjectResponse;
 import com.skillsignal.marketplace.dto.ProfileResponse;
 import com.skillsignal.marketplace.model.MarketplaceProfile;
@@ -19,14 +20,22 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class DeveloperMatchingService {
-    private static final int PREFILTER_LIMIT = 20;
+    private static final Logger LOGGER = LoggerFactory.getLogger(DeveloperMatchingService.class);
+    private static final int PREFILTER_LIMIT = 10;
     private static final int MATCH_LIMIT = 5;
     private static final int MIN_PREFILTER_SCORE = 10;
 
@@ -34,17 +43,23 @@ public class DeveloperMatchingService {
     private final ObjectMapper objectMapper;
     private final BriefAnalysisService briefAnalysisService;
     private final AiSearchQuotaService quotaService;
+    private final String openAiApiKey;
+    private final String openAiModel;
 
     public DeveloperMatchingService(
             MarketplaceProfileRepository profileRepository,
             ObjectMapper objectMapper,
             BriefAnalysisService briefAnalysisService,
-            AiSearchQuotaService quotaService
+            AiSearchQuotaService quotaService,
+            @Value("${app.openai.api-key:}") String openAiApiKey,
+            @Value("${app.openai.model:gpt-4o-mini}") String openAiModel
     ) {
         this.profileRepository = profileRepository;
         this.objectMapper = objectMapper;
         this.briefAnalysisService = briefAnalysisService;
         this.quotaService = quotaService;
+        this.openAiApiKey = openAiApiKey;
+        this.openAiModel = openAiModel;
     }
 
     public AiMatchResponse matchDevelopers(String brief, String mode, Authentication authentication, HttpServletRequest request) {
@@ -93,7 +108,7 @@ public class DeveloperMatchingService {
         ProfileType targetType = employerMode ? ProfileType.EMPLOYER : ProfileType.DEVELOPER;
         DeveloperContext developerContext = employerMode ? authenticatedDeveloperContext(authentication) : null;
         List<CandidateScore> shortlist = prefilterCandidates(analysis, excludedUserId, targetType);
-        List<DeveloperMatchResponse> matches = rankMatches(shortlist, analysis, employerMode, developerContext);
+        List<DeveloperMatchResponse> matches = rankMatches(brief, shortlist, analysis, employerMode, developerContext);
         String responseQuality = "NEEDS_MORE_DETAIL".equals(analysis.quality()) && canProfileSearchWithPartialSignals(analysis)
                 ? "GOOD"
                 : analysis.quality();
@@ -171,16 +186,21 @@ public class DeveloperMatchingService {
     }
 
     private List<DeveloperMatchResponse> rankMatches(
+            String brief,
             List<CandidateScore> shortlist,
             BriefAnalysis analysis,
             boolean employerMode,
             DeveloperContext developerContext
     ) {
-        return shortlist.stream()
+        List<DeveloperMatchResponse> deterministicMatches = shortlist.stream()
                 .map(candidate -> buildMatch(candidate, analysis, employerMode, developerContext))
                 .sorted(Comparator.comparing(DeveloperMatchResponse::matchScore).reversed())
-                .limit(MATCH_LIMIT)
                 .toList();
+        if (employerMode) {
+            return deterministicMatches.stream().limit(MATCH_LIMIT).toList();
+        }
+        return rerankDeveloperMatchesWithOpenAi(brief, analysis, shortlist, deterministicMatches)
+                .orElseGet(() -> deterministicMatches.stream().limit(MATCH_LIMIT).toList());
     }
 
     private DeveloperMatchResponse buildMatch(
@@ -257,8 +277,241 @@ public class DeveloperMatchingService {
                 employerMode
                         ? buildImprovementTips(primaryMatch, developerProject, strengths, gaps, readinessScore)
                         : List.of(),
-                employerMode ? buildEmployerQuestions(strengths, gaps, analysis) : buildPeerQuestions(strengths, gaps, analysis)
+                List.of()
         );
+    }
+
+    private Optional<List<DeveloperMatchResponse>> rerankDeveloperMatchesWithOpenAi(
+            String brief,
+            BriefAnalysis analysis,
+            List<CandidateScore> shortlist,
+            List<DeveloperMatchResponse> deterministicMatches
+    ) {
+        if (openAiApiKey == null || openAiApiKey.isBlank() || shortlist.isEmpty()) {
+            if (openAiApiKey == null || openAiApiKey.isBlank()) {
+                LOGGER.info("OpenAI rerank skipped because OPENAI_API_KEY is not configured.");
+            }
+            return Optional.empty();
+        }
+        try {
+            LOGGER.info("OpenAI rerank started for {} shortlisted developer profiles using model {}.", shortlist.size(), openAiModel);
+            Map<Long, DeveloperMatchResponse> fallbackByProfileId = deterministicMatches.stream()
+                    .collect(java.util.stream.Collectors.toMap(match -> match.profile().id(), match -> match));
+            Map<String, Object> requestBody = Map.of(
+                    "model", openAiModel,
+                    "input", List.of(
+                            Map.of(
+                                    "role", "system",
+                                    "content", openAiSystemPrompt()
+                            ),
+                            Map.of(
+                                    "role", "user",
+                                    "content", objectMapper.writeValueAsString(openAiRankingPayload(brief, analysis, shortlist, fallbackByProfileId))
+                            )
+                    ),
+                    "text", Map.of("format", openAiRankingSchema()),
+                    "max_output_tokens", 2600
+            );
+            RestClient client = RestClient.builder()
+                    .baseUrl("https://api.openai.com/v1")
+                    .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + openAiApiKey)
+                    .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .build();
+            String responseBody = client.post()
+                    .uri("/responses")
+                    .body(requestBody)
+                    .retrieve()
+                    .body(String.class);
+            String outputText = extractResponseText(responseBody);
+            if (outputText.isBlank()) {
+                LOGGER.warn("OpenAI rerank returned no output text. Falling back to deterministic ranking.");
+                return Optional.empty();
+            }
+            OpenAiRankingResponse ranking = objectMapper.readValue(outputText, OpenAiRankingResponse.class);
+            List<DeveloperMatchResponse> rerankedMatches = ranking.matches().stream()
+                    .map(aiMatch -> mergeAiMatch(aiMatch, fallbackByProfileId.get(aiMatch.profileId())))
+                    .filter(java.util.Objects::nonNull)
+                    .limit(MATCH_LIMIT)
+                    .toList();
+            if (rerankedMatches.isEmpty()) {
+                LOGGER.warn("OpenAI rerank returned no usable profile ids. Falling back to deterministic ranking.");
+                return Optional.empty();
+            }
+            LOGGER.info("OpenAI rerank completed with {} usable matches.", rerankedMatches.size());
+            return Optional.of(rerankedMatches);
+        } catch (Exception exception) {
+            LOGGER.warn("OpenAI rerank failed safely. Falling back to deterministic ranking: {}", exception.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private String openAiSystemPrompt() {
+        return """
+                You rank junior developer profiles for an employer's software problem.
+                Use only the supplied profile data. Do not invent projects, links, companies, or skills.
+                Prefer candidates with concrete project evidence over candidates with only keyword overlap.
+                Score 0-100 based on required skill fit, project evidence, problem similarity, proof quality, and remaining risk. Only use 95+ when the profile clearly proves nearly every important part of the brief.
+                Write in third person for an employer. Do not use interview questions.
+                Do not suggest interviewing in nextStep; suggest inspecting a named project, shortlisting, or viewing proof instead.
+                Rewrite first-person project evidence into third person, for example "she implemented" or "they built".
+                If a brief asks for Spring Boot and a candidate proves Spring Security, treat that as strong adjacent Spring ecosystem evidence, but mention when broader Spring Boot API/service structure is lighter.
+                Make each candidate sound marketable without exaggerating: explain what problem they can help with, what named project proves it, and what the employer should inspect first.
+                Evidence bullets must be descriptive: "Project name: what it proves, plus proof type" rather than only "Project name code".
+                Matched signals must be concrete skills or work types from the data. Avoid vague signals like "code quality" unless the data explicitly mentions tests, refactoring, or maintainability.
+                remainingRisks should be tactful checks, not scary warnings.
+                Keep reasoning specific, commercially useful, and tied to named projects or profile evidence.
+                Return JSON only in the requested schema.
+                """;
+    }
+
+    private Map<String, Object> openAiRankingPayload(
+            String brief,
+            BriefAnalysis analysis,
+            List<CandidateScore> shortlist,
+            Map<Long, DeveloperMatchResponse> fallbackByProfileId
+    ) {
+        return Map.of(
+                "employerBrief", safe(brief),
+                "requiredSkills", analysis.requiredSkills(),
+                "problemTypes", analysis.problemTypes(),
+                "idealTraits", analysis.idealTraits(),
+                "rankingInstructions", List.of(
+                        "Rank the best 5 developers from the candidate list.",
+                        "Use profile summary, project descriptions, skills, proof links, screenshots, and feed posts.",
+                        "Explain why the candidate can help solve the employer's issue in 2 specific sentences.",
+                        "Use hiringOutlook as a short 'Best fit for' line, naming the work this candidate is strongest for.",
+                        "Use proofToShow to tell the employer exactly which project or proof artifact to inspect first.",
+                        "Use nextStep as a click/shortlist action, not an interview instruction.",
+                        "Use third-person wording for all candidate evidence.",
+                        "Do not use the words interview, interviewer, or interview questions.",
+                        "Call out real gaps as remainingRisks, but do not over-penalize junior candidates for missing senior experience."
+                ),
+                "candidates", shortlist.stream()
+                        .map(candidate -> openAiCandidatePayload(candidate, fallbackByProfileId.get(candidate.profile().getId())))
+                        .toList()
+        );
+    }
+
+    private Map<String, Object> openAiCandidatePayload(CandidateScore candidate, DeveloperMatchResponse fallbackMatch) {
+        MarketplaceProfile profile = candidate.profile();
+        List<ProfileProjectResponse> projects = candidate.projects();
+        return Map.of(
+                "profileId", profile.getId(),
+                "name", profile.getName(),
+                "title", profile.getTitle(),
+                "summary", profile.getSummary(),
+                "skills", profile.getSkills(),
+                "deterministicScore", fallbackMatch == null ? candidate.score() : fallbackMatch.matchScore(),
+                "deterministicReason", fallbackMatch == null ? "" : fallbackMatch.reason(),
+                "projects", projects.stream().limit(4).map(project -> Map.of(
+                        "name", safe(project.name()),
+                        "description", safe(project.description()),
+                        "skills", project.skills() == null ? List.of() : project.skills(),
+                        "hasCode", hasValue(project.githubUrl()),
+                        "hasLiveDemo", hasValue(project.liveUrl()),
+                        "hasScreenshots", project.images() != null && !project.images().isEmpty(),
+                        "featured", Boolean.TRUE.equals(project.featured())
+                )).toList(),
+                "feedPosts", readPosts(profile).stream().limit(3).map(post -> Map.of(
+                        "body", safe(post.body()),
+                        "createdAt", safe(post.createdAt())
+                )).toList()
+        );
+    }
+
+    private Map<String, Object> openAiRankingSchema() {
+        return Map.of(
+                "type", "json_schema",
+                "name", "developer_match_ranking",
+                "strict", true,
+                "schema", Map.of(
+                        "type", "object",
+                        "additionalProperties", false,
+                        "required", List.of("matches"),
+                        "properties", Map.of(
+                                "matches", Map.of(
+                                        "type", "array",
+                                        "minItems", 0,
+                                        "maxItems", MATCH_LIMIT,
+                                        "items", Map.of(
+                                                "type", "object",
+                                                "additionalProperties", false,
+                                                "required", List.of("profileId", "score", "reason", "matchedSignals", "bestEvidence", "remainingRisks", "hiringOutlook", "proofToShow", "nextStep"),
+                                                "properties", Map.of(
+                                                        "profileId", Map.of("type", "integer"),
+                                                        "score", Map.of("type", "integer", "minimum", 0, "maximum", 100),
+                                                        "reason", Map.of("type", "string", "maxLength", 520),
+                                                        "matchedSignals", Map.of("type", "array", "items", Map.of("type", "string"), "maxItems", 5),
+                                                        "bestEvidence", Map.of("type", "array", "items", Map.of("type", "string", "maxLength", 180), "maxItems", 4),
+                                                        "remainingRisks", Map.of("type", "array", "items", Map.of("type", "string"), "maxItems", 3),
+                                                        "hiringOutlook", Map.of("type", "string", "maxLength", 180),
+                                                        "proofToShow", Map.of("type", "string", "maxLength", 220),
+                                                        "nextStep", Map.of("type", "string", "maxLength", 180)
+                                                )
+                                        )
+                                )
+                        )
+                )
+        );
+    }
+
+    private DeveloperMatchResponse mergeAiMatch(OpenAiDeveloperMatch aiMatch, DeveloperMatchResponse fallbackMatch) {
+        if (fallbackMatch == null) {
+            return null;
+        }
+        int score = Math.max(0, Math.min(100, aiMatch.score()));
+        List<String> strengths = aiMatch.matchedSignals().isEmpty() ? fallbackMatch.strengths() : aiMatch.matchedSignals();
+        List<String> evidence = aiMatch.bestEvidence().isEmpty() ? fallbackMatch.evidence() : aiMatch.bestEvidence();
+        List<String> gaps = aiMatch.remainingRisks().isEmpty() ? fallbackMatch.gaps() : aiMatch.remainingRisks();
+        score = capScoreForRisks(score, gaps);
+        return new DeveloperMatchResponse(
+                fallbackMatch.profile(),
+                score,
+                score,
+                readinessLabel(score),
+                strengths,
+                gaps,
+                evidence,
+                defaultIfBlank(aiMatch.reason(), fallbackMatch.reason()),
+                defaultIfBlank(aiMatch.hiringOutlook(), fallbackMatch.hiringOutlook()),
+                defaultIfBlank(aiMatch.proofToShow(), fallbackMatch.proofToShow()),
+                defaultIfBlank(aiMatch.nextStep(), fallbackMatch.nextStep()),
+                fallbackMatch.improvementTips(),
+                List.of()
+        );
+    }
+
+    private int capScoreForRisks(int score, List<String> gaps) {
+        if (gaps == null || gaps.isEmpty()) {
+            return score;
+        }
+        boolean hasSpringBootRisk = gaps.stream()
+                .map(this::normalize)
+                .anyMatch(gap -> gap.contains("spring boot") || gap.contains("api/service") || gap.contains("service structure"));
+        if (hasSpringBootRisk) {
+            return Math.min(score, 90);
+        }
+        return Math.min(score, 93);
+    }
+
+    private String extractResponseText(String responseBody) throws JsonProcessingException {
+        if (responseBody == null || responseBody.isBlank()) {
+            return "";
+        }
+        com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(responseBody);
+        com.fasterxml.jackson.databind.JsonNode outputText = root.path("output_text");
+        if (outputText.isTextual()) {
+            return outputText.asText();
+        }
+        for (com.fasterxml.jackson.databind.JsonNode output : root.path("output")) {
+            for (com.fasterxml.jackson.databind.JsonNode content : output.path("content")) {
+                com.fasterxml.jackson.databind.JsonNode text = content.path("text");
+                if (text.isTextual()) {
+                    return text.asText();
+                }
+            }
+        }
+        return "";
     }
 
     private ProfileResponse toMatchProfile(MarketplaceProfile profile, List<ProfileProjectResponse> projects) {
@@ -1151,11 +1404,49 @@ public class DeveloperMatchingService {
         return value == null ? "" : value;
     }
 
+    private String defaultIfBlank(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
+    }
+
     private List<ProfileProjectResponse> readProjects(MarketplaceProfile profile) {
         try {
             return objectMapper.readValue(profile.getProjectsJson(), new TypeReference<>() {});
         } catch (JsonProcessingException exception) {
             return List.of();
+        }
+    }
+
+    private List<ProfilePostResponse> readPosts(MarketplaceProfile profile) {
+        try {
+            return objectMapper.readValue(profile.getPostsJson(), new TypeReference<>() {});
+        } catch (JsonProcessingException exception) {
+            return List.of();
+        }
+    }
+
+    private record OpenAiRankingResponse(
+            List<OpenAiDeveloperMatch> matches
+    ) {
+        private OpenAiRankingResponse {
+            matches = matches == null ? List.of() : matches;
+        }
+    }
+
+    private record OpenAiDeveloperMatch(
+            Long profileId,
+            int score,
+            String reason,
+            List<String> matchedSignals,
+            List<String> bestEvidence,
+            List<String> remainingRisks,
+            String hiringOutlook,
+            String proofToShow,
+            String nextStep
+    ) {
+        private OpenAiDeveloperMatch {
+            matchedSignals = matchedSignals == null ? List.of() : matchedSignals;
+            bestEvidence = bestEvidence == null ? List.of() : bestEvidence;
+            remainingRisks = remainingRisks == null ? List.of() : remainingRisks;
         }
     }
 

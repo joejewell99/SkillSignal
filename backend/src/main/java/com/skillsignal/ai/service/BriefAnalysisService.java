@@ -20,7 +20,7 @@ public class BriefAnalysisService {
 
     static {
         SKILL_SIGNALS.put("React", List.of("react", "frontend", "front end", "components", "ui", "loading states"));
-        SKILL_SIGNALS.put("Spring Boot", List.of("spring boot", "java service", "rest api", "rest apis"));
+        SKILL_SIGNALS.put("Spring Boot", List.of("spring boot", "spring security", "java service", "rest api", "rest apis"));
         SKILL_SIGNALS.put("Spring Security", List.of("spring security", "security", "secure", "role-based", "roles", "permissions"));
         SKILL_SIGNALS.put("Authentication", List.of("auth", "authentication", "login", "jwt", "protected routes"));
         SKILL_SIGNALS.put("PostgreSQL", List.of("postgres", "postgresql", "database", "sql", "query", "queries"));

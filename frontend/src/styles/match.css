@@ -218,6 +218,39 @@
   margin: 0;
 }
 
+.candidate-fit-summary {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+}
+
+.candidate-fit-summary > div {
+  display: grid;
+  gap: 5px;
+  padding: 12px 14px;
+}
+
+.candidate-fit-summary > div + div {
+  border-top: 1px solid var(--line);
+}
+
+.candidate-fit-summary h4 {
+  color: var(--primary);
+  font-size: 0.76rem;
+  letter-spacing: 0;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.candidate-fit-summary p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
 .match-columns {
   display: grid;
   gap: 18px;
