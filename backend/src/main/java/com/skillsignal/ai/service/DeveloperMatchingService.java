@@ -310,7 +310,7 @@ public class DeveloperMatchingService {
                             )
                     ),
                     "text", Map.of("format", openAiRankingSchema()),
-                    "max_output_tokens", 2600
+                    "max_output_tokens", 4500
             );
             RestClient client = RestClient.builder()
                     .baseUrl("https://api.openai.com/v1")
@@ -331,6 +331,7 @@ public class DeveloperMatchingService {
             List<DeveloperMatchResponse> rerankedMatches = ranking.matches().stream()
                     .map(aiMatch -> mergeAiMatch(aiMatch, fallbackByProfileId.get(aiMatch.profileId())))
                     .filter(java.util.Objects::nonNull)
+                    .sorted(Comparator.comparing(DeveloperMatchResponse::matchScore).reversed())
                     .limit(MATCH_LIMIT)
                     .toList();
             if (rerankedMatches.isEmpty()) {
@@ -354,12 +355,25 @@ public class DeveloperMatchingService {
                 Write in third person for an employer. Do not use interview questions.
                 Do not suggest interviewing in nextStep; suggest inspecting a named project, shortlisting, or viewing proof instead.
                 Rewrite first-person project evidence into third person, for example "she implemented" or "they built".
+                Use the supplied candidate pronouns naturally. If the pronouns are they/them, use "they", "them", and "their"; do not force gendered language.
+                Each reason should include this substance, without forcing the same sentence order: candidate name, named project evidence, the specific skills it proves, and how those skills would help with the employer's prompt or need.
+                The reason should help an employer understand who they are connecting with: what the candidate seems good at, what they have built, and what is valuable about that work for this search.
+                Use 2 to 3 relevant projects when the profile has them. If only one project is relevant, explain why that one project carries the match.
+                Use the candidate's project descriptions and profile summary together. A good reason should connect both their stated focus and their project evidence to the employerBrief.
+                Explicitly connect the project to the user's problem using phrases like "your need", "your prompt", "this problem", or "the work you described" where natural.
+                Prefer practical wording like "would help solve your problem by..." or "demonstrates her ability to handle your need for..." over generic praise.
+                Do not use these words or phrases anywhere: showcases, expertise, capability, strong foundation, highly relevant, aligns perfectly, immediately relevant.
+                Vary the reasoning angle across candidates. One reason might lead with role-based access, another with backend/API discipline, another with dashboard data handling, another with documentation or edge-case thinking.
+                Do not make every reason follow "implemented X in project Y, which addresses your need..." Use natural variety while still proving the match.
                 If a brief asks for Spring Boot and a candidate proves Spring Security, treat that as strong adjacent Spring ecosystem evidence, but mention when broader Spring Boot API/service structure is lighter.
                 Make each candidate sound marketable without exaggerating: explain what problem they can help with, what named project proves it, and what the employer should inspect first.
+                Avoid formulaic openings like "is worth inspecting because" or "gives concrete proof around". Do not reuse the same sentence shape across candidates.
+                Make each reason feel specific to the person: use a different angle for each candidate, such as workflow risk, implementation evidence, documentation quality, proof depth, product context, or a missing piece to verify.
+                If two candidates have similar auth projects, differentiate them by the strongest distinct evidence available instead of repeating the same login/protected-routes sentence.
                 Evidence bullets must be descriptive: "Project name: what it proves, plus proof type" rather than only "Project name code".
                 Matched signals must be concrete skills or work types from the data. Avoid vague signals like "code quality" unless the data explicitly mentions tests, refactoring, or maintainability.
                 remainingRisks should be tactful checks, not scary warnings.
-                Keep reasoning specific, commercially useful, and tied to named projects or profile evidence.
+                Keep reasoning specific, commercially useful, and tied to named projects or profile evidence. Prefer natural prose over template labels.
                 Return JSON only in the requested schema.
                 """;
     }
@@ -378,9 +392,19 @@ public class DeveloperMatchingService {
                 "rankingInstructions", List.of(
                         "Rank the best 5 developers from the candidate list.",
                         "Use profile summary, project descriptions, skills, proof links, screenshots, and feed posts.",
-                        "Explain why the candidate can help solve the employer's issue in 2 specific sentences.",
-                        "Use hiringOutlook as a short 'Best fit for' line, naming the work this candidate is strongest for.",
-                        "Use proofToShow to tell the employer exactly which project or proof artifact to inspect first.",
+                        "Write each reason as 4 to 6 useful sentences, roughly 110 to 160 words, but vary the sentence structure across candidates.",
+                        "Sell the candidate honestly: explain who they are, what they have built, what skills the work proves, and why those skills are valuable for this exact employerBrief.",
+                        "Use 2 to 3 relevant projects if available. Tie each project you mention to the prompt; do not list projects that do not help the employer decide.",
+                        "Use profile summary or title as context for who the candidate is, then back it with concrete project evidence.",
+                        "Every reason must name the skills the project proves, such as React, Spring Boot, Spring Security, PostgreSQL, role-based access, dashboards, validation, or API work.",
+                        "Explain why those proven skills are useful for the employerBrief, not just that the candidate has them.",
+                        "Final ranking must reflect score: higher score means stronger match for the employerBrief.",
+                        "Use the supplied pronouns naturally, such as she/her/hers or they/them/their.",
+                        "Relate every reason directly to the employerBrief. Use language like your need, your prompt, this problem, the work you described, or would help solve your problem by when it fits.",
+                        "Do not use these words or phrases anywhere: showcases, expertise, capability, strong foundation, highly relevant, aligns perfectly, immediately relevant.",
+                        "Do not start every reason with the candidate name. Avoid repeated phrasing across the ranked results.",
+                        "Use hiringOutlook only as backend metadata. Keep it short and do not duplicate the reason.",
+                        "Use proofToShow only as backend metadata. Keep it short and do not duplicate the evidence bullets.",
                         "Use nextStep as a click/shortlist action, not an interview instruction.",
                         "Use third-person wording for all candidate evidence.",
                         "Do not use the words interview, interviewer, or interview questions.",
@@ -395,12 +419,18 @@ public class DeveloperMatchingService {
     private Map<String, Object> openAiCandidatePayload(CandidateScore candidate, DeveloperMatchResponse fallbackMatch) {
         MarketplaceProfile profile = candidate.profile();
         List<ProfileProjectResponse> projects = candidate.projects();
+        Pronouns pronouns = pronounsFor(profile);
         return Map.of(
                 "profileId", profile.getId(),
                 "name", profile.getName(),
                 "title", profile.getTitle(),
                 "summary", profile.getSummary(),
                 "skills", profile.getSkills(),
+                "pronouns", Map.of(
+                        "subject", pronouns.subject(),
+                        "object", pronouns.object(),
+                        "possessive", pronouns.possessive()
+                ),
                 "deterministicScore", fallbackMatch == null ? candidate.score() : fallbackMatch.matchScore(),
                 "deterministicReason", fallbackMatch == null ? "" : fallbackMatch.reason(),
                 "projects", projects.stream().limit(4).map(project -> Map.of(
@@ -440,9 +470,9 @@ public class DeveloperMatchingService {
                                                 "properties", Map.of(
                                                         "profileId", Map.of("type", "integer"),
                                                         "score", Map.of("type", "integer", "minimum", 0, "maximum", 100),
-                                                        "reason", Map.of("type", "string", "maxLength", 520),
+                                                        "reason", Map.of("type", "string", "minLength", 450, "maxLength", 1200),
                                                         "matchedSignals", Map.of("type", "array", "items", Map.of("type", "string"), "maxItems", 5),
-                                                        "bestEvidence", Map.of("type", "array", "items", Map.of("type", "string", "maxLength", 180), "maxItems", 4),
+                                                        "bestEvidence", Map.of("type", "array", "items", Map.of("type", "string", "maxLength", 240), "maxItems", 4),
                                                         "remainingRisks", Map.of("type", "array", "items", Map.of("type", "string"), "maxItems", 3),
                                                         "hiringOutlook", Map.of("type", "string", "maxLength", 180),
                                                         "proofToShow", Map.of("type", "string", "maxLength", 220),

@@ -70,22 +70,6 @@ function MatchResultCard({
         </div>
       </div>
       <p className="proof-text">{match.reason}</p>
-      {!isEmployerMode && (match.hiringOutlook || match.proofToShow) && (
-        <div className="candidate-fit-summary">
-          {match.hiringOutlook && (
-            <div>
-              <h4>Best fit for</h4>
-              <p>{match.hiringOutlook}</p>
-            </div>
-          )}
-          {match.proofToShow && (
-            <div>
-              <h4>Proof to inspect</h4>
-              <p>{match.proofToShow}</p>
-            </div>
-          )}
-        </div>
-      )}
       {isEmployerMode && (
         <div className="readiness-coach">
           <div className={`accordion-panel ${openPanelKey === 'hiring' ? 'open' : ''}`}>
