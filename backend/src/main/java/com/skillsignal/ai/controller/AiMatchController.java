@@ -6,6 +6,8 @@ import com.skillsignal.ai.service.DeveloperMatchingService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,5 +29,14 @@ public class AiMatchController {
             HttpServletRequest servletRequest
     ) {
         return matchService.matchDevelopers(request.brief(), request.mode(), authentication, servletRequest);
+    }
+
+    @GetMapping("/matches/{searchId}")
+    AiMatchResponse getMatchSearch(
+            @PathVariable String searchId,
+            Authentication authentication,
+            HttpServletRequest servletRequest
+    ) {
+        return matchService.getMatchSearch(searchId, authentication, servletRequest);
     }
 }

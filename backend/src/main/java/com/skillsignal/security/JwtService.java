@@ -57,7 +57,7 @@ public class JwtService {
     private Key signingKey() {
         try {
             return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
-        } catch (IllegalArgumentException ex) {
+        } catch (RuntimeException ex) {
             return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         }
     }

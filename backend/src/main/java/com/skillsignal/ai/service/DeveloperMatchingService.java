@@ -14,6 +14,9 @@ import com.skillsignal.marketplace.model.ProfileType;
 import com.skillsignal.marketplace.repository.MarketplaceProfileRepository;
 import com.skillsignal.security.UserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -22,15 +25,24 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.client.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 @Service
 public class DeveloperMatchingService {
@@ -38,6 +50,12 @@ public class DeveloperMatchingService {
     private static final int PREFILTER_LIMIT = 10;
     private static final int MATCH_LIMIT = 5;
     private static final int MIN_PREFILTER_SCORE = 10;
+    private static final int OPENAI_RERANK_LIMIT = 5;
+    private static final int OPENAI_CONNECT_TIMEOUT_MS = 2_000;
+    private static final int OPENAI_READ_TIMEOUT_MS = 25_000;
+    private static final int OPENAI_MAX_OUTPUT_TOKENS = 1_200;
+    private static final Duration SEARCH_RESULT_TTL = Duration.ofMinutes(15);
+    private static final ExecutorService RERANK_EXECUTOR = Executors.newFixedThreadPool(2);
 
     private final MarketplaceProfileRepository profileRepository;
     private final ObjectMapper objectMapper;
@@ -45,6 +63,7 @@ public class DeveloperMatchingService {
     private final AiSearchQuotaService quotaService;
     private final String openAiApiKey;
     private final String openAiModel;
+    private final Map<String, AsyncMatchSearch> asyncSearches = new ConcurrentHashMap<>();
 
     public DeveloperMatchingService(
             MarketplaceProfileRepository profileRepository,
@@ -63,16 +82,21 @@ public class DeveloperMatchingService {
     }
 
     public AiMatchResponse matchDevelopers(String brief, String mode, Authentication authentication, HttpServletRequest request) {
+        pruneExpiredSearches();
         boolean employerMode = "EMPLOYER".equalsIgnoreCase(safe(mode));
         boolean peerMode = !employerMode;
         AiSearchQuota quota = quotaService.consumeSearch(authentication, request);
         BriefAnalysis analysis = briefAnalysisService.analyze(brief);
         if (analysis.rejected()) {
-            return new AiMatchResponse(
+            return buildResponse(
                     quota.dailyLimit(),
                     quota.used(),
                     quota.remaining(),
                     analysis.quality(),
+                    "NOT_USED",
+                    false,
+                    null,
+                    "",
                     true,
                     analysis.rejectionReason(),
                     peerMode
@@ -86,11 +110,15 @@ public class DeveloperMatchingService {
             );
         }
         if ("NEEDS_MORE_DETAIL".equals(analysis.quality()) && !canProfileSearchWithPartialSignals(analysis)) {
-            return new AiMatchResponse(
+            return buildResponse(
                     quota.dailyLimit(),
                     quota.used(),
                     quota.remaining(),
                     analysis.quality(),
+                    "NOT_USED",
+                    false,
+                    null,
+                    "",
                     false,
                     "",
                     peerMode
@@ -108,25 +136,70 @@ public class DeveloperMatchingService {
         ProfileType targetType = employerMode ? ProfileType.EMPLOYER : ProfileType.DEVELOPER;
         DeveloperContext developerContext = employerMode ? authenticatedDeveloperContext(authentication) : null;
         List<CandidateScore> shortlist = prefilterCandidates(analysis, excludedUserId, targetType);
-        List<DeveloperMatchResponse> matches = rankMatches(brief, shortlist, analysis, employerMode, developerContext);
+        List<DeveloperMatchResponse> matches = buildDeterministicMatches(shortlist, analysis, employerMode, developerContext);
         String responseQuality = "NEEDS_MORE_DETAIL".equals(analysis.quality()) && canProfileSearchWithPartialSignals(analysis)
                 ? "GOOD"
                 : analysis.quality();
+        String summary = employerMode ? buildEmployerSummary(analysis) : buildPeerSummary(analysis);
+        List<String> evidenceToLookFor = buildEvidenceList(analysis);
 
-        return new AiMatchResponse(
+        if (openAiApiKey == null || openAiApiKey.isBlank()) {
+            return buildResponse(
+                    quota.dailyLimit(),
+                    quota.used(),
+                    quota.remaining(),
+                    responseQuality,
+                    "UNAVAILABLE",
+                    false,
+                    null,
+                    "Showing the fast local ranking because OpenAI reranking is not configured.",
+                    false,
+                    "",
+                    summary,
+                    analysis.requiredSkills(),
+                    analysis.problemTypes(),
+                    evidenceToLookFor,
+                    analysis.followUpQuestions(),
+                    matches
+            );
+        }
+
+        String searchId = UUID.randomUUID().toString();
+        String ownerKey = searchOwnerKey(authentication, request);
+        AiMatchResponse pendingResponse = buildResponse(
                 quota.dailyLimit(),
                 quota.used(),
                 quota.remaining(),
                 responseQuality,
+                "PENDING",
+                false,
+                searchId,
+                "Showing the fast shortlist now. AI is refining the ranking in the background.",
                 false,
                 "",
-                employerMode ? buildEmployerSummary(analysis) : buildPeerSummary(analysis),
+                summary,
                 analysis.requiredSkills(),
                 analysis.problemTypes(),
-                buildEvidenceList(analysis),
+                evidenceToLookFor,
                 analysis.followUpQuestions(),
                 matches
         );
+        asyncSearches.put(searchId, new AsyncMatchSearch(ownerKey, pendingResponse, Instant.now()));
+        startBackgroundRerank(searchId, ownerKey, brief, analysis, shortlist, matches, quota, summary, evidenceToLookFor, employerMode, developerContext);
+        return pendingResponse;
+    }
+
+    public AiMatchResponse getMatchSearch(String searchId, Authentication authentication, HttpServletRequest request) {
+        pruneExpiredSearches();
+        AsyncMatchSearch search = asyncSearches.get(searchId);
+        if (search == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "That AI search is no longer available.");
+        }
+        String ownerKey = searchOwnerKey(authentication, request);
+        if (!search.ownerKey().equals(ownerKey)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "That AI search belongs to a different session.");
+        }
+        return search.response();
     }
 
     private boolean canProfileSearchWithPartialSignals(BriefAnalysis analysis) {
@@ -185,8 +258,7 @@ public class DeveloperMatchingService {
         return new CandidateScore(profile, projects, score);
     }
 
-    private List<DeveloperMatchResponse> rankMatches(
-            String brief,
+    private List<DeveloperMatchResponse> buildDeterministicMatches(
             List<CandidateScore> shortlist,
             BriefAnalysis analysis,
             boolean employerMode,
@@ -196,11 +268,118 @@ public class DeveloperMatchingService {
                 .map(candidate -> buildMatch(candidate, analysis, employerMode, developerContext))
                 .sorted(Comparator.comparing(DeveloperMatchResponse::matchScore).reversed())
                 .toList();
-        if (employerMode) {
-            return deterministicMatches.stream().limit(MATCH_LIMIT).toList();
+        return deterministicMatches.stream().limit(MATCH_LIMIT).toList();
+    }
+
+    private void startBackgroundRerank(
+            String searchId,
+            String ownerKey,
+            String brief,
+            BriefAnalysis analysis,
+            List<CandidateScore> shortlist,
+            List<DeveloperMatchResponse> deterministicMatches,
+            AiSearchQuota quota,
+            String summary,
+            List<String> evidenceToLookFor,
+            boolean employerMode,
+            DeveloperContext developerContext
+    ) {
+        CompletableFuture.runAsync(() -> {
+            Optional<List<DeveloperMatchResponse>> rerankedMatches = employerMode
+                    ? rerankEmployerMatchesWithOpenAi(brief, analysis, shortlist, deterministicMatches, developerContext)
+                    : rerankDeveloperMatchesWithOpenAi(brief, analysis, shortlist, deterministicMatches);
+            AiMatchResponse nextResponse = rerankedMatches
+                    .map(matches -> buildResponse(
+                            quota.dailyLimit(),
+                            quota.used(),
+                            quota.remaining(),
+                            "GOOD",
+                            "COMPLETE",
+                            true,
+                            searchId,
+                            employerMode
+                                    ? "AI reranked the employers using your prompt and developer profile context."
+                                    : "AI reranked the shortlist using the profile evidence from your prompt.",
+                            false,
+                            "",
+                            summary,
+                            analysis.requiredSkills(),
+                            analysis.problemTypes(),
+                            evidenceToLookFor,
+                            analysis.followUpQuestions(),
+                            matches
+                    ))
+                    .orElseGet(() -> buildResponse(
+                            quota.dailyLimit(),
+                            quota.used(),
+                            quota.remaining(),
+                            "GOOD",
+                            "FALLBACK",
+                            false,
+                            searchId,
+                            "The fast shortlist is still shown because the AI rerank did not finish in time.",
+                            false,
+                            "",
+                            summary,
+                            analysis.requiredSkills(),
+                            analysis.problemTypes(),
+                            evidenceToLookFor,
+                            analysis.followUpQuestions(),
+                            deterministicMatches
+                    ));
+            asyncSearches.computeIfPresent(searchId, (ignored, existing) -> new AsyncMatchSearch(ownerKey, nextResponse, Instant.now()));
+        }, RERANK_EXECUTOR);
+    }
+
+    private AiMatchResponse buildResponse(
+            int dailyLimit,
+            int dailyUsed,
+            int dailyRemaining,
+            String briefQuality,
+            String aiStatus,
+            boolean aiEnhanced,
+            String aiSearchId,
+            String aiStatusMessage,
+            boolean rejected,
+            String rejectionReason,
+            String summary,
+            List<String> requiredSkills,
+            List<String> problemTypes,
+            List<String> evidenceToLookFor,
+            List<String> followUpQuestions,
+            List<DeveloperMatchResponse> matches
+    ) {
+        return new AiMatchResponse(
+                dailyLimit,
+                dailyUsed,
+                dailyRemaining,
+                briefQuality,
+                aiStatus,
+                aiEnhanced,
+                aiSearchId,
+                aiStatusMessage,
+                rejected,
+                rejectionReason,
+                summary,
+                requiredSkills,
+                problemTypes,
+                evidenceToLookFor,
+                followUpQuestions,
+                matches
+        );
+    }
+
+    private void pruneExpiredSearches() {
+        Instant cutoff = Instant.now().minus(SEARCH_RESULT_TTL);
+        asyncSearches.entrySet().removeIf(entry -> entry.getValue().updatedAt().isBefore(cutoff));
+    }
+
+    private String searchOwnerKey(Authentication authentication, HttpServletRequest request) {
+        Long userId = authenticatedUserId(authentication);
+        if (userId != null) {
+            return "user:" + userId;
         }
-        return rerankDeveloperMatchesWithOpenAi(brief, analysis, shortlist, deterministicMatches)
-                .orElseGet(() -> deterministicMatches.stream().limit(MATCH_LIMIT).toList());
+        return "guest:" + safe(request.getRemoteAddr());
     }
 
     private DeveloperMatchResponse buildMatch(
@@ -264,9 +443,9 @@ public class DeveloperMatchingService {
                 evidence.stream().distinct().limit(4).toList(),
                 employerMode
                         ? buildEmployerReason(profile, strengths, gaps, matchedProjects, developerContext, developerProject, readinessScore)
-                        : buildPeerReason(profile, strengths, gaps, matchedProjects),
+                        : buildPeerReason(profile, strengths, gaps, matchedProjects, analysis, score),
                 employerMode
-                        ? buildHiringOutlook(profile, primaryMatch, strengths, gaps, readinessScore)
+                        ? buildHiringOutlook(profile, primaryMatch, developerProject, strengths, gaps, readinessScore)
                         : "This is a peer discovery match. Use the score to decide whether their project proof is worth inspecting.",
                 employerMode
                         ? buildProofToShow(primaryMatch, developerProject, strengths)
@@ -294,7 +473,8 @@ public class DeveloperMatchingService {
             return Optional.empty();
         }
         try {
-            LOGGER.info("OpenAI rerank started for {} shortlisted developer profiles using model {}.", shortlist.size(), openAiModel);
+            List<CandidateScore> aiShortlist = shortlist.stream().limit(OPENAI_RERANK_LIMIT).toList();
+            LOGGER.info("OpenAI rerank started for {} shortlisted developer profiles using model {}.", aiShortlist.size(), openAiModel);
             Map<Long, DeveloperMatchResponse> fallbackByProfileId = deterministicMatches.stream()
                     .collect(java.util.stream.Collectors.toMap(match -> match.profile().id(), match -> match));
             Map<String, Object> requestBody = Map.of(
@@ -306,22 +486,25 @@ public class DeveloperMatchingService {
                             ),
                             Map.of(
                                     "role", "user",
-                                    "content", objectMapper.writeValueAsString(openAiRankingPayload(brief, analysis, shortlist, fallbackByProfileId))
+                                    "content", objectMapper.writeValueAsString(openAiRankingPayload(brief, analysis, aiShortlist, fallbackByProfileId))
                             )
                     ),
                     "text", Map.of("format", openAiRankingSchema()),
-                    "max_output_tokens", 4500
+                    "max_output_tokens", OPENAI_MAX_OUTPUT_TOKENS
             );
+            SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+            requestFactory.setConnectTimeout(OPENAI_CONNECT_TIMEOUT_MS);
+            requestFactory.setReadTimeout(OPENAI_READ_TIMEOUT_MS);
             RestClient client = RestClient.builder()
                     .baseUrl("https://api.openai.com/v1")
+                    .requestFactory(requestFactory)
                     .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + openAiApiKey)
                     .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .build();
             String responseBody = client.post()
                     .uri("/responses")
                     .body(requestBody)
-                    .retrieve()
-                    .body(String.class);
+                    .exchange((request, response) -> StreamUtils.copyToString(response.getBody(), StandardCharsets.UTF_8));
             String outputText = extractResponseText(responseBody);
             if (outputText.isBlank()) {
                 LOGGER.warn("OpenAI rerank returned no output text. Falling back to deterministic ranking.");
@@ -346,6 +529,76 @@ public class DeveloperMatchingService {
         }
     }
 
+    private Optional<List<DeveloperMatchResponse>> rerankEmployerMatchesWithOpenAi(
+            String brief,
+            BriefAnalysis analysis,
+            List<CandidateScore> shortlist,
+            List<DeveloperMatchResponse> deterministicMatches,
+            DeveloperContext developerContext
+    ) {
+        if (openAiApiKey == null || openAiApiKey.isBlank() || shortlist.isEmpty()) {
+            if (openAiApiKey == null || openAiApiKey.isBlank()) {
+                LOGGER.info("OpenAI employer rerank skipped because OPENAI_API_KEY is not configured.");
+            }
+            return Optional.empty();
+        }
+        try {
+            List<CandidateScore> aiShortlist = shortlist.stream().limit(OPENAI_RERANK_LIMIT).toList();
+            LOGGER.info("OpenAI employer rerank started for {} shortlisted employer profiles using model {}.", aiShortlist.size(), openAiModel);
+            Map<Long, DeveloperMatchResponse> fallbackByProfileId = deterministicMatches.stream()
+                    .collect(java.util.stream.Collectors.toMap(match -> match.profile().id(), match -> match));
+            Map<String, Object> requestBody = Map.of(
+                    "model", openAiModel,
+                    "input", List.of(
+                            Map.of(
+                                    "role", "system",
+                                    "content", openAiEmployerSystemPrompt()
+                            ),
+                            Map.of(
+                                    "role", "user",
+                                    "content", objectMapper.writeValueAsString(openAiEmployerRankingPayload(brief, analysis, aiShortlist, fallbackByProfileId, developerContext))
+                            )
+                    ),
+                    "text", Map.of("format", openAiRankingSchema()),
+                    "max_output_tokens", OPENAI_MAX_OUTPUT_TOKENS
+            );
+            SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+            requestFactory.setConnectTimeout(OPENAI_CONNECT_TIMEOUT_MS);
+            requestFactory.setReadTimeout(OPENAI_READ_TIMEOUT_MS);
+            RestClient client = RestClient.builder()
+                    .baseUrl("https://api.openai.com/v1")
+                    .requestFactory(requestFactory)
+                    .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + openAiApiKey)
+                    .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .build();
+            String responseBody = client.post()
+                    .uri("/responses")
+                    .body(requestBody)
+                    .exchange((request, response) -> StreamUtils.copyToString(response.getBody(), StandardCharsets.UTF_8));
+            String outputText = extractResponseText(responseBody);
+            if (outputText.isBlank()) {
+                LOGGER.warn("OpenAI employer rerank returned no output text. Falling back to deterministic ranking.");
+                return Optional.empty();
+            }
+            OpenAiRankingResponse ranking = objectMapper.readValue(outputText, OpenAiRankingResponse.class);
+            List<DeveloperMatchResponse> rerankedMatches = ranking.matches().stream()
+                    .map(aiMatch -> mergeAiMatch(aiMatch, fallbackByProfileId.get(aiMatch.profileId())))
+                    .filter(java.util.Objects::nonNull)
+                    .sorted(Comparator.comparing(DeveloperMatchResponse::matchScore).reversed())
+                    .limit(MATCH_LIMIT)
+                    .toList();
+            if (rerankedMatches.isEmpty()) {
+                LOGGER.warn("OpenAI employer rerank returned no usable profile ids. Falling back to deterministic ranking.");
+                return Optional.empty();
+            }
+            LOGGER.info("OpenAI employer rerank completed with {} usable matches.", rerankedMatches.size());
+            return Optional.of(rerankedMatches);
+        } catch (Exception exception) {
+            LOGGER.warn("OpenAI employer rerank failed safely. Falling back to deterministic ranking: {}", exception.getMessage());
+            return Optional.empty();
+        }
+    }
+
     private String openAiSystemPrompt() {
         return """
                 You rank junior developer profiles for an employer's software problem.
@@ -360,6 +613,7 @@ public class DeveloperMatchingService {
                 The reason should help an employer understand who they are connecting with: what the candidate seems good at, what they have built, and what is valuable about that work for this search.
                 Use 2 to 3 relevant projects when the profile has them. If only one project is relevant, explain why that one project carries the match.
                 Use the candidate's project descriptions and profile summary together. A good reason should connect both their stated focus and their project evidence to the employerBrief.
+                You are making a fresh judgment from the raw profile evidence. Do not imitate any prior ranking language or generic fallback phrasing.
                 Explicitly connect the project to the user's problem using phrases like "your need", "your prompt", "this problem", or "the work you described" where natural.
                 Prefer practical wording like "would help solve your problem by..." or "demonstrates her ability to handle your need for..." over generic praise.
                 Do not use these words or phrases anywhere: showcases, expertise, capability, strong foundation, highly relevant, aligns perfectly, immediately relevant.
@@ -370,10 +624,29 @@ public class DeveloperMatchingService {
                 Avoid formulaic openings like "is worth inspecting because" or "gives concrete proof around". Do not reuse the same sentence shape across candidates.
                 Make each reason feel specific to the person: use a different angle for each candidate, such as workflow risk, implementation evidence, documentation quality, proof depth, product context, or a missing piece to verify.
                 If two candidates have similar auth projects, differentiate them by the strongest distinct evidence available instead of repeating the same login/protected-routes sentence.
+                Make a real ranking judgment, not just a summary. Explain why this person may be more valuable than a more generic match, or why they are worth considering despite a lighter gap.
+                Do not simply restate the profile summary or project description. Squeeze value out of the evidence by explaining what pain point it de-risks for the employer.
+                If there is a tradeoff, frame it as a balanced judgment: what is proven strongly enough to make the person worth a closer look, and what still needs checking.
                 Evidence bullets must be descriptive: "Project name: what it proves, plus proof type" rather than only "Project name code".
                 Matched signals must be concrete skills or work types from the data. Avoid vague signals like "code quality" unless the data explicitly mentions tests, refactoring, or maintainability.
                 remainingRisks should be tactful checks, not scary warnings.
                 Keep reasoning specific, commercially useful, and tied to named projects or profile evidence. Prefer natural prose over template labels.
+                Return JSON only in the requested schema.
+                """;
+    }
+
+    private String openAiEmployerSystemPrompt() {
+        return """
+                You rank employer profiles for a junior developer based on the developer's goals, strengths, and project proof.
+                Use only the supplied profile data. Do not invent employer needs, developer projects, companies, or skills.
+                Prefer employers whose needs are concretely addressed by the developer's evidence, not employers that merely mention the same stack words.
+                Score 0-100 based on employer-need fit, overlap with the developer's proven work, learning fit, junior-friendliness, and realistic hiring upside.
+                Write in second person for the developer. Explain why this employer is worth their attention and what part of their own profile would land best.
+                Make a real judgment. Do not just repeat the employer need or the developer summary.
+                Use the developer context and the employer needs together: say why this employer suits the person's current skills, target field, or growth direction.
+                If there is a tradeoff, explain why the employer could still be worth approaching despite the gap, or why the gap makes the fit more conditional.
+                Avoid formulaic phrasing. Differentiate employers by the strongest distinct need they have and the specific piece of developer proof that fits it.
+                Use practical language, not inflated praise.
                 Return JSON only in the requested schema.
                 """;
     }
@@ -392,12 +665,15 @@ public class DeveloperMatchingService {
                 "rankingInstructions", List.of(
                         "Rank the best 5 developers from the candidate list.",
                         "Use profile summary, project descriptions, skills, proof links, screenshots, and feed posts.",
-                        "Write each reason as 4 to 6 useful sentences, roughly 110 to 160 words, but vary the sentence structure across candidates.",
+                        "Write each reason as 2 to 3 useful sentences, roughly 45 to 75 words, but vary the sentence structure across candidates.",
                         "Sell the candidate honestly: explain who they are, what they have built, what skills the work proves, and why those skills are valuable for this exact employerBrief.",
                         "Use 2 to 3 relevant projects if available. Tie each project you mention to the prompt; do not list projects that do not help the employer decide.",
                         "Use profile summary or title as context for who the candidate is, then back it with concrete project evidence.",
                         "Every reason must name the skills the project proves, such as React, Spring Boot, Spring Security, PostgreSQL, role-based access, dashboards, validation, or API work.",
                         "Explain why those proven skills are useful for the employerBrief, not just that the candidate has them.",
+                        "Make a ranking judgment, not a recap. Say what makes this person more valuable than a generic match, or worth considering despite one weaker area.",
+                        "Use evidence to explain which employer pain point this person de-risks. Avoid repeating the project description in slightly different words.",
+                        "Treat the candidate payload as raw evidence only. Do not mirror any fallback wording or generic recommendation phrasing.",
                         "Final ranking must reflect score: higher score means stronger match for the employerBrief.",
                         "Use the supplied pronouns naturally, such as she/her/hers or they/them/their.",
                         "Relate every reason directly to the employerBrief. Use language like your need, your prompt, this problem, the work you described, or would help solve your problem by when it fits.",
@@ -412,6 +688,37 @@ public class DeveloperMatchingService {
                 ),
                 "candidates", shortlist.stream()
                         .map(candidate -> openAiCandidatePayload(candidate, fallbackByProfileId.get(candidate.profile().getId())))
+                        .toList()
+        );
+    }
+
+    private Map<String, Object> openAiEmployerRankingPayload(
+            String brief,
+            BriefAnalysis analysis,
+            List<CandidateScore> shortlist,
+            Map<Long, DeveloperMatchResponse> fallbackByProfileId,
+            DeveloperContext developerContext
+    ) {
+        return Map.of(
+                "developerBrief", safe(brief),
+                "requiredSkills", analysis.requiredSkills(),
+                "problemTypes", analysis.problemTypes(),
+                "idealTraits", analysis.idealTraits(),
+                "developerContext", openAiDeveloperContextPayload(developerContext),
+                "rankingInstructions", List.of(
+                        "Rank the best 5 employers from the candidate list.",
+                        "Use employer needs, profile summary, skills, and the developer's own profile context.",
+                        "Write each reason as 2 to 3 useful sentences, roughly 45 to 75 words.",
+                        "Explain why this employer is a good match for the developer's current strengths, learning direction, and target work.",
+                        "Name the employer need that matters most and the exact developer proof that best answers it.",
+                        "Make a real career judgment, not a recap. Say why this employer may be a better fit than a more generic opportunity.",
+                        "Use proofToShow to say what the developer should lead with from their own profile.",
+                        "Use hiringOutlook to estimate how realistic the fit is for this developer, not as a company description.",
+                        "Use nextStep as a practical outreach or profile-improvement action.",
+                        "Call out real gaps as remainingRisks, but keep them tactful and useful."
+                ),
+                "candidates", shortlist.stream()
+                        .map(candidate -> openAiEmployerCandidatePayload(candidate, fallbackByProfileId.get(candidate.profile().getId())))
                         .toList()
         );
     }
@@ -432,8 +739,7 @@ public class DeveloperMatchingService {
                         "possessive", pronouns.possessive()
                 ),
                 "deterministicScore", fallbackMatch == null ? candidate.score() : fallbackMatch.matchScore(),
-                "deterministicReason", fallbackMatch == null ? "" : fallbackMatch.reason(),
-                "projects", projects.stream().limit(4).map(project -> Map.of(
+                "projects", projects.stream().limit(2).map(project -> Map.of(
                         "name", safe(project.name()),
                         "description", safe(project.description()),
                         "skills", project.skills() == null ? List.of() : project.skills(),
@@ -442,9 +748,48 @@ public class DeveloperMatchingService {
                         "hasScreenshots", project.images() != null && !project.images().isEmpty(),
                         "featured", Boolean.TRUE.equals(project.featured())
                 )).toList(),
-                "feedPosts", readPosts(profile).stream().limit(3).map(post -> Map.of(
-                        "body", safe(post.body()),
-                        "createdAt", safe(post.createdAt())
+                "feedPosts", List.of()
+        );
+    }
+
+    private Map<String, Object> openAiEmployerCandidatePayload(CandidateScore candidate, DeveloperMatchResponse fallbackMatch) {
+        MarketplaceProfile profile = candidate.profile();
+        List<ProfileProjectResponse> needs = candidate.projects();
+        return Map.of(
+                "profileId", profile.getId(),
+                "name", profile.getName(),
+                "title", profile.getTitle(),
+                "summary", profile.getSummary(),
+                "skills", profile.getSkills(),
+                "deterministicScore", fallbackMatch == null ? candidate.score() : fallbackMatch.readinessScore(),
+                "needs", needs.stream().limit(3).map(need -> Map.of(
+                        "name", safe(need.name()),
+                        "description", safe(need.description()),
+                        "skills", need.skills() == null ? List.of() : need.skills(),
+                        "featured", Boolean.TRUE.equals(need.featured())
+                )).toList()
+        );
+    }
+
+    private Map<String, Object> openAiDeveloperContextPayload(DeveloperContext developerContext) {
+        if (developerContext == null) {
+            return Map.of(
+                    "summary", "",
+                    "skills", List.of(),
+                    "projects", List.of()
+            );
+        }
+        MarketplaceProfile profile = developerContext.profile();
+        return Map.of(
+                "summary", safe(profile.getSummary()),
+                "skills", profile.getSkills(),
+                "projects", developerContext.projects().stream().limit(3).map(project -> Map.of(
+                        "name", safe(project.name()),
+                        "description", safe(project.description()),
+                        "skills", project.skills() == null ? List.of() : project.skills(),
+                        "hasCode", hasValue(project.githubUrl()),
+                        "hasLiveDemo", hasValue(project.liveUrl()),
+                        "hasScreenshots", project.images() != null && !project.images().isEmpty()
                 )).toList()
         );
     }
@@ -470,7 +815,7 @@ public class DeveloperMatchingService {
                                                 "properties", Map.of(
                                                         "profileId", Map.of("type", "integer"),
                                                         "score", Map.of("type", "integer", "minimum", 0, "maximum", 100),
-                                                        "reason", Map.of("type", "string", "minLength", 450, "maxLength", 1200),
+                                                        "reason", Map.of("type", "string", "minLength", 160, "maxLength", 520),
                                                         "matchedSignals", Map.of("type", "array", "items", Map.of("type", "string"), "maxItems", 5),
                                                         "bestEvidence", Map.of("type", "array", "items", Map.of("type", "string", "maxLength", 240), "maxItems", 4),
                                                         "remainingRisks", Map.of("type", "array", "items", Map.of("type", "string"), "maxItems", 3),
@@ -726,7 +1071,9 @@ public class DeveloperMatchingService {
             MarketplaceProfile profile,
             Set<String> strengths,
             Set<String> gaps,
-            List<ProfileProjectResponse> matchedProjects
+            List<ProfileProjectResponse> matchedProjects,
+            BriefAnalysis analysis,
+            int score
     ) {
         if (strengths.isEmpty()) {
             return profile.getName() + " has adjacent project proof. Open the profile and check whether their published work overlaps with the skills or collaboration you have in mind.";
@@ -741,15 +1088,95 @@ public class DeveloperMatchingService {
         Pronouns pronouns = pronounsFor(profile);
         String strengthList = naturalList(reasonStrengths(strengths).stream().limit(3).toList());
         String proofDetail = proofReasonDetail(primaryProject);
-        String gapDetail = gaps.isEmpty()
-                ? ""
-                : " You may still want to ask about " + naturalList(new ArrayList<>(gaps).stream().limit(2).toList()) + ".";
+        String summaryDetail = summaryReasonDetail(profile.getSummary(), pronouns);
+        String secondProjectDetail = secondProjectDetail(matchedProjects, pronouns);
+        String projectDetail = projectReasonDetail(primaryProject, pronouns);
+        String painPointDetail = peerPainPointDetail(analysis, strengths);
+        String valueJudgment = peerValueJudgment(score, strengths, gaps, matchedProjects);
+        String gapDetail = peerGapDetail(gaps, painPointDetail);
 
-        return profile.getName() + " is worth inspecting because " + primaryProject.name()
-                + " gives concrete proof around " + strengthList + ". "
-                + upperFirst(projectReasonDetail(primaryProject, pronouns)) + " "
-                + proofDetail
-                + " That gives you a specific project to discuss if you view or connect." + gapDetail;
+        return switch (Math.floorMod(profile.getName().hashCode(), 5)) {
+            case 0 -> "Start with " + primaryProject.name() + " on " + profile.getName() + "'s profile. "
+                    + upperFirst(projectDetail) + " That matters here because it speaks directly to " + painPointDetail + ". "
+                    + valueJudgment + " " + proofDetail + secondProjectDetail + summaryDetail + gapDetail;
+            case 1 -> profile.getName() + " looks more valuable than a generic keyword match because "
+                    + primaryProject.name() + " shows how " + pronouns.subject() + " " + pronouns.handleVerb() + " "
+                    + strengthList + " in a real project context. " + upperFirst(projectDetail) + " "
+                    + valueJudgment + " " + proofDetail + secondProjectDetail + gapDetail;
+            case 2 -> primaryProject.name() + " is the project I would inspect first for " + profile.getName() + ". "
+                    + upperFirst(projectDetail) + " For a search where " + painPointDetail + " matters, that is stronger evidence than a profile that only lists "
+                    + strengthList + ". " + valueJudgment + summaryDetail + gapDetail;
+            case 3 -> profile.getName() + " stands out less because of the headline and more because of the project trail. "
+                    + primaryProject.name() + " points directly at " + painPointDetail + ": " + projectDetail + " "
+                    + valueJudgment + " " + proofDetail + secondProjectDetail + gapDetail;
+            default -> "The strongest signal for " + profile.getName() + " is " + primaryProject.name() + ". "
+                    + upperFirst(projectDetail) + " That makes " + pronouns.object() + " useful for a brief centered on "
+                    + painPointDetail + ", especially because the profile includes checkable proof instead of only claims. "
+                    + valueJudgment + secondProjectDetail + summaryDetail + gapDetail;
+        };
+    }
+
+    private String secondProjectDetail(List<ProfileProjectResponse> matchedProjects, Pronouns pronouns) {
+        if (matchedProjects.size() < 2) {
+            return "";
+        }
+        ProfileProjectResponse secondProject = matchedProjects.get(1);
+        return " A second signal is " + secondProject.name() + ", where "
+                + stripTrailingPeriod(projectReasonDetail(secondProject, pronouns)) + ".";
+    }
+
+    private String peerPainPointDetail(BriefAnalysis analysis, Set<String> strengths) {
+        if (analysis.problemTypes().contains("Authentication")
+                || strengths.contains("Spring Security")
+                || strengths.contains("Authentication")
+                || strengths.contains("Permissions")) {
+            return "role-based access, protected flows, and permission mistakes";
+        }
+        if (analysis.problemTypes().contains("Dashboard")
+                || strengths.contains("React")
+                || strengths.contains("Dashboards")) {
+            return "data-heavy UI states and dashboard workflow clarity";
+        }
+        if (analysis.problemTypes().contains("Data Quality")
+                || strengths.contains("PostgreSQL")
+                || strengths.contains("SQL")) {
+            return "data validation, reporting, and database-backed workflow decisions";
+        }
+        if (analysis.problemTypes().contains("Deployment")
+                || strengths.contains("Docker")
+                || strengths.contains("Deployment")) {
+            return "setup reliability and shipping work that another teammate can actually run";
+        }
+        return "the key technical pressure points in your brief";
+    }
+
+    private String peerValueJudgment(
+            int score,
+            Set<String> strengths,
+            Set<String> gaps,
+            List<ProfileProjectResponse> matchedProjects
+    ) {
+        boolean hasMultipleRelevantProjects = matchedProjects.size() > 1;
+        boolean hasTradeoff = !gaps.isEmpty();
+        if (score >= 84 && hasMultipleRelevantProjects) {
+            return "This is the kind of profile that can outrank flashier candidates because the evidence is repeated across more than one relevant project.";
+        }
+        if (score >= 78) {
+            return "What lifts this person up is that the evidence is specific enough to judge against real requirements, not just broad stack overlap.";
+        }
+        if (hasTradeoff && (strengths.contains("Spring Security") || strengths.contains("Authentication"))) {
+            return "Even if another candidate sounds broader on paper, this person may still be more useful if your main risk is auth or permission work going wrong.";
+        }
+        return "This feels more like a useful specialist match than a generic all-purpose one, which can be valuable if this brief hinges on one pain point being handled well.";
+    }
+
+    private String peerGapDetail(Set<String> gaps, String painPointDetail) {
+        if (gaps.isEmpty()) {
+            return "";
+        }
+        return " The tradeoff is that you would still want to verify "
+                + naturalList(new ArrayList<>(gaps).stream().limit(2).toList())
+                + ", but the existing proof around " + painPointDetail + " may make that tradeoff acceptable.";
     }
 
     private String buildEmployerReason(
@@ -846,57 +1273,43 @@ public class DeveloperMatchingService {
     private String buildHiringOutlook(
             MarketplaceProfile employer,
             ProfileProjectResponse primaryNeed,
+            ProfileProjectResponse developerProject,
             Set<String> strengths,
             Set<String> gaps,
             int readinessScore
     ) {
         if (primaryNeed == null) {
-            return "They have some adjacent signals, but I cannot see a specific current need that cleanly matches your search yet.";
+            return "They have some adjacent signals, but I cannot see a specific current need that cleanly matches your search yet. You would need to lead with one project that makes your value obvious rather than relying on a general profile.";
         }
 
-        String priority = Boolean.TRUE.equals(primaryNeed.featured()) ? "priority" : "published";
+        String skillText = strengths.isEmpty()
+                ? "your closest transferable skills"
+                : naturalList(reasonStrengths(strengths).stream().limit(4).toList());
+        String projectText = developerProject == null
+                ? "your closest relevant project"
+                : developerProject.name();
         String gapText = gaps.isEmpty()
-                ? ""
-                : " Watch the " + naturalList(new ArrayList<>(gaps).stream().limit(2).toList()) + " gap before you treat it as a clean fit.";
+                ? "You do not need to pretend to be senior here; the value is showing careful proof, clear tradeoffs, and a small first contribution that matches their need."
+                : "What you may still need is stronger proof around " + naturalList(new ArrayList<>(gaps).stream().limit(2).toList()) + ", so name that honestly and show how you would close it.";
         String needWork = cleanNeedDescription(primaryNeed.description());
-        int variant = Math.floorMod((employer.getName() + primaryNeed.name()).hashCode(), 3);
+        String fitText = readinessSentence(readinessScore);
+        String projectProof = developerProject == null
+                ? "Before treating them as a strong lead, add or polish a project that connects directly to " + primaryNeed.name() + "."
+                : projectText + " is the piece to lead with because it lets you turn your " + skillText + " into evidence they can inspect.";
+
         return switch (needCategory(primaryNeed)) {
             case "AUTH" -> switch (authSubtype(primaryNeed)) {
-                case "JWT" -> employer.getName() + " is describing backend auth cleanup, not a generic security wishlist: " + needWork + ". That is a credible junior target because the useful work is traceable: follow the token flow, document protected endpoints, and make failures easier for the frontend team to reason about." + gapText;
-                case "PERMISSIONS" -> employer.getName() + " is hiring around permission workflow, not just auth theory: " + needWork + ". This is realistic if your proof shows you can make role changes understandable in the UI and still respect the access rules underneath." + gapText;
-                case "LOGIN" -> primaryNeed.name() + " is about the part of auth users actually feel: " + needWork + ". A junior can be useful here if your project shows careful validation, useful failed states, and no loose ends around protected screens." + gapText;
-                default -> switch (variant) {
-                    case 0 -> employer.getName() + " is signalling " + priority + " auth work with a real shape: " + needWork + ". That is a plausible junior opening if you can show careful flow-tracing rather than broad security claims." + gapText;
-                    case 1 -> primaryNeed.name() + " sounds reviewable rather than vague: " + needWork + ". For a junior developer, that matters because small access-control improvements can be judged from code, screenshots, endpoint examples, or error states." + gapText;
-                    default -> "The hiring signal is strongest where the auth work gets concrete: " + needWork + ". " + employer.getName() + " is more likely to respond if your profile shows disciplined handling of access, failure cases, and user feedback." + gapText;
-                };
+                case "JWT" -> fitText + " " + employer.getName() + " needs help with auth work like " + needWork + ", so your value is proving you can trace login, tokens, protected endpoints, and failure states without hand-waving. " + projectProof + " " + gapText;
+                case "PERMISSIONS" -> fitText + " Their need is permission workflow, so the valuable part of your profile is any proof that you can make roles, denied states, admin actions, and user feedback understandable. " + projectProof + " " + gapText;
+                case "LOGIN" -> fitText + " This employer is close to user-facing auth pain: " + needWork + ". Your value is strongest if " + projectText + " shows validation, failed-login states, protected screens, and clear API feedback. " + gapText;
+                default -> fitText + " " + employer.getName() + " has an auth-shaped need, so your " + skillText + " proof can matter if you connect it to access control decisions rather than just naming the stack. " + projectProof + " " + gapText;
             };
-            case "DASHBOARD" -> switch (variant) {
-                case 0 -> employer.getName() + " looks like they need product judgment around data: " + needWork + ". A junior can fit this if your dashboard proof shows how raw API data becomes something a busy user can act on.";
-                case 1 -> "This is less about making charts and more about making a workflow legible. " + primaryNeed.name() + " asks for " + needWork + ", so the employer will probably care about states, filters, warnings, and whether the screen helps someone decide faster.";
-                default -> employer.getName() + " has a dashboard need with practical stakes: " + needWork + ". Your chances depend on whether your project proof shows product thinking, not just component styling.";
-            };
-            case "SQL" -> switch (variant) {
-                case 0 -> "This reads like backend trust work: " + upperFirst(needWork) + ". A junior can be credible here if the scope stays small and your project shows careful schema/API thinking.";
-                case 1 -> employer.getName() + " is likely hiring around predictable data, not glamorous features. " + primaryNeed.name() + " needs someone who can keep records, queries, or pagination understandable when the edge cases show up.";
-                default -> "The opportunity is realistic if you can prove data discipline. " + upperFirst(needWork) + " is the sort of task where a clean table shape, clear endpoint, or pagination decision matters more than a flashy UI.";
-            };
-            case "DATA" -> switch (variant) {
-                case 0 -> employer.getName() + " has the kind of messy-input problem teams actually hand to juniors: " + needWork + ". It is believable if your project proves patience with edge cases, not just a script that works on perfect data.";
-                case 1 -> primaryNeed.name() + " is a fit signal because it involves imperfect user input. If your portfolio shows validation decisions, duplicate handling, or useful error messages, you have a realistic way to start the conversation.";
-                default -> "This need is about trust before data reaches the rest of the system: " + needWork + ". The employer is likely to value careful thinking and plain-English error feedback more than advanced architecture.";
-            };
-            case "DEPLOYMENT" -> switch (variant) {
-                case 0 -> "This is likely to suit a junior who enjoys reliability polish: " + needWork + ". " + employer.getName() + " may not need a platform engineer here; they need someone careful enough to make the app easier to run and verify.";
-                case 1 -> primaryNeed.name() + " sounds like release friction, not deep infrastructure ownership. That is junior-realistic if your proof shows setup steps, checks, and docs another person could actually follow.";
-                default -> "The hiring signal is around reducing deployment uncertainty. If you can show environment setup, health checks, or run instructions that remove guesswork, this employer has a practical reason to look at you.";
-            };
-            case "DOCS" -> switch (variant) {
-                case 0 -> employer.getName() + " is asking for developer-experience work: " + needWork + ". That makes clarity part of the hiring bar, not just code.";
-                case 1 -> primaryNeed.name() + " is realistic for a junior if you can turn confusing API behaviour into examples another engineer can use. They will be looking for patience and precision.";
-                default -> "This employer likely needs someone who can make technical behaviour explainable. Good docs, endpoint examples, and failure cases could matter as much as implementation here.";
-            };
-            default -> employer.getName() + " has a real enough need to inspect: " + needWork + ". I would still look for one project that lands close to " + primaryNeed.name() + " before treating it as a strong lead." + gapText;
+            case "DASHBOARD" -> fitText + " " + employer.getName() + " needs dashboard/product judgment around " + needWork + ", so your value is showing React screens that turn API data into decisions with filters, loading states, warnings, or tables. " + projectProof + " " + gapText;
+            case "SQL" -> fitText + " This looks like data trust work: " + needWork + ". Your value is strongest where " + projectText + " proves schema thinking, predictable API responses, pagination, reporting, or PostgreSQL-backed workflows. " + gapText;
+            case "DATA" -> fitText + " Their need involves messy inputs or validation, so you can provide value by showing patience with edge cases, bad records, duplicates, and plain-English error feedback. " + projectProof + " " + gapText;
+            case "DEPLOYMENT" -> fitText + " " + employer.getName() + " may value a junior who reduces setup or release friction. Your useful proof is anything in " + projectText + " around environment setup, Docker, health checks, run notes, or debugging steps another developer can follow. " + gapText;
+            case "DOCS" -> fitText + " This employer likely values clarity as much as code because the need is " + needWork + ". Your value is strongest if " + projectText + " proves you can explain API behavior, auth requirements, examples, and failure cases in a way another developer can use. " + gapText;
+            default -> fitText + " " + employer.getName() + " has a need around " + needWork + ", and your best chance is to connect " + projectText + " to the exact outcome they want. " + projectProof + " " + gapText;
         };
     }
 
@@ -1490,6 +1903,13 @@ public class DeveloperMatchingService {
     private record DeveloperContext(
             MarketplaceProfile profile,
             List<ProfileProjectResponse> projects
+    ) {
+    }
+
+    private record AsyncMatchSearch(
+            String ownerKey,
+            AiMatchResponse response,
+            Instant updatedAt
     ) {
     }
 

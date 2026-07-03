@@ -64,7 +64,6 @@ function MatchResultCard({
         <div>
           <div className="match-name-row">
             <h3>{match.profile.name}</h3>
-            {match.profile.demoProfile && <span className="demo-profile-badge">Demo profile</span>}
           </div>
           <p>{match.profile.title}</p>
         </div>
@@ -74,7 +73,7 @@ function MatchResultCard({
         <div className="readiness-coach">
           <div className={`accordion-panel ${openPanelKey === 'hiring' ? 'open' : ''}`}>
             <button className="accordion-trigger" type="button" aria-expanded={openPanelKey === 'hiring'} onClick={() => togglePanel('hiring')}>
-              <h4>Are they likely to hire around this?</h4>
+              <h4>Are they likely to hire you around this?</h4>
               <ChevronDown size={16} />
             </button>
             {openPanelKey === 'hiring' && <p className="accordion-body">{match.hiringOutlook}</p>}
@@ -167,6 +166,51 @@ function MatchResultCard({
   );
 }
 
+function AiStatusBanner({ aiResults, isAiRefreshing }) {
+  if (!aiResults?.aiStatusMessage) {
+    return null;
+  }
+
+  if (aiResults.aiStatus === 'PENDING') {
+    return (
+      <div className="ai-status-banner pending" role="status" aria-live="polite">
+        <div className="ai-status-header">
+          <span className="ai-status-chip">Quick-matched response</span>
+          <span className="ai-status-loader" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+        </div>
+        <p>{isAiRefreshing ? 'Analysing and upgrading the response...' : aiResults.aiStatusMessage}</p>
+      </div>
+    );
+  }
+
+  if (aiResults.aiStatus === 'COMPLETE') {
+    return (
+      <div className="ai-status-banner complete" role="status" aria-live="polite">
+        <div className="ai-status-header">
+          <span className="ai-status-chip complete-chip">
+            <CheckCircle2 size={14} />
+            <span>Enhanced AI response</span>
+          </span>
+        </div>
+        <p>{aiResults.aiStatusMessage}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ai-status-banner fallback" role="status" aria-live="polite">
+      <div className="ai-status-header">
+        <span className="ai-status-chip fallback-chip">Quick-matched results</span>
+      </div>
+      <p>{aiResults.aiStatusMessage}</p>
+    </div>
+  );
+}
+
 export default function Match() {
   const { user, token } = useAuth();
   const defaultMode = 'DEVELOPER';
@@ -176,6 +220,7 @@ export default function Match() {
   const [aiBrief, setAiBrief] = useState(initialMatchState.brief || '');
   const [aiResults, setAiResults] = useState(initialMatchState.results);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isAiRefreshing, setIsAiRefreshing] = useState(false);
   const [aiError, setAiError] = useState('');
   const [connectionActivity, setConnectionActivity] = useState([]);
   const [connectingProfileId, setConnectingProfileId] = useState(null);
@@ -206,6 +251,46 @@ export default function Match() {
       .catch(() => setConnectionActivity([]));
   }, [token, user?.role]);
 
+  useEffect(() => {
+    if (!aiResults?.aiSearchId || aiResults.aiStatus !== 'PENDING') {
+      setIsAiRefreshing(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    let timeoutId;
+    setIsAiRefreshing(true);
+
+    const pollForUpgrade = async () => {
+      try {
+        const updatedResults = await apiRequest(`/api/ai/matches/${aiResults.aiSearchId}`, {
+          token,
+          timeoutMs: 8000,
+        });
+        if (cancelled) {
+          return;
+        }
+        setAiResults(updatedResults);
+        if (updatedResults.aiStatus === 'PENDING') {
+          timeoutId = window.setTimeout(pollForUpgrade, 2000);
+          return;
+        }
+        setIsAiRefreshing(false);
+      } catch {
+        if (cancelled) {
+          return;
+        }
+        timeoutId = window.setTimeout(pollForUpgrade, 3000);
+      }
+    };
+
+    timeoutId = window.setTimeout(pollForUpgrade, 1800);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [aiResults?.aiSearchId, aiResults?.aiStatus, token]);
+
   const handleAiSearch = (event) => {
     event.preventDefault();
     if (!aiBrief.trim()) {
@@ -218,7 +303,7 @@ export default function Match() {
     apiRequest('/api/ai/matches', {
       token,
       method: 'POST',
-      timeoutMs: 60000,
+      timeoutMs: 12000,
       body: JSON.stringify({ brief: aiBrief, mode: matchMode }),
     })
       .then((results) => {
@@ -281,6 +366,13 @@ export default function Match() {
   const loadingLabel = isEmployerMode ? 'Finding employers...' : 'Finding devs...';
   const placeholder = isEmployerMode ? employerPlaceholder : developerPlaceholder;
   const hasUnlockedResults = Boolean(aiResults && !aiResults.rejected && aiResults.briefQuality !== 'NEEDS_MORE_DETAIL');
+  const aiStatusTone = aiResults?.aiStatus === 'COMPLETE'
+    ? 'complete'
+    : aiResults?.aiStatus === 'FALLBACK'
+      ? 'fallback'
+      : aiResults?.aiStatus === 'PENDING'
+        ? 'pending'
+        : '';
 
   const quotaLabel = aiResults
     ? aiResults.dailySearchLimit < 0
@@ -433,6 +525,15 @@ export default function Match() {
 
           <div className={`ai-brief-summary ${aiResults.rejected ? 'rejected' : aiResults.briefQuality === 'NEEDS_MORE_DETAIL' ? 'needs-detail' : ''}`}>
             <p>{aiResults.summary}</p>
+            {aiResults.aiStatus !== 'NOT_USED' && aiResults.aiStatus !== 'UNAVAILABLE' && (
+              <AiStatusBanner aiResults={aiResults} isAiRefreshing={isAiRefreshing} />
+            )}
+            {aiResults.aiStatus === 'UNAVAILABLE' && aiResults.aiStatusMessage && (
+              <div className="ai-status-banner fallback">
+                <strong>Local ranking only</strong>
+                <p>{aiResults.aiStatusMessage}</p>
+              </div>
+            )}
             {aiResults.rejectionReason && <p className="brief-guidance">{aiResults.rejectionReason}</p>}
             {(aiResults.followUpQuestions ?? []).length > 0 && (
               <div className="brief-followups">
