@@ -225,6 +225,8 @@ export default function ProfileDetail() {
 
         const isOwnProfile = Boolean(ownProfile && (isOwnPreviewRoute || String(ownProfile.id) === String(id)));
         const storedProfile = isOwnProfile && user?.role === 'DEVELOPER' ? readStoredDeveloperProfile(user) : null;
+        const storedProjects = normalizeProjects(storedProfile?.projects ?? []);
+        const storedPosts = storedProfile?.posts ?? [];
         const nextProfile = isOwnProfile
           ? {
               ...ownProfile,
@@ -232,10 +234,16 @@ export default function ProfileDetail() {
               summary: storedProfile?.summary || ownProfile.summary,
               image: storedProfile?.image || ownProfile.image,
               skills: storedProfile?.skills?.length > 0 ? storedProfile.skills : ownProfile.skills ?? [],
-              contactLinks: storedProfile?.contactLinks ?? ownProfile.contactLinks ?? {},
-              preferences: storedProfile?.preferences ?? ownProfile.preferences ?? {},
-              projects: normalizeProjects(storedProfile?.projects ?? ownProfile.projects ?? []),
-              posts: storedProfile?.posts ?? ownProfile.posts ?? [],
+              contactLinks: {
+                ...(ownProfile.contactLinks ?? {}),
+                ...(storedProfile?.contactLinks ?? {}),
+              },
+              preferences: {
+                ...(ownProfile.preferences ?? {}),
+                ...(storedProfile?.preferences ?? {}),
+              },
+              projects: storedProjects.length > 0 ? storedProjects : normalizeProjects(ownProfile.projects ?? []),
+              posts: storedPosts.length > 0 ? storedPosts : ownProfile.posts ?? [],
             }
           : publicProfile ? { ...publicProfile, projects: normalizeProjects(publicProfile.projects ?? []), posts: publicProfile.posts ?? [] } : null;
 

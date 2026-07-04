@@ -33,7 +33,7 @@ public class MarketplaceProfile {
     @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false, length = 800)
+    @Column(nullable = false, columnDefinition = "text")
     private String summary;
 
     @Column(nullable = false, columnDefinition = "text")
