@@ -28,6 +28,26 @@ import org.springframework.stereotype.Component;
 @Order(20)
 public class DemoDeveloperSeeder implements CommandLineRunner {
     private static final String PASSWORD = "Password123!";
+    private static final List<String> TECH_PROJECT_IMAGES = List.of(
+            "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1518773553398-650c184e0bb3?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1200&q=80"
+    );
 
     private final UserRepository userRepository;
     private final MarketplaceProfileRepository profileRepository;
@@ -304,20 +324,23 @@ public class DemoDeveloperSeeder implements CommandLineRunner {
         String growthEdge = growthEdgeFor(theme, index);
         String employerFit = employerFitFor(theme, index);
         String collaborationStyle = collaborationStyleFor(index);
-        String problemArea = theme.problemArea().toLowerCase(Locale.ROOT);
+        String motivation = motivationFor(index);
+        String dataSource = dataSourceFor(index);
+        String constraint = projectConstraintFor(index);
+        String problemArea = theme.problemArea();
         return switch (index % 12) {
-            case 0 -> "Hi, I'm " + name + ". I build " + problemArea + " for " + domain + " workflows, and I usually do my best work when there is a messy real-life process to untangle. I use " + skillList + " a lot, but the thing I care about most is making the workflow feel clearer for the person using it. I am especially good at " + strengthAngle + ". I still want to get sharper at " + growthEdge + ", and I think I fit best with " + employerFit + ".";
-            case 1 -> "I'm a junior " + summaryFocusFor(theme) + " developer who prefers practical product problems over generic tutorial projects. Most of the work on my profile starts with a small " + domain + " problem and then turns into something I can actually run, test, and explain. I like leaving " + proofStyle + " behind because it makes code review easier. Right now I'm trying to improve at " + goal + ".";
-            case 2 -> "A lot of my recent work sits around " + problemArea + ". I like building things that have a clear user, a clear pain point, and enough depth to show how I think once the easy version stops working. The part of the work that suits me most is " + strengthAngle + ". I work well with teams that value " + collaborationStyle + ".";
-            case 3 -> "Most of my projects come from ordinary workflow problems in " + domain + ", not from trying to make something look bigger than it is. I like the unglamorous parts of product work too, especially " + blocker + ". I think that is often where junior developers can show real judgment. The kind of employer I would probably help most is " + employerFit + ".";
-            case 4 -> "I like turning " + domain + " problems into software that feels calmer and easier to trust. My projects use " + skillList + ", but the more useful signal is how I " + habit + ". I am looking for a team where " + teamFit.toLowerCase(Locale.ROOT) + " matters and where I can keep getting better through honest review.";
-            case 5 -> "Right now I'm focused on " + problemArea + ". I usually start small, get one useful version working, and then tighten the parts that would confuse a real user or teammate. The thing I am naturally strongest at is " + strengthAngle + ". The thing I still want to improve is " + growthEdge + ".";
-            case 6 -> "I'm early in my career, but I care a lot about making my work easy to inspect. That usually means code links, screenshots, short notes, and projects that solve a specific problem in " + domain + " rather than a vague idea. I use " + topSkill + " a lot in that work, and I am especially trying to improve at " + goal + ".";
-            case 7 -> "I build " + domain + " tools with " + skillList + ", and I try to keep them understandable from the outside as well as in the code. I care about handoff, failure states, and the little product details that make software feel thought through. My working style is mostly " + collaborationStyle + ".";
-            case 8 -> "The work I enjoy most is " + problemArea + " with a real operational angle behind it. I like projects where I can " + habit + " and still keep the code simple enough for someone else to pick up. I am stronger on " + strengthAngle + " than on flashy presentation, and I'm okay being honest about that.";
-            case 9 -> "I'm aiming for junior roles where I can contribute to real " + domain + " software and learn from people who care about the details. I use " + skillList + " across my projects, but the better signal is probably how I talk through tradeoffs like " + blocker + ". I'd rather sound specific than polished.";
-            case 10 -> "I enjoy the kind of work where a team does not need a huge platform, just a clearer way of handling " + domain + " problems. That is why a lot of my projects are narrow, practical, and a bit opinionated about what matters. The best thing I can usually bring early is " + strengthAngle + ".";
-            default -> "I build practical " + summaryFocusFor(theme) + " projects, mostly around " + domain + ", and I try to make the reasoning visible as well as the final result. I care about " + teamFit.toLowerCase(Locale.ROOT) + ", and I like work where I can be useful by improving one real workflow at a time. I am stronger on " + strengthAngle + " than on " + growthEdge + " right now, but that's also the part I'm actively working on.";
+            case 0 -> "Hi, I'm " + name + ". Most of my work sits around " + problemArea + " for " + domain + " workflows, and I usually feel most useful when a real process is messy and needs untangling. I work a lot with " + skillList + ", but what I care about most is making the workflow clearer for the person using it. I'm especially strong at " + strengthAngle + ". Right now I'm trying to get better at " + growthEdge + " because " + motivation + ".";
+            case 1 -> "I'm a junior " + summaryFocusFor(theme) + " developer, and I prefer practical product problems over generic tutorial builds. A lot of the work on my profile starts with a small " + domain + " problem and rough inputs like " + dataSource + ", then turns into something I can run, test, and explain. I like leaving " + proofStyle + " behind because it makes review easier. Lately I've been trying to improve at " + goal + ".";
+            case 2 -> "A lot of my recent work is around " + problemArea + ". I like projects with a clear user, a clear pain point, and enough depth to show how I think once the easy version stops working. I tend to be strongest at " + strengthAngle + ", and I work best with teams that value " + collaborationStyle + ".";
+            case 3 -> "Most of my projects come from ordinary workflow problems in " + domain + ", not from trying to make something look bigger than it is. I enjoy the unglamorous part of product work too, especially " + blocker + ". " + constraint + " The kind of team I can usually help most is " + employerFit + ".";
+            case 4 -> "I like turning " + domain + " problems into software that feels calmer and easier to trust. My projects use " + skillList + ", but the more useful signal is probably how I " + habit + ". I'm looking for a team where " + teamFit.toLowerCase(Locale.ROOT) + " matters, and where I can keep improving through honest review and real feedback.";
+            case 5 -> "Right now I'm focused on " + problemArea + ". I usually start with the smallest useful version, then tighten the parts that would confuse a real user or teammate. The thing I naturally do best is " + strengthAngle + ". The next area I'm pushing on is " + growthEdge + ".";
+            case 6 -> "I'm early in my career, but I care a lot about making my work easy to inspect. That usually means code links, screenshots, short notes, and projects built around a specific " + domain + " problem rather than a vague app idea. I use " + topSkill + " a lot in that work, and I'm deliberately trying to get better at " + goal + ".";
+            case 7 -> "I build " + domain + " tools with " + skillList + ", and I try to make them understandable from the outside as well as in the code. I care about handoff, failure states, and the product details that stop software from feeling half-finished. My working style is mostly " + collaborationStyle + ".";
+            case 8 -> "The work I enjoy most is " + problemArea + " with a real operational angle behind it. I like projects where I can " + habit + " and still keep the code simple enough for someone else to pick up. I'm stronger on " + strengthAngle + " than flashy presentation, and I'm comfortable being honest about that.";
+            case 9 -> "I'm aiming for junior roles where I can contribute to real " + domain + " software and learn from people who care about the details. I use " + skillList + " across my projects, but the part that probably says the most about me is how I talk through tradeoffs like " + blocker + ". I'd rather sound specific than overly polished.";
+            case 10 -> "I enjoy the kind of work where a team does not need a huge platform, just a clearer way of handling " + domain + " problems. That is why a lot of my projects are narrow, practical, and opinionated about what matters. The best thing I can usually bring early is " + strengthAngle + ", and I try to back that up with proof rather than big claims.";
+            default -> "I build practical " + summaryFocusFor(theme) + " projects, mostly around " + domain + ", and I try to make the reasoning visible as well as the final result. I care about " + teamFit.toLowerCase(Locale.ROOT) + ", and I like work where I can be useful by improving one real workflow at a time. I'm stronger on " + strengthAngle + " than on " + growthEdge + " right now, which is also why I'm actively working on that gap.";
         };
     }
 
@@ -533,18 +556,8 @@ public class DemoDeveloperSeeder implements CommandLineRunner {
     }
 
     private String projectImage(String themeSlug, String domain, String projectName, int index, int offset) {
-        String query = switch (themeSlug) {
-            case "dashboard", "cloud" -> "dashboard,analytics";
-            case "api", "auth", "docs" -> "code,software";
-            case "data" -> "data,spreadsheet";
-            case "deploy" -> "server,cloud";
-            case "rails", "support" -> "workflow,office";
-            default -> "testing,software";
-        };
-        String domainQuery = queryPart(domain);
-        String projectQuery = queryPart(projectName);
-        String fullQuery = String.join(",", List.of(query, domainQuery, projectQuery)).replaceAll(",+", ",").replaceAll("^,|,$", "");
-        return "https://source.unsplash.com/900x560/?" + fullQuery + "&sig=" + themeSlug + "-" + index + "-" + offset;
+        int baseIndex = Math.floorMod(index * 5 + queryPart(themeSlug).hashCode(), TECH_PROJECT_IMAGES.size());
+        return TECH_PROJECT_IMAGES.get(Math.floorMod(baseIndex + offset, TECH_PROJECT_IMAGES.size()));
     }
 
     private List<String> projectImages(String themeSlug, int index, int offset, int count) {
@@ -554,7 +567,7 @@ public class DemoDeveloperSeeder implements CommandLineRunner {
     private List<String> projectImages(String themeSlug, String domain, String projectName, int index, int offset, int count) {
         List<String> images = new ArrayList<>();
         for (int imageIndex = 0; imageIndex < count; imageIndex += 1) {
-            images.add(projectImage(themeSlug, domain, projectName, index, offset * 10 + imageIndex));
+            images.add(projectImage(themeSlug, domain, projectName, index, offset * 4 + imageIndex));
         }
         return images;
     }
@@ -580,6 +593,44 @@ public class DemoDeveloperSeeder implements CommandLineRunner {
             return "";
         }
         return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", ",").replaceAll("^,|,$", "");
+    }
+
+    private String authPortalName(String domainTitle, int index) {
+        String shortTitle = shortDomainTitle(domainTitle);
+        return switch (index % 3) {
+            case 0 -> shortTitle + " Admin Portal";
+            case 1 -> shortTitle + " Role Manager";
+            default -> shortTitle + " Team Access";
+        };
+    }
+
+    private String authRecoveryName(String domainTitle, int index) {
+        String shortTitle = shortDomainTitle(domainTitle);
+        return switch (index % 3) {
+            case 0 -> shortTitle + " Recovery Center";
+            case 1 -> "Password Reset Portal";
+            default -> shortTitle + " Account Recovery";
+        };
+    }
+
+    private String authAuditName(String domainTitle, int index) {
+        String shortTitle = shortDomainTitle(domainTitle);
+        return switch (index % 3) {
+            case 0 -> shortTitle + " Session Audit";
+            case 1 -> "Access Audit Dashboard";
+            default -> shortTitle + " Auth Monitor";
+        };
+    }
+
+    private String shortDomainTitle(String domainTitle) {
+        if (domainTitle == null || domainTitle.isBlank()) {
+            return "Account";
+        }
+        String[] words = domainTitle.trim().split("\\s+");
+        if (words.length == 1) {
+            return domainTitle;
+        }
+        return words[words.length - 1];
     }
 
     private String titleFor(ProfileTheme theme, String domain, String proofStyle, int index) {
@@ -611,7 +662,7 @@ public class DemoDeveloperSeeder implements CommandLineRunner {
     }
 
     private List<ProjectDraft> projectDraftsFor(ProfileTheme theme, String domain, String habit, int index) {
-        String noun = List.of("Tracker", "Console", "Workbench", "Portal", "Review Board", "Assistant", "Ledger", "Toolkit", "Inspector", "Planner").get((index + index / 10) % 10);
+        String domainTitle = titleCase(domain);
         String audience = audienceFor(index);
         String reviewFocus = reviewFocusFor(index);
         String blocker = blockerFor(index);
@@ -620,64 +671,64 @@ public class DemoDeveloperSeeder implements CommandLineRunner {
         String constraint = projectConstraintFor(index);
         return switch (theme.slug()) {
             case "dashboard" -> List.of(
-                    draft(titleCase(domain) + " Metrics " + noun, "A React dashboard for " + audience + " using " + dataSource + " to show trend cards, filterable charts, loading states, and empty-state guidance. " + constraint + " The useful evidence is " + proofDetail + ", plus notes on how I handled " + blocker + "."),
-                    draft(titleCase(domain) + " Activity Queue", "A queue-style review screen for triaging stale records, follow-up notes, and recent changes without opening every item. I focused on " + reviewFocus + ", row-level status cues, and API failure states so the screen feels like part of a real product workflow."),
-                    draft(titleCase(domain) + " Weekly Reporting Digest", "A smaller reporting app that turns the same workflow into a weekly summary view with trend comparisons, flagged changes, and exportable notes for " + audience + ". I built it to show I can shape the same data into a different product surface."),
-                    draft(titleCase(domain) + " Filter State Playground", "A focused React project around one awkward filter flow that kept becoming confusing during testing. I simplified the state model, documented the removed behaviour, and kept the repo narrow so the judgment call is easy to inspect.")
+                    draft(domainTitle + " Operations Dashboard", "A React dashboard for " + audience + " using " + dataSource + " to show trend cards, filterable charts, loading states, and empty-state guidance. " + constraint + " The useful evidence is " + proofDetail + ", plus notes on how I handled " + blocker + "."),
+                    draft(domainTitle + " Metrics Review", "A queue-style review screen for triaging stale records, follow-up notes, and recent changes without opening every item. I focused on " + reviewFocus + ", row-level status cues, and API failure states so the screen feels like part of a real product workflow."),
+                    draft(domainTitle + " Weekly Snapshot", "A smaller reporting app that turns the same workflow into a weekly summary view with trend comparisons, flagged changes, and exportable notes for " + audience + ". I built it to show I can shape the same data into a different product surface."),
+                    draft(domainTitle + " Filter States", "A focused React project around one awkward filter flow that kept becoming confusing during testing. I simplified the state model, documented the removed behaviour, and kept the repo narrow so the judgment call is easy to inspect.")
             );
             case "api" -> List.of(
-                    draft(titleCase(domain) + " Service API", "A Spring Boot API for " + domain + " with validation, pagination, PostgreSQL persistence, and controller/service separation. " + constraint + " The README includes request examples, rejected payloads, and the database assumptions behind " + proofDetail + "."),
-                    draft(titleCase(domain) + " Import Intake API", "A separate API for accepting updates from " + audience + " while returning specific validation messages instead of vague server errors. The project is strongest around " + blocker + " because the code traces the request from payload to stored record."),
-                    draft(titleCase(domain) + " Audit Timeline Service", "A backend service for exposing status history, actor notes, and simple filtering around workflow changes. I made this one because history and traceability often matter just as much as the main create and update endpoints."),
-                    draft(titleCase(domain) + " Notification Rules API", "A smaller project that decides when to trigger reminders, warnings, or follow-up flags based on stored records. It gave me a chance to work through business rules without hiding them inside the main service.")
+                    draft(domainTitle + " Backend API", "A Spring Boot API for " + domain + " with validation, pagination, PostgreSQL persistence, and controller/service separation. " + constraint + " The README includes request examples, rejected payloads, and the database assumptions behind " + proofDetail + "."),
+                    draft(domainTitle + " Intake Service", "A separate API for accepting updates from " + audience + " while returning specific validation messages instead of vague server errors. The project is strongest around " + blocker + " because the code traces the request from payload to stored record."),
+                    draft(domainTitle + " Audit Log API", "A backend service for exposing status history, actor notes, and simple filtering around workflow changes. I made this one because history and traceability often matter just as much as the main create and update endpoints."),
+                    draft(domainTitle + " Rules Engine", "A smaller project that decides when to trigger reminders, warnings, or follow-up flags based on stored records. It gave me a chance to work through business rules without hiding them inside the main service.")
             );
             case "auth" -> List.of(
-                    draft(titleCase(domain) + " Access Flow", "A login and protected-route flow for " + domain + " where " + audience + " only see the screens their role allows. " + constraint + " The project includes screenshots for failed sign-in, expired sessions, redirects, and " + proofDetail + "."),
-                    draft(titleCase(domain) + " Invite And Approval Portal", "An admin-facing flow for inviting users, approving access, and changing roles without making the screens feel hostile or confusing. It shows the product side of auth, not just the middleware side."),
-                    draft(titleCase(domain) + " Password Recovery Journey", "A separate password reset and account recovery project with token expiry, validation errors, and user-facing messaging. I built it because recovery flows are usually where trust gets lost."),
-                    draft(titleCase(domain) + " Session Audit Panel", "A compact tool for reviewing failed sign-ins, revoked access, and odd account states. It gave me a place to think through awkward auth behaviour that does not show up in a perfect demo.")
+                    draft(domainTitle + " Access Control System", "A login and protected-route flow for " + domain + " where " + audience + " only see the screens their role allows. " + constraint + " The project includes screenshots for failed sign-in, expired sessions, redirects, and " + proofDetail + "."),
+                    draft(authPortalName(domainTitle, index), "A standalone admin portal for inviting users, reviewing access requests, and changing roles without making the workflow feel hostile or confusing. I treated it as a separate project because invite-and-approval tooling usually has different product decisions from the main login flow."),
+                    draft(authRecoveryName(domainTitle, index), "A separate password reset and account recovery project with token expiry, validation errors, lockout handling, and user-facing messaging. I built it because recovery flows are usually where trust gets lost, and I wanted the repo to focus on that problem by itself."),
+                    draft(authAuditName(domainTitle, index), "A smaller monitoring-style project for reviewing failed sign-ins, revoked access, unusual session activity, and account state changes. It gave me a place to think through the audit side of auth without hiding it inside the main access-control build.")
             );
             case "data" -> List.of(
-                    draft(titleCase(domain) + " Data Quality " + noun, "A Python checker for " + domain + " uploads that catches missing fields, duplicate rows, inconsistent categories, and suspicious values. It uses " + dataSource + " and includes before/after outputs so a reviewer can inspect " + proofDetail + "."),
-                    draft(titleCase(domain) + " Cleanup Review Console", "SQL-backed summaries showing which records need manual review and which are safe to import. The project is written around " + audience + " making a decision from imperfect data, with notes on " + blocker + "."),
-                    draft(titleCase(domain) + " Category Normaliser", "A small utility focused on one messy part of import work: reconciling inconsistent labels, aliases, and date formats before they leak into reports. I like this one because it is narrow but very real."),
-                    draft(titleCase(domain) + " Import Exception Inbox", "A review tool for rejected rows with plain-English reasons, quick filters, and a simple recheck flow. It stands on its own from the validator and feels more like something an operations team would actually use.")
+                    draft(domainTitle + " Data Checker", "A Python checker for " + domain + " uploads that catches missing fields, duplicate rows, inconsistent categories, and suspicious values. It uses " + dataSource + " and includes before/after outputs so a reviewer can inspect " + proofDetail + "."),
+                    draft(domainTitle + " Import Review", "SQL-backed summaries showing which records need manual review and which are safe to import. The project is written around " + audience + " making a decision from imperfect data, with notes on " + blocker + "."),
+                    draft(domainTitle + " Category Mapper", "A small utility focused on one messy part of import work: reconciling inconsistent labels, aliases, and date formats before they leak into reports. I like this one because it is narrow but very real."),
+                    draft(domainTitle + " Exception Inbox", "A review tool for rejected rows with plain-English reasons, quick filters, and a simple recheck flow. It stands on its own from the validator and feels more like something an operations team would actually use.")
             );
             case "deploy" -> List.of(
-                    draft(titleCase(domain) + " Deployment Kit", "A containerized app for " + domain + " with Docker, environment variables, seed checks, and a basic health endpoint. " + constraint + " The proof shows local setup, service readiness, and how I diagnosed " + blocker + "."),
-                    draft(titleCase(domain) + " Service Health Monitor", "A small monitoring view for checking container health, seed status, and basic app readiness. I built it because a lot of deployment pain is really about not knowing what is broken first."),
-                    draft(titleCase(domain) + " Env Diff Checker", "A utility for comparing required environment values across local, staging, and teammate setups. It is a practical project, but it shows how I think about avoiding repeat failures."),
-                    draft(titleCase(domain) + " Backup Restore Drill", "A recovery-focused repo around seed data resets, database snapshots, and smoke checks after restore. I wanted one project that proves I can think past the happy-path deployment.")
+                    draft(domainTitle + " Deployment Setup", "A containerized app for " + domain + " with Docker, environment variables, seed checks, and a basic health endpoint. " + constraint + " The proof shows local setup, service readiness, and how I diagnosed " + blocker + "."),
+                    draft(domainTitle + " Health Monitor", "A small monitoring view for checking container health, seed status, and basic app readiness. I built it because a lot of deployment pain is really about not knowing what is broken first."),
+                    draft(domainTitle + " Config Checker", "A utility for comparing required environment values across local, staging, and teammate setups. It is a practical project, but it shows how I think about avoiding repeat failures."),
+                    draft(domainTitle + " Restore Drill", "A recovery-focused repo around seed data resets, database snapshots, and smoke checks after restore. I wanted one project that proves I can think past the happy-path deployment.")
             );
             case "rails" -> List.of(
-                    draft(titleCase(domain) + " Account Workflow", "A Rails CRUD flow for " + domain + " where requests move through review, approval, and status history screens. " + constraint + " The proof includes model notes, screenshots, and a clear explanation of the relationships behind " + proofDetail + "."),
-                    draft(titleCase(domain) + " Staff Admin Screens", "Admin screens for " + audience + " with search, validation, simple authorization checks, and readable database relationships. The workflow has multiple states and roles, which makes it stronger evidence than a plain CRUD example."),
-                    draft(titleCase(domain) + " Follow-up Request Queue", "A separate workflow for chasing missing information, logging staff notes, and tracking whether a request is ready to move again. I wanted something that felt like real admin work rather than just CRUD."),
-                    draft(titleCase(domain) + " Status History Explorer", "A smaller Rails project for browsing state changes over time, filtering by account, and checking who changed what. It is useful proof because it lives adjacent to the main workflow without being the same app again.")
+                    draft(domainTitle + " Request Tracker", "A Rails CRUD flow for " + domain + " where requests move through review, approval, and status history screens. " + constraint + " The proof includes model notes, screenshots, and a clear explanation of the relationships behind " + proofDetail + "."),
+                    draft(domainTitle + " Admin Portal", "Admin screens for " + audience + " with search, validation, simple authorization checks, and readable database relationships. The workflow has multiple states and roles, which makes it stronger evidence than a plain CRUD example."),
+                    draft(domainTitle + " Follow-up Queue", "A separate workflow for chasing missing information, logging staff notes, and tracking whether a request is ready to move again. I wanted something that felt like real admin work rather than just CRUD."),
+                    draft(domainTitle + " Status History", "A smaller Rails project for browsing state changes over time, filtering by account, and checking who changed what. It is useful proof because it lives adjacent to the main workflow without being the same app again.")
             );
             case "testing" -> List.of(
-                    draft(titleCase(domain) + " Regression Checklist", "A compact regression suite and bug-reproduction notebook for " + domain + " flows with repeated validation issues. " + constraint + " The useful proof is risk selection: what I automated, what I checked manually, and how I handled " + blocker + "."),
-                    draft(titleCase(domain) + " QA Scenario Board", "Test scenarios for happy paths, empty states, failed API requests, and awkward input from " + audience + ". The project is evidence of prioritisation, not just raw test count, because every scenario explains the product risk."),
-                    draft(titleCase(domain) + " Bug Replay Harness", "A tiny app for recreating reported bugs against seeded data and stepping through whether the fix actually changed the failure. I like this one because it feels close to real team maintenance work."),
-                    draft(titleCase(domain) + " API Failure Lab", "A focused project for bad payloads, timeout behaviour, stale UI state, and conflicting API responses. It makes the testing work feel concrete rather than just claiming I care about quality.")
+                    draft(domainTitle + " Regression Suite", "A compact regression suite and bug-reproduction notebook for " + domain + " flows with repeated validation issues. " + constraint + " The useful proof is risk selection: what I automated, what I checked manually, and how I handled " + blocker + "."),
+                    draft(domainTitle + " QA Scenarios", "Test scenarios for happy paths, empty states, failed API requests, and awkward input from " + audience + ". The project is evidence of prioritisation, not just raw test count, because every scenario explains the product risk."),
+                    draft(domainTitle + " Bug Replay", "A tiny app for recreating reported bugs against seeded data and stepping through whether the fix actually changed the failure. I like this one because it feels close to real team maintenance work."),
+                    draft(domainTitle + " Failure Cases", "A focused project for bad payloads, timeout behaviour, stale UI state, and conflicting API responses. It makes the testing work feel concrete rather than just claiming I care about quality.")
             );
             case "docs" -> List.of(
-                    draft(titleCase(domain) + " API Sandbox", "A documentation sandbox with request examples, auth notes, and realistic responses for " + domain + " API calls. " + constraint + " The goal is to make the first fifteen minutes with the API smoother for another developer."),
-                    draft(titleCase(domain) + " Onboarding Examples", "JavaScript snippets and Postman-style examples that help " + audience + " understand the API without reading the whole backend. The evidence is inspectable because the examples show real responses and failure cases."),
-                    draft(titleCase(domain) + " Error Guide", "A standalone guide for failed requests, auth issues, and common integration mistakes. I made it because good docs are often really about helping someone recover, not just helping them start."),
-                    draft(titleCase(domain) + " Quickstart Rewrite", "A tighter quickstart flow for a confusing setup path, usually around auth or local environment config. It shows whether I can turn technical behaviour into something another developer would actually follow.")
+                    draft(domainTitle + " API Sandbox", "A documentation sandbox with request examples, auth notes, and realistic responses for " + domain + " API calls. " + constraint + " The goal is to make the first fifteen minutes with the API smoother for another developer."),
+                    draft(domainTitle + " Onboarding Guide", "JavaScript snippets and Postman-style examples that help " + audience + " understand the API without reading the whole backend. The evidence is inspectable because the examples show real responses and failure cases."),
+                    draft(domainTitle + " Error Guide", "A standalone guide for failed requests, auth issues, and common integration mistakes. I made it because good docs are often really about helping someone recover, not just helping them start."),
+                    draft(domainTitle + " Quickstart", "A tighter quickstart flow for a confusing setup path, usually around auth or local environment config. It shows whether I can turn technical behaviour into something another developer would actually follow.")
             );
             case "cloud" -> List.of(
-                    draft(titleCase(domain) + " Cost Dashboard", "A Python and SQL reporting view that groups cloud spend, flags unusual usage, and explains cost changes for " + audience + ". It uses " + dataSource + " and annotated screenshots so the reviewer can inspect " + proofDetail + "."),
-                    draft(titleCase(domain) + " Usage Forecast", "A lightweight forecast report with CSV inputs, trend notes, and dashboard filters for reviewing upcoming spend. The useful part is not fancy modelling; it is framing cost movement clearly enough for someone to act on it."),
-                    draft(titleCase(domain) + " Tag Coverage Report", "A reporting tool for missing labels, unclear owners, and spend that cannot be explained cleanly yet. I like it because it deals with the quality of the cost data, not just the chart on top of it."),
-                    draft(titleCase(domain) + " Spend Anomaly Drilldown", "A focused drilldown around one unexpected cost spike and the steps used to investigate it. That makes the cloud work feel operational rather than like a generic chart exercise.")
+                    draft(domainTitle + " Cost Dashboard", "A Python and SQL reporting view that groups cloud spend, flags unusual usage, and explains cost changes for " + audience + ". It uses " + dataSource + " and annotated screenshots so the reviewer can inspect " + proofDetail + "."),
+                    draft(domainTitle + " Usage Forecast", "A lightweight forecast report with CSV inputs, trend notes, and dashboard filters for reviewing upcoming spend. The useful part is not fancy modelling; it is framing cost movement clearly enough for someone to act on it."),
+                    draft(domainTitle + " Tag Coverage", "A reporting tool for missing labels, unclear owners, and spend that cannot be explained cleanly yet. I like it because it deals with the quality of the cost data, not just the chart on top of it."),
+                    draft(domainTitle + " Cost Drilldown", "A focused drilldown around one unexpected cost spike and the steps used to investigate it. That makes the cloud work feel operational rather than like a generic chart exercise.")
             );
             default -> List.of(
-                    draft(titleCase(domain) + " Triage " + noun, "A support workflow tool for " + domain + " with queue states, owner assignment, comments, and clear next actions. " + constraint + " The strongest evidence is how it clarifies who should act next when a request is blocked."),
-                    draft(titleCase(domain) + " Escalation Inbox", "An internal tool for " + audience + " to track blocked requests, comments, and resolution history. It covers the messy handoff states, not just the happy path, so the workflow evidence feels more believable."),
-                    draft(titleCase(domain) + " SLA Watchboard", "A smaller screen for overdue tasks, priority changes, and requests that are stuck between teams. It is a separate workflow, but still part of the same operational world."),
-                    draft(titleCase(domain) + " Handoff Timeline", "A timeline-style project that shows who touched a case, what changed, and where responsibility moved next. I like this one because it solves a different problem from triage while staying practical.")
+                    draft(domainTitle + " Triage Desk", "A support workflow tool for " + domain + " with queue states, owner assignment, comments, and clear next actions. " + constraint + " The strongest evidence is how it clarifies who should act next when a request is blocked."),
+                    draft(domainTitle + " Escalation Inbox", "An internal tool for " + audience + " to track blocked requests, comments, and resolution history. It covers the messy handoff states, not just the happy path, so the workflow evidence feels more believable."),
+                    draft(domainTitle + " SLA Watch", "A smaller screen for overdue tasks, priority changes, and requests that are stuck between teams. It is a separate workflow, but still part of the same operational world."),
+                    draft(domainTitle + " Handoff Timeline", "A timeline-style project that shows who touched a case, what changed, and where responsibility moved next. I like this one because it solves a different problem from triage while staying practical.")
             );
         };
     }
@@ -760,7 +811,7 @@ public class DemoDeveloperSeeder implements CommandLineRunner {
         return switch (theme.slug()) {
             case "dashboard" -> "React";
             case "api" -> "Backend";
-            case "auth" -> "Auth";
+            case "auth" -> "Authentication";
             case "data" -> "Data";
             case "deploy" -> "DevOps";
             case "rails" -> "Rails";
@@ -774,14 +825,14 @@ public class DemoDeveloperSeeder implements CommandLineRunner {
     private String summaryFocusFor(ProfileTheme theme) {
         return switch (theme.slug()) {
             case "dashboard" -> "React";
-            case "api" -> "backend";
-            case "auth" -> "auth";
-            case "data" -> "data";
+            case "api" -> "backend/API";
+            case "auth" -> "authentication";
+            case "data" -> "data-focused";
             case "deploy" -> "DevOps";
             case "rails" -> "Rails";
-            case "testing" -> "QA";
-            case "docs" -> "API docs";
-            case "cloud" -> "cloud tools";
+            case "testing" -> "QA-minded";
+            case "docs" -> "API documentation";
+            case "cloud" -> "cloud tooling";
             default -> "internal tools";
         };
     }

@@ -7,13 +7,79 @@ import PublicHeader from '../ui/PublicHeader.jsx';
 import ContactLinks from './components/profile/ContactLinks.jsx';
 import EmployerNeedsList from './components/profile/EmployerNeedsList.jsx';
 
+const TECH_PROJECT_IMAGES = [
+  'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1518773553398-650c184e0bb3?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1200&q=80',
+];
+
+function projectImageCategory(project) {
+  const text = `${project?.name ?? ''} ${(project?.description ?? '')} ${(project?.skills ?? []).join(' ')}`.toLowerCase();
+  if (text.includes('dashboard') || text.includes('chart') || text.includes('report') || text.includes('analytics') || text.includes('csv') || text.includes('data')) {
+    return 'dashboard';
+  }
+  if (text.includes('spring') || text.includes('api') || text.includes('auth') || text.includes('jwt') || text.includes('backend') || text.includes('documentation')) {
+    return 'backend';
+  }
+  if (text.includes('docker') || text.includes('deploy') || text.includes('cloud') || text.includes('server') || text.includes('environment')) {
+    return 'cloud';
+  }
+  if (text.includes('workflow') || text.includes('admin') || text.includes('support') || text.includes('queue') || text.includes('rails') || text.includes('crud')) {
+    return 'workflow';
+  }
+  return 'general';
+}
+
+function slugifyProjectSeed(value) {
+  return (value ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+function fallbackProjectImages(project) {
+  const category = projectImageCategory(project);
+  const categoryOffset = {
+    dashboard: 0,
+    backend: 4,
+    cloud: 8,
+    workflow: 12,
+    general: 14,
+  }[category] ?? 0;
+  const projectSeed = `${slugifyProjectSeed(project?.id ?? '')}-${slugifyProjectSeed(project?.name ?? '')}`;
+  const baseIndex = Math.abs(Array.from(projectSeed).reduce((total, char) => total + char.charCodeAt(0), 0) + categoryOffset) % TECH_PROJECT_IMAGES.length;
+  return Array.from({ length: 3 }, (_, index) => TECH_PROJECT_IMAGES[(baseIndex + index) % TECH_PROJECT_IMAGES.length]);
+}
+
+function normalizeProjectImages(project) {
+  const validImages = (project.images ?? [])
+    .filter(Boolean)
+    .filter((image) => !image.includes('source.unsplash.com'));
+  return validImages.length > 0 ? validImages : fallbackProjectImages(project);
+}
+
 function normalizeProjects(projects = []) {
   return projects
     .map((project) => ({
       ...project,
       id: project.id ?? crypto.randomUUID(),
       skills: project.skills ?? [],
-      images: project.images ?? [],
+      images: normalizeProjectImages(project),
       featured: Boolean(project.featured),
     }))
     .sort((first, second) => Number(Boolean(second.featured)) - Number(Boolean(first.featured)));

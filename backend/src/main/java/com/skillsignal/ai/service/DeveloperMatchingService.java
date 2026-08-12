@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -56,6 +57,15 @@ public class DeveloperMatchingService {
     private static final int OPENAI_MAX_OUTPUT_TOKENS = 1_200;
     private static final Duration SEARCH_RESULT_TTL = Duration.ofMinutes(15);
     private static final ExecutorService RERANK_EXECUTOR = Executors.newFixedThreadPool(2);
+    private static final Set<String> EXCLUDED_SHOWCASE_PROFILE_NAMES = new HashSet<>(Set.of(
+            "daniel okafor",
+            "sofia nguyen",
+            "ethan brooks",
+            "northstar analytics",
+            "brightlayer software",
+            "harbour cloud",
+            "railsdesk"
+    ));
 
     private final MarketplaceProfileRepository profileRepository;
     private final ObjectMapper objectMapper;
@@ -225,13 +235,26 @@ public class DeveloperMatchingService {
     }
 
     private List<CandidateScore> prefilterCandidates(BriefAnalysis analysis, Long excludedUserId, ProfileType targetType) {
-        return profileRepository.findAllByOrderByDisplayOrderAsc().stream()
+        List<CandidateScore> rankedCandidates = profileRepository.findAllByOrderByDisplayOrderAsc().stream()
                 .filter(profile -> profile.getType() == targetType)
                 .filter(MarketplaceProfile::isDisplayed)
+                .filter(profile -> !EXCLUDED_SHOWCASE_PROFILE_NAMES.contains(normalize(profile.getName())))
+                .filter(profile -> targetType != ProfileType.DEVELOPER || profile.getUserId() != null)
                 .filter(profile -> excludedUserId == null || profile.getUserId() == null || !excludedUserId.equals(profile.getUserId()))
                 .map(profile -> scoreCandidateForShortlist(profile, analysis))
-                .filter(candidate -> candidate.score() >= MIN_PREFILTER_SCORE)
                 .sorted(Comparator.comparing(CandidateScore::score).reversed())
+                .toList();
+
+        List<CandidateScore> strongCandidates = rankedCandidates.stream()
+                .filter(candidate -> candidate.score() >= MIN_PREFILTER_SCORE)
+                .limit(PREFILTER_LIMIT)
+                .toList();
+
+        if (strongCandidates.size() >= MATCH_LIMIT) {
+            return strongCandidates;
+        }
+
+        return rankedCandidates.stream()
                 .limit(PREFILTER_LIMIT)
                 .toList();
     }
@@ -517,12 +540,13 @@ public class DeveloperMatchingService {
                     .sorted(Comparator.comparing(DeveloperMatchResponse::matchScore).reversed())
                     .limit(MATCH_LIMIT)
                     .toList();
-            if (rerankedMatches.isEmpty()) {
+            List<DeveloperMatchResponse> finalMatches = fillMissingMatches(rerankedMatches, deterministicMatches);
+            if (finalMatches.isEmpty()) {
                 LOGGER.warn("OpenAI rerank returned no usable profile ids. Falling back to deterministic ranking.");
                 return Optional.empty();
             }
-            LOGGER.info("OpenAI rerank completed with {} usable matches.", rerankedMatches.size());
-            return Optional.of(rerankedMatches);
+            LOGGER.info("OpenAI rerank completed with {} usable matches.", finalMatches.size());
+            return Optional.of(finalMatches);
         } catch (Exception exception) {
             LOGGER.warn("OpenAI rerank failed safely. Falling back to deterministic ranking: {}", exception.getMessage());
             return Optional.empty();
@@ -587,16 +611,48 @@ public class DeveloperMatchingService {
                     .sorted(Comparator.comparing(DeveloperMatchResponse::matchScore).reversed())
                     .limit(MATCH_LIMIT)
                     .toList();
-            if (rerankedMatches.isEmpty()) {
+            List<DeveloperMatchResponse> finalMatches = fillMissingMatches(rerankedMatches, deterministicMatches);
+            if (finalMatches.isEmpty()) {
                 LOGGER.warn("OpenAI employer rerank returned no usable profile ids. Falling back to deterministic ranking.");
                 return Optional.empty();
             }
-            LOGGER.info("OpenAI employer rerank completed with {} usable matches.", rerankedMatches.size());
-            return Optional.of(rerankedMatches);
+            LOGGER.info("OpenAI employer rerank completed with {} usable matches.", finalMatches.size());
+            return Optional.of(finalMatches);
         } catch (Exception exception) {
             LOGGER.warn("OpenAI employer rerank failed safely. Falling back to deterministic ranking: {}", exception.getMessage());
             return Optional.empty();
         }
+    }
+
+    private List<DeveloperMatchResponse> fillMissingMatches(
+            List<DeveloperMatchResponse> rerankedMatches,
+            List<DeveloperMatchResponse> deterministicMatches
+    ) {
+        Set<Long> includedProfileIds = new LinkedHashSet<>();
+        List<DeveloperMatchResponse> completedMatches = new ArrayList<>();
+
+        for (DeveloperMatchResponse match : rerankedMatches) {
+            if (match == null || match.profile() == null || match.profile().id() == null) {
+                continue;
+            }
+            if (includedProfileIds.add(match.profile().id())) {
+                completedMatches.add(match);
+            }
+        }
+
+        for (DeveloperMatchResponse match : deterministicMatches) {
+            if (completedMatches.size() >= MATCH_LIMIT) {
+                break;
+            }
+            if (match == null || match.profile() == null || match.profile().id() == null) {
+                continue;
+            }
+            if (includedProfileIds.add(match.profile().id())) {
+                completedMatches.add(match);
+            }
+        }
+
+        return completedMatches.stream().limit(MATCH_LIMIT).toList();
     }
 
     private String openAiSystemPrompt() {

@@ -19,6 +19,27 @@ import org.springframework.stereotype.Component;
 @Component
 @Order(10)
 public class MarketplaceProfileSeeder implements CommandLineRunner {
+    private static final List<String> TECH_PROJECT_IMAGES = List.of(
+            "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1518773553398-650c184e0bb3?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1200&q=80"
+    );
+
     private final MarketplaceProfileRepository profileRepository;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
@@ -217,7 +238,13 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
         String title = profile.getTitle().contains("Junior") || profile.getTitle().contains("Developer")
                 ? profile.getTitle()
                 : "Junior " + focus + " Developer";
-        String summary = "Hi, I'm " + name + ". I'm a junior developer mostly focused on " + focus.toLowerCase() + " work, and I like projects that start from a real " + domain + " problem instead of a generic app idea. The strongest side of my work is usually " + evidence + ". I'm still getting better at " + edge + ", but I think I do good work when I can make a workflow clearer, keep the proof easy to inspect, and leave useful notes for the next person. I probably fit best with " + fit + ", especially teams that value " + style + ".";
+        String summary = switch (index % 5) {
+            case 0 -> "Hi, I'm " + name + ". Most of my work is around " + focus + " problems in " + domain + ", and I usually do my best work when a workflow is messy and needs untangling. The part I tend to be strongest at is " + evidence + ". I'm still getting better at " + edge + ", but I'm most useful on teams that need the software to feel clearer and easier to trust.";
+            case 1 -> "I'm a junior developer mostly focused on " + focus + " work. I like projects that start from a real " + domain + " problem rather than a generic app idea, because they give me something concrete to test and explain. The strongest signal in my work is usually " + evidence + ". I probably fit best with " + fit + ".";
+            case 2 -> "A lot of the projects on my profile come from day-to-day problems in " + domain + ". I like turning those into tools that are easier to scan, easier to review, and easier for the next person to pick up. I'm usually strongest at " + evidence + ", and right now I'm trying to improve at " + edge + ".";
+            case 3 -> "Hi, I'm " + name + ". I work mostly on " + focus + " projects, especially when there is a real operational problem behind them. I care less about making a project sound impressive and more about making the behaviour clear, the proof easy to inspect, and the tradeoffs understandable. The teams I can usually help most are " + fit + ", especially ones that value " + style + ".";
+            default -> "I'm a junior developer who likes practical " + focus + " work tied to real " + domain + " problems. The part of the work I naturally lean toward is " + evidence + ", and the part I'm still pushing on is " + edge + ". I tend to do best with " + fit + ", especially when the team values " + style + ".";
+        };
 
         List<ProfileProjectResponse> projects = stockDeveloperProjects(name, slug, domain, audience, focus, evidence, skills, index);
         List<ProfilePostResponse> posts = stockDeveloperPosts(slug, projects, domain, audience, evidence, edge, fit, index);
@@ -245,9 +272,13 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
         String domainTitle = titleCase(domain);
         String repoBase = "https://github.com/" + slug + "/";
         String liveBase = "https://" + slug + "-";
+        String primaryName = stockPrimaryProjectName(domainTitle, focus);
+        String secondaryName = stockSecondaryProjectName(domainTitle, focus);
+        String tertiaryName = stockTertiaryProjectName(domainTitle, focus);
+        String fourthName = stockFourthProjectName(domainTitle, focus);
         return List.of(
                 new ProfileProjectResponse(
-                        domainTitle + " " + focus + " Hub",
+                        primaryName,
                         "A main project for " + audience + " working in " + domain + ". I used " + naturalList(skills.stream().limit(3).toList()) + " to turn a vague workflow into something with realistic data, visible edge cases, and a README that explains the bigger decisions. The strongest evidence is " + evidence + ".",
                         repoBase + slugify(domain + "-" + focus + "-build"),
                         liveBase + slugify(focus) + ".vercel.app",
@@ -256,7 +287,7 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
                         true
                 ),
                 new ProfileProjectResponse(
-                        domainTitle + " Review Queue",
+                        secondaryName,
                         "A separate workflow project focused on the parts users notice when software feels unfinished: validation, empty states, permissions, loading behaviour, and handoff notes. It stands on its own, but it still lives in the same real-world problem space.",
                         repoBase + slugify(domain + "-workflow-review"),
                         index % 2 == 0 ? liveBase + slugify(domain) + "-workflow.netlify.app" : "",
@@ -265,7 +296,7 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
                         false
                 ),
                 new ProfileProjectResponse(
-                        domainTitle + " Admin Workspace",
+                        tertiaryName,
                         "A smaller admin-facing tool for the same domain, usually built around review states, ownership changes, or staff actions that need clearer structure. I like this one because it feels closer to day-to-day product work than a generic showcase.",
                         repoBase + slugify(domain + "-evidence-pack"),
                         "",
@@ -274,7 +305,7 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
                         false
                 ),
                 new ProfileProjectResponse(
-                        domainTitle + " Edge Case Lab",
+                        fourthName,
                         "A narrower project around one awkward part of the workflow, usually a permission path, confusing filter, bad import, or state transition that deserved more attention on its own. I use projects like this to show how I think once the easy version stops being enough.",
                         repoBase + slugify(domain + "-refactor-notes"),
                         "",
@@ -283,6 +314,98 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
                         false
                 )
         );
+    }
+
+    private String stockPrimaryProjectName(String domainTitle, String focus) {
+        String normalizedFocus = focus.toLowerCase();
+        if (normalizedFocus.contains("react") || normalizedFocus.contains("dashboard")) {
+            return domainTitle + " Dashboard";
+        }
+        if (normalizedFocus.contains("spring") || normalizedFocus.contains("api")) {
+            return domainTitle + " API";
+        }
+        if (normalizedFocus.contains("rails")) {
+            return domainTitle + " Requests";
+        }
+        if (normalizedFocus.contains("deployment") || normalizedFocus.contains("cloud")) {
+            return domainTitle + " Deployment";
+        }
+        if (normalizedFocus.contains("qa")) {
+            return domainTitle + " Regression Checks";
+        }
+        if (normalizedFocus.contains("data")) {
+            return domainTitle + " Data Checker";
+        }
+        return domainTitle + " Workflow";
+    }
+
+    private String stockSecondaryProjectName(String domainTitle, String focus) {
+        String normalizedFocus = focus.toLowerCase();
+        if (normalizedFocus.contains("react") || normalizedFocus.contains("dashboard")) {
+            return domainTitle + " Metrics Review";
+        }
+        if (normalizedFocus.contains("spring") || normalizedFocus.contains("api")) {
+            return domainTitle + " Intake Service";
+        }
+        if (normalizedFocus.contains("rails")) {
+            return domainTitle + " Admin Portal";
+        }
+        if (normalizedFocus.contains("deployment") || normalizedFocus.contains("cloud")) {
+            return domainTitle + " Health Check";
+        }
+        if (normalizedFocus.contains("qa")) {
+            return domainTitle + " QA Scenarios";
+        }
+        if (normalizedFocus.contains("data")) {
+            return domainTitle + " Import Review";
+        }
+        return domainTitle + " Escalation Queue";
+    }
+
+    private String stockTertiaryProjectName(String domainTitle, String focus) {
+        String normalizedFocus = focus.toLowerCase();
+        if (normalizedFocus.contains("react") || normalizedFocus.contains("dashboard")) {
+            return domainTitle + " Weekly Snapshot";
+        }
+        if (normalizedFocus.contains("spring") || normalizedFocus.contains("api")) {
+            return domainTitle + " Audit Log API";
+        }
+        if (normalizedFocus.contains("rails")) {
+            return domainTitle + " Follow-up Queue";
+        }
+        if (normalizedFocus.contains("deployment") || normalizedFocus.contains("cloud")) {
+            return domainTitle + " Config Checker";
+        }
+        if (normalizedFocus.contains("qa")) {
+            return domainTitle + " Bug Replay";
+        }
+        if (normalizedFocus.contains("data")) {
+            return domainTitle + " Category Cleanup";
+        }
+        return domainTitle + " SLA Watch";
+    }
+
+    private String stockFourthProjectName(String domainTitle, String focus) {
+        String normalizedFocus = focus.toLowerCase();
+        if (normalizedFocus.contains("react") || normalizedFocus.contains("dashboard")) {
+            return domainTitle + " Filter States";
+        }
+        if (normalizedFocus.contains("spring") || normalizedFocus.contains("api")) {
+            return domainTitle + " Rules Engine";
+        }
+        if (normalizedFocus.contains("rails")) {
+            return domainTitle + " Status History";
+        }
+        if (normalizedFocus.contains("deployment") || normalizedFocus.contains("cloud")) {
+            return domainTitle + " Restore Drill";
+        }
+        if (normalizedFocus.contains("qa")) {
+            return domainTitle + " Failure Cases";
+        }
+        if (normalizedFocus.contains("data")) {
+            return domainTitle + " Exception Inbox";
+        }
+        return domainTitle + " Handoff Timeline";
     }
 
     private List<ProfilePostResponse> stockDeveloperPosts(String slug, List<ProfileProjectResponse> projects, String domain, String audience, String evidence, String edge, String fit, int index) {
@@ -608,14 +731,14 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
     private List<String> stockImages(String focus, String domain, int index, int offset, int count) {
         List<String> images = new java.util.ArrayList<>();
         for (int imageIndex = 0; imageIndex < count; imageIndex += 1) {
-            images.add(stockImage(focus, domain, index, offset * 10 + imageIndex));
+            images.add(stockImage(focus, domain, index, offset * 4 + imageIndex));
         }
         return images;
     }
 
     private String stockImage(String focus, String domain, int index, int offset) {
-        String query = queryPart(focus) + "," + queryPart(domain) + ",software,workspace";
-        return "https://source.unsplash.com/900x560/?" + query.replaceAll(",+", ",").replaceAll("^,|,$", "") + "&sig=stock-dev-" + index + "-" + offset;
+        int baseIndex = Math.floorMod(index * 5 + queryPart(focus).hashCode() + queryPart(domain).hashCode(), TECH_PROJECT_IMAGES.size());
+        return TECH_PROJECT_IMAGES.get(Math.floorMod(baseIndex + offset, TECH_PROJECT_IMAGES.size()));
     }
 
     private List<String> rotate(List<String> values, int offset) {
