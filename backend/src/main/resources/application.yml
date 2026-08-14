@@ -26,7 +26,7 @@ app:
   cors:
     allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
   admin:
-    email: ${SKILLSIGNAL_ADMIN_EMAIL:admin@skillsignal.dev}
+    email: ${SKILLSIGNAL_ADMIN_EMAIL:SkillSignalAdmin@skillsignal.dev}
     password: ${SKILLSIGNAL_ADMIN_PASSWORD:Admin123!}
   openai:
     api-key: ${OPENAI_API_KEY:}

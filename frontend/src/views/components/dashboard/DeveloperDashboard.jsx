@@ -38,14 +38,37 @@ function isThreadAcceptedForUser(thread) {
 
 function formatThreadTimestamp(value) {
   if (!value) {
-    return 'Just now';
+    return 'Now';
   }
-  return new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(value));
+  const timestamp = new Date(value);
+  const diffMs = Date.now() - timestamp.getTime();
+
+  if (Number.isNaN(timestamp.getTime()) || diffMs < 0) {
+    return 'Now';
+  }
+
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diffMs < minute) {
+    return 'Now';
+  }
+  if (diffMs < hour) {
+    return `${Math.floor(diffMs / minute)}m ago`;
+  }
+  if (diffMs < day) {
+    return `${Math.floor(diffMs / hour)}h ago`;
+  }
+  return `${Math.floor(diffMs / day)}d ago`;
+}
+
+function formatThreadPreview(value) {
+  const preview = (value ?? '').replace(/\s+/g, ' ').trim();
+  if (!preview) {
+    return 'No messages yet.';
+  }
+  return preview.length > 72 ? `${preview.slice(0, 69)}...` : preview;
 }
 
 function formatChatTime(value) {
@@ -1130,7 +1153,7 @@ export default function DeveloperDashboard({ user, token }) {
                                 ) : (
                                   <div className="profile-placeholder">{partner?.name?.[0] ?? 'D'}</div>
                                 )}
-                                <div>
+                                <div className="message-card-copy">
                                   <div className="message-list-topline">
                                     {partner?.profileId ? (
                                       <strong>
@@ -1148,7 +1171,7 @@ export default function DeveloperDashboard({ user, token }) {
                                     ) : (
                                       <strong>{partner?.name ?? 'Developer'}</strong>
                                     )}
-                                    <span>{formatThreadTimestamp(thread.updatedAt)}</span>
+                                    <span className="message-last-update">Last update: {formatThreadTimestamp(thread.updatedAt)}</span>
                                   </div>
                                   <p className="message-card-title">{partner?.title ?? 'Developer'}</p>
                                 </div>
@@ -1158,15 +1181,10 @@ export default function DeveloperDashboard({ user, token }) {
                               </span>
                             </div>
                             <div className="message-card-body">
-                              <p className="expanded">{thread.preview || lastMessage?.body || 'No messages yet.'}</p>
+                              <p>{formatThreadPreview(thread.preview || lastMessage?.body || 'No messages yet.')}</p>
                             </div>
                             <div className="message-thread-card-footer">
-                              <span className="compact-empty-copy">
-                                {thread.requestReceived && !isThreadAcceptedForUser(thread)
-                                  ? 'Message request'
-                                  : 'Private chat'}
-                              </span>
-                              <span className="text-button">Open convo</span>
+                              <span className="compact-empty-copy">{thread.requestReceived && !isThreadAcceptedForUser(thread) ? '' : 'Private chat'}</span>
                             </div>
                           </button>
                           {thread.requestReceived && !isThreadAcceptedForUser(thread) && (

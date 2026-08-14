@@ -1,5 +1,6 @@
 package com.skillsignal.bootstrap;
 
+import com.skillsignal.common.AccountEmailFormatter;
 import com.skillsignal.user.model.AppUser;
 import com.skillsignal.user.model.Role;
 import com.skillsignal.user.repository.UserRepository;
@@ -29,13 +30,24 @@ public class AdminSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (!userRepository.existsByEmailIgnoreCase(adminEmail)) {
+        String canonicalAdminEmail = AccountEmailFormatter.canonicalEmail("SkillSignal Admin", Role.ADMIN);
+        AppUser adminUser = userRepository.findByEmailIgnoreCase(canonicalAdminEmail)
+                .or(() -> userRepository.findByEmailIgnoreCase(adminEmail))
+                .orElse(null);
+
+        if (adminUser == null) {
             userRepository.save(new AppUser(
                     "SkillSignal Admin",
-                    adminEmail.toLowerCase(),
+                    canonicalAdminEmail,
                     passwordEncoder.encode(adminPassword),
                     Role.ADMIN
             ));
+            return;
         }
+
+        adminUser.setName("SkillSignal Admin");
+        adminUser.setEmail(canonicalAdminEmail);
+        adminUser.setPasswordHash(passwordEncoder.encode(adminPassword));
+        userRepository.save(adminUser);
     }
 }

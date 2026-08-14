@@ -153,10 +153,17 @@
   }
 
   .message-layout {
+    height: auto;
     grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .message-thread-list {
+    max-height: 320px;
   }
 
   .message-thread-panel {
+    height: 560px;
     min-height: 0;
   }
 

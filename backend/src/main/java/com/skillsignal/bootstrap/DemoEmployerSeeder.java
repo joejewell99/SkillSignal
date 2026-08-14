@@ -2,6 +2,7 @@ package com.skillsignal.bootstrap;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.skillsignal.common.AccountEmailFormatter;
 import com.skillsignal.marketplace.dto.ProfileContactLinksResponse;
 import com.skillsignal.marketplace.dto.ProfilePostResponse;
 import com.skillsignal.marketplace.dto.ProfileProjectResponse;
@@ -49,13 +50,16 @@ public class DemoEmployerSeeder implements CommandLineRunner {
             EmployerSeed seed = seeds.get(index);
             AppUser user = userRepository.findByEmailIgnoreCase(seed.email())
                     .filter(existingUser -> existingUser.getRole() == Role.EMPLOYER)
-                    .orElseGet(() -> userRepository.save(new AppUser(
-                            seed.accountName(),
-                            seed.email(),
-                            passwordEncoder.encode(PASSWORD),
-                            Role.EMPLOYER
-                    )));
+                    .orElseGet(() -> userRepository.findByEmailIgnoreCase(seed.legacyEmail())
+                            .filter(existingUser -> existingUser.getRole() == Role.EMPLOYER)
+                            .orElseGet(() -> userRepository.save(new AppUser(
+                                    seed.accountName(),
+                                    seed.email(),
+                                    passwordEncoder.encode(PASSWORD),
+                                    Role.EMPLOYER
+                            ))));
             user.setName(seed.accountName());
+            user.setEmail(seed.email());
             user.setPasswordHash(passwordEncoder.encode(PASSWORD));
             user = userRepository.save(user);
             AppUser savedUser = user;
@@ -414,7 +418,19 @@ public class DemoEmployerSeeder implements CommandLineRunner {
             List<ProfilePostResponse> posts
     ) {
         String slug = slugify(companyName);
-        return new EmployerSeed(companyName, companyName, slug + "@gmail.com", slug, title, summary, image, skills, needs, posts);
+        return new EmployerSeed(
+                companyName,
+                companyName,
+                AccountEmailFormatter.canonicalEmail(companyName, Role.EMPLOYER),
+                slug + "@gmail.com",
+                slug,
+                title,
+                summary,
+                image,
+                skills,
+                needs,
+                posts
+        );
     }
 
     private ProfileProjectResponse need(String name, String description, List<String> skills, boolean featured) {
@@ -441,6 +457,7 @@ public class DemoEmployerSeeder implements CommandLineRunner {
             String accountName,
             String companyName,
             String email,
+            String legacyEmail,
             String slug,
             String title,
             String summary,

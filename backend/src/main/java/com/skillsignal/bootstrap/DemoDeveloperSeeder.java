@@ -2,6 +2,7 @@ package com.skillsignal.bootstrap;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.skillsignal.common.AccountEmailFormatter;
 import com.skillsignal.connection.model.ConnectionStatus;
 import com.skillsignal.connection.model.DeveloperConnection;
 import com.skillsignal.connection.repository.DeveloperConnectionRepository;
@@ -85,6 +86,10 @@ public class DemoDeveloperSeeder implements CommandLineRunner {
                                     passwordEncoder.encode(PASSWORD),
                                     Role.DEVELOPER
                             ))));
+            user.setName(seed.name());
+            user.setEmail(seed.email());
+            user.setPasswordHash(passwordEncoder.encode(PASSWORD));
+            user = userRepository.save(user);
 
             MarketplaceProfile profile = profileRepository.findByUserId(user.getId())
                     .orElseGet(() -> profileRepository.save(MarketplaceProfile.forDeveloperUser(user.getId(), seed.name())));
@@ -224,8 +229,8 @@ public class DemoDeveloperSeeder implements CommandLineRunner {
             int genderedNameIndex = (index / 2 * 7 + index / 10) % firstNamePool.length;
             String name = firstNamePool[genderedNameIndex] + " " + lastNames[(index * 37 + 11) % lastNames.length];
             String slug = slugify(name);
-            String email = legacySlug + "@gmail.com";
-            String fallbackEmail = slug + "@skillsignal.dev";
+            String email = AccountEmailFormatter.canonicalEmail(name, Role.DEVELOPER);
+            String fallbackEmail = legacySlug + "@gmail.com";
             String image = portraitUrl(index);
             boolean featured = index % 4 == 0;
             String domain = domainFor(index);
