@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Camera,
   CheckCircle2,
@@ -27,14 +27,54 @@ import {
   readStoredDeveloperProfile,
   toProfilePayload,
 } from './profileData.js';
+
+function getOtherParticipant(thread) {
+  return thread.partner ?? null;
+}
+
+function isThreadAcceptedForUser(thread) {
+  return Boolean(thread.accepted);
+}
+
+function formatThreadTimestamp(value) {
+  if (!value) {
+    return 'Just now';
+  }
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
+function formatChatTime(value) {
+  if (!value) {
+    return '';
+  }
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
 export default function DeveloperDashboard({ user, token }) {
+  const navigate = useNavigate();
   const storageKey = `skillsignal.developer-profile.${user.email}`;
   const [backendData, setBackendData] = useState(null);
   const [error, setError] = useState('');
   const [skillInput, setSkillInput] = useState('');
   const [postInput, setPostInput] = useState('');
   const [connectionRequests, setConnectionRequests] = useState([]);
+  const [connections, setConnections] = useState([]);
   const [connectionFeed, setConnectionFeed] = useState([]);
+  const [chatThreads, setChatThreads] = useState([]);
+  const [activeThreadId, setActiveThreadId] = useState('');
+  const [threadReplyDraft, setThreadReplyDraft] = useState('');
+  const [inboxView, setInboxView] = useState('messages');
+  const [messageStatus, setMessageStatus] = useState('');
   const [isComposingPost, setIsComposingPost] = useState(false);
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [profileSaveStatus, setProfileSaveStatus] = useState('');
@@ -96,15 +136,66 @@ export default function DeveloperDashboard({ user, token }) {
     refreshConnections();
   }, [token]);
 
+  useEffect(() => {
+    refreshMessages();
+  }, [token]);
+
   async function refreshConnections() {
     try {
-      const [requests, feed] = await Promise.all([
+      const [acceptedConnections, requests, feed] = await Promise.all([
+        apiRequest('/api/developer/connections', { token }),
         apiRequest('/api/developer/connections/requests', { token }),
         apiRequest('/api/developer/feed', { token }),
       ]);
+      setConnections(acceptedConnections);
       setConnectionRequests(requests);
       setConnectionFeed(feed);
     } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function refreshMessages(preferredThreadId = null) {
+    try {
+      const inboxThreads = await apiRequest('/api/developer/messages', { token });
+      setChatThreads(inboxThreads);
+      setActiveThreadId((current) => {
+        if (preferredThreadId && inboxThreads.some((thread) => String(thread.id) === String(preferredThreadId))) {
+          return String(preferredThreadId);
+        }
+        return current && inboxThreads.some((thread) => String(thread.id) === String(current))
+          ? current
+          : String(inboxThreads[0]?.id ?? '');
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function removeConnection(connectionId) {
+    setError('');
+    const previousConnections = connections;
+    const nextConnections = connections.filter((connection) => connection.id !== connectionId);
+    const removedConnection = connections.find((connection) => connection.id === connectionId);
+    const otherProfileId = removedConnection
+      ? String(removedConnection.requesterProfileId) === String(backendData?.id)
+        ? removedConnection.receiverProfileId
+        : removedConnection.requesterProfileId
+      : null;
+
+    setConnections(nextConnections);
+    if (otherProfileId !== null) {
+      setConnectionFeed((current) => current.filter((post) => String(post.authorProfileId) !== String(otherProfileId)));
+    }
+    try {
+      await apiRequest(`/api/developer/connections/${connectionId}`, {
+        token,
+        method: 'DELETE',
+      });
+      await refreshConnections();
+    } catch (err) {
+      setConnections(previousConnections);
+      await refreshConnections();
       setError(err.message);
     }
   }
@@ -419,6 +510,60 @@ export default function DeveloperDashboard({ user, token }) {
     }
   }
 
+  async function dismissMessageRequest(threadId) {
+    setError('');
+    setMessageStatus('');
+    try {
+      await apiRequest(`/api/developer/messages/${threadId}`, {
+        token,
+        method: 'DELETE',
+      });
+      await refreshMessages();
+      setActiveThreadId((current) => (String(current) === String(threadId) ? '' : current));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function acceptMessageRequest(thread) {
+    setError('');
+    try {
+      const updatedThread = await apiRequest(`/api/developer/messages/${thread.id}/accept`, {
+        token,
+        method: 'PATCH',
+      });
+      setChatThreads((current) => current.map((item) => (item.id === updatedThread.id ? updatedThread : item)));
+      setActiveThreadId(String(updatedThread.id));
+      setMessageStatus(`Accepted ${getOtherParticipant(updatedThread)?.name ?? 'this'} message request.`);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function sendReply(thread) {
+    const nextReply = threadReplyDraft.trim();
+    if (!nextReply) {
+      return;
+    }
+    setError('');
+    try {
+      const updatedThread = await apiRequest(`/api/developer/messages/${thread.id}/reply`, {
+        token,
+        method: 'POST',
+        body: JSON.stringify({ body: nextReply }),
+      });
+      setChatThreads((current) => {
+        const nextThreads = current.map((item) => (item.id === updatedThread.id ? updatedThread : item));
+        return [...nextThreads].sort((first, second) => new Date(second.updatedAt ?? 0).getTime() - new Date(first.updatedAt ?? 0).getTime());
+      });
+      setThreadReplyDraft('');
+      setActiveThreadId(String(updatedThread.id));
+      setMessageStatus(`Message sent to ${getOtherParticipant(updatedThread)?.name ?? 'developer'}.`);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   const completionItems = [
     { label: 'Photo', complete: Boolean(profile.photo) },
     { label: 'Skills', complete: profile.skills.length >= 3 },
@@ -455,9 +600,14 @@ export default function DeveloperDashboard({ user, token }) {
   const dashboardTabs = [
     { id: 'profile', label: 'Profile', count: null },
     { id: 'projects', label: 'Projects', count: profile.projects.length },
-    { id: 'inbox', label: 'Inbox', count: connectionRequests.length },
+    { id: 'inbox', label: 'Inbox', count: chatThreads.length },
     { id: 'feed', label: 'Updates', count: posts.length + connectionFeed.length },
   ];
+  const activeThread = chatThreads.find((thread) => String(thread.id) === String(activeThreadId)) ?? null;
+  const activeThreadPartner = activeThread ? getOtherParticipant(activeThread) : null;
+  const canReplyToActiveThread = activeThread
+    ? isThreadAcceptedForUser(activeThread)
+    : false;
 
   return (
     <section className="dashboard developer-dashboard">
@@ -922,50 +1072,279 @@ export default function DeveloperDashboard({ user, token }) {
             <div className="panel-heading-row">
               <div>
                 <h2>Inbox</h2>
-                <p className="subtle">Incoming connection requests from developers who want to share work and stay in touch.</p>
+                <p className="subtle">Private conversation threads, message requests, and direct replies in one place.</p>
               </div>
-              <Link className="secondary-button" to="/profiles?type=DEVELOPER">
-                <UserRound size={16} />
-                <span>Find developers</span>
-              </Link>
+              <div className="inbox-meta-pill">
+                <MessageSquareText size={16} />
+                <span>{inboxView === 'messages' ? `${chatThreads.length} thread${chatThreads.length === 1 ? '' : 's'}` : `${connectionRequests.length} request${connectionRequests.length === 1 ? '' : 's'} · ${connections.length} connection${connections.length === 1 ? '' : 's'}`}</span>
+              </div>
             </div>
-            {connectionRequests.length === 0 ? (
-              <div className="empty-state">
-                <UserRound size={28} />
-                <h3>No connection requests</h3>
-                <p>When another developer wants to connect, the request will appear here.</p>
-                <Link className="secondary-button" to="/match">
-                  <ExternalLink size={16} />
-                  <span>Find developers</span>
-                </Link>
-              </div>
+            <div className="inbox-switcher" role="tablist" aria-label="Inbox sections">
+              <button
+                className={inboxView === 'messages' ? 'active' : ''}
+                type="button"
+                onClick={() => setInboxView('messages')}
+              >
+                <span>Messages</span>
+                <strong>{chatThreads.length}</strong>
+              </button>
+              <button
+                className={inboxView === 'connections' ? 'active' : ''}
+                type="button"
+                onClick={() => setInboxView('connections')}
+              >
+                <span>Connections</span>
+                <strong>{connectionRequests.length + connections.length}</strong>
+              </button>
+            </div>
+
+            {inboxView === 'messages' ? (
+              chatThreads.length === 0 ? (
+                <div className="empty-state">
+                  <MessageSquareText size={28} />
+                  <h3>No messages yet</h3>
+                  <p>When someone reaches out, a private thread will appear here so you can accept the request and chat directly.</p>
+                  <Link className="secondary-button" to="/profiles?type=DEVELOPER">
+                    <ExternalLink size={16} />
+                    <span>Browse developers</span>
+                  </Link>
+                </div>
+              ) : (
+                <div className="message-layout">
+                  <div className="message-thread-list">
+                    {chatThreads.map((thread) => {
+                      const partner = getOtherParticipant(thread);
+                      const lastMessage = thread.messages?.at(-1);
+                      const isActive = String(activeThreadId) === String(thread.id);
+                      return (
+                        <article className={`message-thread-card ${isActive ? 'active' : ''}`} key={thread.id}>
+                          <button
+                            className="message-thread-card-main"
+                            type="button"
+                            onClick={() => setActiveThreadId(String(thread.id))}
+                          >
+                            <div className="message-card-top">
+                              <div className="message-card-identity">
+                                {partner?.image ? (
+                                  <img src={partner.image} alt={partner.name} />
+                                ) : (
+                                  <div className="profile-placeholder">{partner?.name?.[0] ?? 'D'}</div>
+                                )}
+                                <div>
+                                  <div className="message-list-topline">
+                                    {partner?.profileId ? (
+                                      <strong>
+                                        <button
+                                          className="message-name-link"
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            navigate(`/profiles/${partner.profileId}`);
+                                          }}
+                                        >
+                                          {partner?.name ?? 'Developer'}
+                                        </button>
+                                      </strong>
+                                    ) : (
+                                      <strong>{partner?.name ?? 'Developer'}</strong>
+                                    )}
+                                    <span>{formatThreadTimestamp(thread.updatedAt)}</span>
+                                  </div>
+                                  <p className="message-card-title">{partner?.title ?? 'Developer'}</p>
+                                </div>
+                              </div>
+                              <span className="message-state-badge">
+                                {thread.requestReceived && !isThreadAcceptedForUser(thread) ? 'Request' : 'Chat'}
+                              </span>
+                            </div>
+                            <div className="message-card-body">
+                              <p className="expanded">{thread.preview || lastMessage?.body || 'No messages yet.'}</p>
+                            </div>
+                            <div className="message-thread-card-footer">
+                              <span className="compact-empty-copy">
+                                {thread.requestReceived && !isThreadAcceptedForUser(thread)
+                                  ? 'Message request'
+                                  : 'Private chat'}
+                              </span>
+                              <span className="text-button">Open convo</span>
+                            </div>
+                          </button>
+                          {thread.requestReceived && !isThreadAcceptedForUser(thread) && (
+                            <div className="message-request-actions">
+                              <button className="primary-button" type="button" onClick={() => acceptMessageRequest(thread)}>
+                                <CheckCircle2 size={16} />
+                                <span>Accept</span>
+                              </button>
+                              <button className="secondary-button" type="button" onClick={() => dismissMessageRequest(thread.id)}>
+                                Decline
+                              </button>
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+
+                  <div className="message-thread-panel">
+                    {activeThread && activeThreadPartner ? (
+                      <>
+                        <div className="message-thread-panel-header">
+                          <div className="message-thread-panel-title">
+                            <h3>{activeThreadPartner.name}</h3>
+                            <p className="subtle">{activeThreadPartner.title}</p>
+                          </div>
+                        </div>
+
+                        <div className="chat-message-list">
+                          {(activeThread.messages ?? []).map((message) => {
+                            const isOwnMessage = String(message.senderUserId) === String(user.userId);
+                            const senderLabel = isOwnMessage ? 'Me' : (message.senderName ?? activeThreadPartner.name ?? 'Developer');
+                            return (
+                              <article className={`chat-bubble ${isOwnMessage ? 'own' : ''}`} key={message.id}>
+                                <div className="chat-message-meta">
+                                  <strong>{senderLabel}</strong>
+                                  <span>{formatChatTime(message.createdAt)}</span>
+                                </div>
+                                <p>{message.body}</p>
+                              </article>
+                            );
+                          })}
+                        </div>
+
+                        {activeThread.requestReceived && !isThreadAcceptedForUser(activeThread) && (
+                          <p className="chat-panel-note">This is a message request. Accept it from the left to unlock replies.</p>
+                        )}
+
+                        <form
+                          className="chat-reply-form"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            sendReply(activeThread);
+                          }}
+                        >
+                          <input
+                            className="chat-reply-input"
+                            type="text"
+                            value={threadReplyDraft}
+                            onChange={(event) => setThreadReplyDraft(event.target.value)}
+                            placeholder={canReplyToActiveThread ? `Message ${activeThreadPartner.name}...` : 'Accept this message request before replying.'}
+                            disabled={!canReplyToActiveThread}
+                          />
+                          <button className="primary-button chat-send-button" type="submit" disabled={!canReplyToActiveThread || !threadReplyDraft.trim()}>
+                            <Send size={16} />
+                            <span>Send</span>
+                          </button>
+                        </form>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              )
             ) : (
-              <div className="connection-request-list">
-                {connectionRequests.map((request) => (
-                  <article className="connection-request-card" key={request.id}>
-                    {request.requesterImage ? (
-                      <img src={request.requesterImage} alt={request.requesterName} />
-                    ) : (
-                      <div className="profile-placeholder">{request.requesterName?.[0] ?? 'D'}</div>
-                    )}
+              <div className="connection-management-stack">
+                <section className="connection-subsection">
+                  <div className="connection-subsection-heading">
                     <div>
-                      <h3>{request.requesterName}</h3>
-                      <p>{request.requesterTitle}</p>
-                      <Link to={`/profiles/${request.requesterProfileId}`}>View profile</Link>
+                      <h3>Incoming requests</h3>
+                      <p className="compact-empty-copy">Requests to connect and follow your updates.</p>
                     </div>
-                    <div className="connection-actions">
-                      <button className="primary-button" type="button" onClick={() => acceptConnection(request.id)}>
-                        <CheckCircle2 size={17} />
-                        <span>Accept</span>
-                      </button>
-                      <button className="secondary-button" type="button" onClick={() => declineConnection(request.id)}>
-                        Decline
-                      </button>
+                    <strong>{connectionRequests.length}</strong>
+                  </div>
+                  {connectionRequests.length === 0 ? (
+                    <div className="empty-state compact-empty-state">
+                      <UserRound size={24} />
+                      <p>No pending requests right now.</p>
                     </div>
-                  </article>
-                ))}
+                  ) : (
+                    <div className="connection-request-list">
+                      {connectionRequests.map((request) => (
+                        <article className="connection-request-card" key={request.id}>
+                          {request.requesterImage ? (
+                            <img src={request.requesterImage} alt={request.requesterName} />
+                          ) : (
+                            <div className="profile-placeholder">{request.requesterName?.[0] ?? 'D'}</div>
+                          )}
+                          <div>
+                            <h3>{request.requesterName}</h3>
+                            <p>{request.requesterTitle}</p>
+                            <small className="compact-empty-copy">Wants to connect and follow your updates.</small>
+                          </div>
+                          <div className="connection-actions">
+                            <button className="primary-button" type="button" onClick={() => acceptConnection(request.id)}>
+                              <CheckCircle2 size={17} />
+                              <span>Accept</span>
+                            </button>
+                            <button className="secondary-button" type="button" onClick={() => declineConnection(request.id)}>
+                              Decline
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <section className="connection-subsection">
+                  <div className="connection-subsection-heading">
+                    <div>
+                      <h3>Your connections</h3>
+                      <p className="compact-empty-copy">Developers who can currently see your connected activity feed and whose updates you can see.</p>
+                    </div>
+                    <strong>{connections.length}</strong>
+                  </div>
+                  {connections.length === 0 ? (
+                    <div className="empty-state compact-empty-state">
+                      <UserRound size={24} />
+                      <p>No active connections yet.</p>
+                    </div>
+                  ) : (
+                    <div className="connection-request-list">
+                      {connections.map((connection) => {
+                        const isRequester = String(connection.requesterProfileId) === String(backendData?.id);
+                        const otherDeveloper = isRequester
+                          ? {
+                              profileId: connection.receiverProfileId,
+                              name: connection.receiverName,
+                              title: connection.receiverTitle,
+                              image: connection.receiverImage,
+                            }
+                          : {
+                              profileId: connection.requesterProfileId,
+                              name: connection.requesterName,
+                              title: connection.requesterTitle,
+                              image: connection.requesterImage,
+                            };
+
+                        return (
+                          <article className="connection-request-card connected-developer-card" key={connection.id}>
+                            {otherDeveloper.image ? (
+                              <img src={otherDeveloper.image} alt={otherDeveloper.name} />
+                            ) : (
+                              <div className="profile-placeholder">{otherDeveloper.name?.[0] ?? 'D'}</div>
+                            )}
+                            <div>
+                              <h3>{otherDeveloper.name}</h3>
+                              <p>{otherDeveloper.title}</p>
+                              <small className="compact-empty-copy">Connected. Removing this also removes both sides from each other’s connected feed.</small>
+                            </div>
+                            <div className="connection-actions">
+                              <Link className="secondary-button" to={`/profiles/${otherDeveloper.profileId}`}>
+                                <ExternalLink size={16} />
+                                <span>Profile</span>
+                              </Link>
+                              <button className="secondary-button destructive-outline-button" type="button" onClick={() => removeConnection(connection.id)}>
+                                Remove connection
+                              </button>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
               </div>
             )}
+            {messageStatus && <p className="connection-toast inbox-toast">{messageStatus}</p>}
           </section>
         )}
 

@@ -106,6 +106,60 @@
   border-color: #33424c;
 }
 
+:root[data-theme="dark"] .inbox-switcher,
+:root[data-theme="dark"] .message-card,
+:root[data-theme="dark"] .profile-message-card {
+  background: #0d1216;
+  border-color: #33424c;
+}
+
+:root[data-theme="dark"] .connected-developer-card {
+  background: #10243f;
+}
+
+:root[data-theme="dark"] .message-card.expanded {
+  background: #122131;
+  border-color: #3d5e83;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-theme="dark"] .inbox-meta-pill {
+  background: #10243f;
+  border-color: #2d4f7d;
+  color: #9fc4ff;
+}
+
+:root[data-theme="dark"] .message-state-badge {
+  background: #102720;
+  border-color: #2f855a;
+  color: #98f0bd;
+}
+
+:root[data-theme="dark"] .inbox-switcher button.active {
+  background: #17232b;
+  border-color: #3e5361;
+}
+
+:root[data-theme="dark"] .inbox-switcher strong {
+  background: #10243f;
+  color: #9fc4ff;
+}
+
+:root[data-theme="dark"] .connection-subsection-heading strong {
+  background: #10243f;
+  border-color: #2d4f7d;
+  color: #9fc4ff;
+}
+
+:root[data-theme="dark"] .text-button {
+  color: #9fc4ff;
+}
+
+:root[data-theme="dark"] .destructive-outline-button {
+  border-color: #7d3943;
+  color: #ffb4bf;
+}
+
 :root[data-theme="dark"] input::placeholder,
 :root[data-theme="dark"] textarea::placeholder {
   color: #7f909b;

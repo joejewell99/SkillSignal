@@ -19,12 +19,32 @@ public interface DeveloperConnectionRepository extends JpaRepository<DeveloperCo
             @Param("secondUserId") Long secondUserId
     );
 
+    @Query("""
+            select connection from DeveloperConnection connection
+            where (connection.requesterUserId = :firstUserId and connection.receiverUserId = :secondUserId)
+               or (connection.requesterUserId = :secondUserId and connection.receiverUserId = :firstUserId)
+            """)
+    List<DeveloperConnection> findAllBetweenUsers(
+            @Param("firstUserId") Long firstUserId,
+            @Param("secondUserId") Long secondUserId
+    );
+
     List<DeveloperConnection> findByReceiverUserIdAndStatusOrderByCreatedAtDesc(Long receiverUserId, ConnectionStatus status);
 
     Optional<DeveloperConnection> findByIdAndRequesterUserIdAndStatus(
             Long id,
             Long requesterUserId,
             ConnectionStatus status
+    );
+
+    @Query("""
+            select connection from DeveloperConnection connection
+            where connection.id = :id
+              and (connection.requesterUserId = :userId or connection.receiverUserId = :userId)
+            """)
+    Optional<DeveloperConnection> findByIdForUser(
+            @Param("id") Long id,
+            @Param("userId") Long userId
     );
 
     @Query("""

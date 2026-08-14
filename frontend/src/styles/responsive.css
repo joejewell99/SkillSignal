@@ -122,6 +122,48 @@
     grid-template-columns: 1fr;
   }
 
+  .inbox-switcher {
+    display: grid;
+    width: 100%;
+  }
+
+  .inbox-switcher button,
+  .message-card-top,
+  .message-card-actions,
+  .profile-message-card-actions {
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .message-card-top,
+  .message-card-identity,
+  .connection-request-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .connection-subsection-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .message-card-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .message-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .message-thread-panel {
+    min-height: 0;
+  }
+
+  .chat-bubble {
+    max-width: 100%;
+  }
+
   .search-score-info {
     margin-left: 0;
   }

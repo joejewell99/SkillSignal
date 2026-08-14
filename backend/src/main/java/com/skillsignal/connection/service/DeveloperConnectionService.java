@@ -101,9 +101,22 @@ public class DeveloperConnectionService {
     @Transactional
     public void cancel(Long userId, Long connectionId) {
         DeveloperConnection connection = connectionRepository
-                .findByIdAndRequesterUserIdAndStatus(connectionId, userId, ConnectionStatus.PENDING)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Connection request not found."));
-        connectionRepository.delete(connection);
+                .findByIdForUser(connectionId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Connection not found."));
+
+        boolean isOutgoingPendingRequest = connection.getStatus() == ConnectionStatus.PENDING
+                && connection.getRequesterUserId().equals(userId);
+        boolean isAcceptedConnection = connection.getStatus() == ConnectionStatus.ACCEPTED;
+
+        if (!isOutgoingPendingRequest && !isAcceptedConnection) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Connection not found.");
+        }
+
+        List<DeveloperConnection> relatedConnections = connectionRepository.findAllBetweenUsers(
+                connection.getRequesterUserId(),
+                connection.getReceiverUserId()
+        );
+        connectionRepository.deleteAll(relatedConnections);
     }
 
     @Transactional(readOnly = true)

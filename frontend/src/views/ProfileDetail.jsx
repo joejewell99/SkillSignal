@@ -218,6 +218,9 @@ export default function ProfileDetail() {
   const [connectionMessage, setConnectionMessage] = useState('');
   const [isConnectionMessageLeaving, setIsConnectionMessageLeaving] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [messageDraft, setMessageDraft] = useState('');
+  const [messagePreviewStatus, setMessagePreviewStatus] = useState('');
+  const [isMessageComposerOpen, setIsMessageComposerOpen] = useState(false);
   const [savedCandidateId, setSavedCandidateId] = useState(null);
   const [saveMessage, setSaveMessage] = useState('');
   const [isSaveMessageLeaving, setIsSaveMessageLeaving] = useState(false);
@@ -235,6 +238,7 @@ export default function ProfileDetail() {
   const shouldShowDeveloperConnection = Boolean(token && user?.role === 'DEVELOPER' && isDeveloperProfile && !connectionStatus.includes('SELF'));
   const canRequestConnection = Boolean(shouldShowDeveloperConnection && profile?.acceptsConnections);
   const canSaveCandidate = Boolean(token && user?.role === 'EMPLOYER' && isDeveloperProfile);
+  const canMessageDeveloper = Boolean(token && isDeveloperProfile && user?.role !== undefined);
 
   useEffect(() => {
     let isMounted = true;
@@ -401,7 +405,9 @@ export default function ProfileDetail() {
       });
       setConnectionStatus('');
       setConnectionId(null);
-      setConnectionMessage('Retracted');
+      setConnectionDirection('');
+      setIsMessageComposerOpen(false);
+      setConnectionMessage(connectionStatus === 'ACCEPTED' ? 'Connection removed' : 'Retracted');
       window.setTimeout(() => setIsConnectionMessageLeaving(true), 1200);
       window.setTimeout(() => setConnectionMessage(''), 1800);
     } catch (err) {
@@ -438,6 +444,10 @@ export default function ProfileDetail() {
   }
 
   function handleConnectionButtonClick() {
+    if (connectionStatus === 'ACCEPTED') {
+      cancelConnection();
+      return;
+    }
     if (connectionStatus === 'PENDING' && connectionDirection === 'INCOMING') {
       acceptConnection();
       return;
@@ -477,6 +487,28 @@ export default function ProfileDetail() {
       setSaveMessage(err.message);
     } finally {
       setIsSavingCandidate(false);
+    }
+  }
+
+  async function sendMessagePreview(event) {
+    event.preventDefault();
+    if (!messageDraft.trim()) {
+      return;
+    }
+    try {
+      await apiRequest('/api/developer/messages', {
+        token,
+        method: 'POST',
+        body: JSON.stringify({
+          receiverProfileId: profile.id,
+          body: messageDraft.trim(),
+        }),
+      });
+      setMessagePreviewStatus(`Conversation started with ${profile.name}.`);
+      setMessageDraft('');
+      setIsMessageComposerOpen(false);
+    } catch (err) {
+      setMessagePreviewStatus(err.message);
     }
   }
 
@@ -559,23 +591,62 @@ export default function ProfileDetail() {
                   ))}
                 </div>
               )}
-              {shouldShowDeveloperConnection && profile.acceptsConnections && (
+              {(shouldShowDeveloperConnection && profile.acceptsConnections) || canMessageDeveloper ? (
                 <div className="profile-action-row">
-                  <button
-                    className="primary-button"
-                    type="button"
-                    onClick={handleConnectionButtonClick}
-                    disabled={!canRequestConnection || isConnecting || connectionStatus === 'ACCEPTED'}
-                  >
-                    <UserPlus size={17} />
-                    <span>
-                      {connectionStatus === 'ACCEPTED'
-                        ? 'Connected'
-                        : connectionStatus === 'PENDING' && connectionDirection === 'OUTGOING'
-                          ? 'Request sent'
+                  {shouldShowDeveloperConnection && profile.acceptsConnections && (
+                    <button
+                      className="primary-button"
+                      type="button"
+                      onClick={handleConnectionButtonClick}
+                      disabled={!canRequestConnection || isConnecting}
+                    >
+                      <UserPlus size={17} />
+                      <span>
+                        {connectionStatus === 'ACCEPTED'
+                          ? isConnecting ? 'Removing...' : 'Remove connection'
+                          : connectionStatus === 'PENDING' && connectionDirection === 'OUTGOING'
+                            ? 'Request sent'
                           : isConnecting ? 'Sending request...' : 'Connect'}
-                    </span>
-                  </button>
+                      </span>
+                    </button>
+                  )}
+                  {canMessageDeveloper && (
+                    <div className="profile-message-popover-wrap">
+                      <button
+                        className="secondary-button profile-message-trigger"
+                        type="button"
+                        onClick={() => setIsMessageComposerOpen((current) => !current)}
+                      >
+                        <MessageSquareText size={17} />
+                        <span>Send message</span>
+                      </button>
+                      {isMessageComposerOpen && (
+                        <form className="profile-message-popover" onSubmit={sendMessagePreview}>
+                          <div className="profile-message-popover-header">
+                            <span className="message-state-badge">Message request</span>
+                            <button
+                              className="text-button"
+                              type="button"
+                              onClick={() => setIsMessageComposerOpen(false)}
+                            >
+                              Close
+                            </button>
+                          </div>
+                          <textarea
+                            value={messageDraft}
+                            onChange={(event) => setMessageDraft(event.target.value)}
+                            placeholder="Hi, I liked the way you explained your authentication project. Would you be open to a quick chat?"
+                          />
+                          <div className="profile-message-card-actions">
+                            <button className="primary-button" type="submit" disabled={!messageDraft.trim()}>
+                              <Send size={17} />
+                              <span>Send</span>
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                    </div>
+                  )}
                   {connectionMessage && (
                     <p className={
                       connectionMessage.includes('not') || connectionMessage.includes('cannot')
@@ -585,8 +656,9 @@ export default function ProfileDetail() {
                       {connectionMessage}
                     </p>
                   )}
+                  {messagePreviewStatus && <p className="connection-toast">{messagePreviewStatus}</p>}
                 </div>
-              )}
+              ) : null}
               {canSaveCandidate && (
                 <div className="profile-action-row">
                   <button
