@@ -8,6 +8,7 @@ public record DeveloperConversationResponse(
         String status,
         boolean accepted,
         boolean requestReceived,
+        boolean favorited,
         Instant createdAt,
         Instant updatedAt,
         MessageParticipantResponse partner,

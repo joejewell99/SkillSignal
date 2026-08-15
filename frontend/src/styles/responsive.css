@@ -167,6 +167,28 @@
     min-height: 0;
   }
 
+  .developer-feed-grid .workspace-panel {
+    height: auto;
+  }
+
+  .feed-panel-actions {
+    align-items: stretch;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  .feed-window-toggle {
+    width: 100%;
+  }
+
+  .feed-window-toggle button {
+    flex: 1 1 0;
+  }
+
+  .feed-list {
+    max-height: 420px;
+  }
+
   .chat-bubble {
     max-width: 100%;
   }

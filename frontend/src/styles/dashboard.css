@@ -92,12 +92,17 @@
   gap: 14px;
 }
 
-.developer-dashboard {
+.developer-dashboard,
+.employer-dashboard {
   gap: 24px;
 }
 
 .developer-dashboard > .developer-header,
-.developer-dashboard > .employer-dashboard-tabs {
+.developer-dashboard > .employer-dashboard-tabs,
+.developer-dashboard > .employer-workspace,
+.employer-dashboard > .developer-header,
+.employer-dashboard > .employer-dashboard-tabs,
+.employer-dashboard > .employer-workspace {
   justify-self: center;
   max-width: 1440px;
   width: min(100%, 1440px);
@@ -572,8 +577,59 @@
 .candidate-card p {
   color: var(--muted);
   line-height: 1.4;
-  margin: 0 0 10px;
+  margin: 0;
 }
+
+.saved-candidate-card-copy {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+}
+
+.saved-candidate-card-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.saved-candidate-title-stack {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.saved-candidate-name-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.saved-candidate-name-row h3 {
+  margin: 0;
+}
+
+.saved-candidate-side-actions {
+  align-self: center;
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.saved-candidate-view-link {
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  display: inline-flex;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 11px;
+}
+
 
 .connection-panel {
   display: grid;
@@ -710,6 +766,36 @@
     0 12px 28px color-mix(in srgb, var(--primary) 12%, transparent);
 }
 
+.message-favorite-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--text-muted) 82%, var(--primary) 18%);
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+  width: 28px;
+}
+
+.message-list-topline .message-favorite-button {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.message-favorite-button:hover {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: color-mix(in srgb, var(--primary) 82%, #f2b94b 18%);
+  transform: translateY(-1px);
+}
+
+.message-favorite-button.active {
+  color: #d7941f;
+}
+
 .message-request-actions {
   display: flex;
   flex-wrap: wrap;
@@ -743,7 +829,9 @@
   display: grid;
   gap: 8px;
   margin-top: -10px;
+  min-height: 52px;
   padding-bottom: 11px;
+  position: relative;
 }
 
 .message-thread-panel-title {
@@ -751,6 +839,7 @@
   display: grid;
   justify-items: center;
   text-align: center;
+  width: 100%;
 }
 
 .message-thread-panel-title h3 {
@@ -759,6 +848,55 @@
 
 .message-thread-panel-title .subtle {
   margin: 2px 0 0;
+}
+
+.candidate-stage-control-inline {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.candidate-stage-button {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.66rem;
+  font-weight: 800;
+  justify-content: center;
+  line-height: 1;
+  min-width: 84px;
+  padding: 4px 8px;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.candidate-stage-button:hover {
+  transform: translateY(-1px);
+}
+
+.candidate-stage-button.new {
+  background: color-mix(in srgb, #3b82f6 12%, var(--surface));
+  border-color: color-mix(in srgb, #3b82f6 30%, var(--line));
+  color: color-mix(in srgb, #1d4ed8 80%, var(--text) 20%);
+}
+
+.candidate-stage-button.considering {
+  background: color-mix(in srgb, #f59e0b 12%, var(--surface));
+  border-color: color-mix(in srgb, #f59e0b 30%, var(--line));
+  color: color-mix(in srgb, #9a5a00 78%, var(--text) 22%);
+}
+
+.candidate-stage-button.strong-fit {
+  background: color-mix(in srgb, #16a34a 12%, var(--surface));
+  border-color: color-mix(in srgb, #16a34a 30%, var(--line));
+  color: color-mix(in srgb, #166534 78%, var(--text) 22%);
+}
+
+.candidate-stage-button-compact {
+  min-width: 80px;
+  padding: 4px 7px;
 }
 
 .chat-title-link {
@@ -904,6 +1042,10 @@
   justify-content: space-between;
 }
 
+.message-card-top {
+  align-items: flex-start;
+}
+
 .message-card-identity {
   flex: 1 1 auto;
   min-width: 0;
@@ -965,8 +1107,13 @@
 }
 
 .message-card-actions {
-  flex-wrap: wrap;
-  justify-content: flex-start;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-left: 8px;
+  margin-top: -4px;
 }
 
 .inbox-toast {
@@ -977,10 +1124,11 @@
   align-items: baseline;
   display: flex;
   gap: 10px;
-  justify-content: space-between;
+  min-width: 0;
 }
 
 .message-list-topline strong {
+  flex: 1 1 auto;
   min-width: 0;
   margin: 0;
   overflow: hidden;
@@ -1012,17 +1160,13 @@
   text-underline-offset: 2px;
 }
 
-.message-list-topline span {
+.message-last-update {
   color: var(--muted);
   font-size: 0.76rem;
   font-weight: 800;
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
-.message-last-update {
   letter-spacing: 0.01em;
   text-transform: lowercase;
+  white-space: nowrap;
 }
 
 .message-card-meta small,
@@ -1053,6 +1197,36 @@
 .connection-management-stack {
   display: grid;
   gap: 18px;
+}
+
+.connection-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.connection-summary-pill {
+  align-items: center;
+  background: color-mix(in srgb, var(--surface-strong) 92%, var(--primary) 2%);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  gap: 10px;
+  min-height: 38px;
+  padding: 7px 12px;
+}
+
+.connection-summary-pill strong {
+  align-items: center;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  border-radius: 999px;
+  color: var(--primary);
+  display: inline-flex;
+  font-size: 0.76rem;
+  justify-content: center;
+  min-width: 24px;
+  padding: 3px 8px;
 }
 
 .connection-subsection {
@@ -1143,6 +1317,62 @@
   display: grid;
   gap: 12px;
   padding: 14px;
+}
+
+.developer-feed-grid {
+  align-items: start;
+}
+
+.developer-feed-grid .workspace-panel {
+  display: grid;
+  gap: 18px;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  height: clamp(560px, 74vh, 920px);
+  min-height: 0;
+}
+
+.feed-panel-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.feed-window-toggle {
+  background: color-mix(in srgb, var(--surface-strong) 92%, var(--primary) 2%);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: inline-flex;
+  padding: 4px;
+}
+
+.feed-window-toggle button {
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 900;
+  min-height: 34px;
+  padding: 0 14px;
+}
+
+.feed-window-toggle button.active {
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
+}
+
+.feed-list {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.feed-list::-webkit-scrollbar {
+  display: none;
 }
 
 .proof-signal-card {

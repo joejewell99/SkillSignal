@@ -496,7 +496,10 @@ export default function ProfileDetail() {
       return;
     }
     try {
-      await apiRequest('/api/developer/messages', {
+      const messageEndpoint = user?.role === 'EMPLOYER'
+        ? '/api/employer/messages'
+        : '/api/developer/messages';
+      await apiRequest(messageEndpoint, {
         token,
         method: 'POST',
         body: JSON.stringify({
@@ -591,8 +594,23 @@ export default function ProfileDetail() {
                   ))}
                 </div>
               )}
-              {(shouldShowDeveloperConnection && profile.acceptsConnections) || canMessageDeveloper ? (
+              {(shouldShowDeveloperConnection && profile.acceptsConnections) || canMessageDeveloper || canSaveCandidate ? (
                 <div className="profile-action-row">
+                  {canSaveCandidate && (
+                    <button
+                      className="primary-button"
+                      type="button"
+                      onClick={toggleSavedCandidate}
+                      disabled={isSavingCandidate}
+                    >
+                      <Bookmark size={17} />
+                      <span>
+                        {isSavingCandidate
+                          ? 'Saving...'
+                          : savedCandidateId ? 'Saved' : 'Save candidate'}
+                      </span>
+                    </button>
+                  )}
                   {shouldShowDeveloperConnection && profile.acceptsConnections && (
                     <button
                       className="primary-button"
@@ -657,23 +675,6 @@ export default function ProfileDetail() {
                     </p>
                   )}
                   {messagePreviewStatus && <p className="connection-toast">{messagePreviewStatus}</p>}
-                </div>
-              ) : null}
-              {canSaveCandidate && (
-                <div className="profile-action-row">
-                  <button
-                    className="primary-button"
-                    type="button"
-                    onClick={toggleSavedCandidate}
-                    disabled={isSavingCandidate}
-                  >
-                    <Bookmark size={17} />
-                    <span>
-                      {isSavingCandidate
-                        ? 'Saving...'
-                        : savedCandidateId ? 'Saved' : 'Save candidate'}
-                    </span>
-                  </button>
                   {saveMessage && (
                     <p className={
                       saveMessage.includes('not')
@@ -684,7 +685,7 @@ export default function ProfileDetail() {
                     </p>
                   )}
                 </div>
-              )}
+              ) : null}
             </div>
           </header>
 

@@ -1,7 +1,6 @@
 package com.skillsignal.messaging.service;
 
 import com.skillsignal.marketplace.model.MarketplaceProfile;
-import com.skillsignal.marketplace.model.ProfileType;
 import com.skillsignal.marketplace.repository.MarketplaceProfileRepository;
 import com.skillsignal.messaging.dto.DeveloperConversationResponse;
 import com.skillsignal.messaging.dto.DeveloperMessageResponse;
@@ -19,12 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
-public class DeveloperMessagingService {
+public class UserMessagingService {
     private final DeveloperConversationRepository conversationRepository;
     private final DeveloperMessageRepository messageRepository;
     private final MarketplaceProfileRepository profileRepository;
 
-    public DeveloperMessagingService(
+    public UserMessagingService(
             DeveloperConversationRepository conversationRepository,
             DeveloperMessageRepository messageRepository,
             MarketplaceProfileRepository profileRepository
@@ -49,14 +48,13 @@ public class DeveloperMessagingService {
 
     @Transactional
     public DeveloperConversationResponse sendMessage(Long senderUserId, Long receiverProfileId, String body) {
-        MarketplaceProfile senderProfile = developerProfileForUser(senderUserId);
+        MarketplaceProfile senderProfile = profileForUser(senderUserId);
         MarketplaceProfile receiverProfile = profileRepository.findById(receiverProfileId)
-                .filter(profile -> profile.getType() == ProfileType.DEVELOPER)
                 .filter(MarketplaceProfile::isDisplayed)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Developer profile not found."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User profile not found."));
 
         if (receiverProfile.getUserId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This developer is not accepting messages yet.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This user is not accepting messages yet.");
         }
         if (senderUserId.equals(receiverProfile.getUserId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot message yourself.");
@@ -106,6 +104,17 @@ public class DeveloperMessagingService {
     }
 
     @Transactional
+    public DeveloperConversationResponse toggleFavorite(Long userId, Long conversationId) {
+        DeveloperConversation conversation = conversationForUser(userId, conversationId);
+        if (conversation.getRequesterUserId().equals(userId)) {
+            conversation.setRequesterFavorited(!conversation.isRequesterFavorited());
+        } else if (conversation.getReceiverUserId().equals(userId)) {
+            conversation.setReceiverFavorited(!conversation.isReceiverFavorited());
+        }
+        return toConversationResponse(conversationRepository.save(conversation), userId);
+    }
+
+    @Transactional
     public void decline(Long userId, Long conversationId) {
         DeveloperConversation conversation = conversationForUser(userId, conversationId);
         if (!conversation.getReceiverUserId().equals(userId) || conversation.getStatus() != ConversationStatus.REQUEST) {
@@ -126,10 +135,10 @@ public class DeveloperMessagingService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conversation not found."));
     }
 
-    private MarketplaceProfile developerProfileForUser(Long userId) {
+    private MarketplaceProfile profileForUser(Long userId) {
         return profileRepository.findByUserId(userId)
-                .filter(profile -> profile.getType() == ProfileType.DEVELOPER)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Create your developer profile before messaging."));
+                .filter(MarketplaceProfile::isDisplayed)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Create your profile before messaging."));
     }
 
     private DeveloperConversationResponse toConversationResponse(DeveloperConversation conversation, Long viewerUserId) {
@@ -152,6 +161,9 @@ public class DeveloperMessagingService {
                 conversation.getStatus().name(),
                 conversation.getStatus() == ConversationStatus.ACTIVE || conversation.getRequesterUserId().equals(viewerUserId),
                 conversation.getStatus() == ConversationStatus.REQUEST && conversation.getReceiverUserId().equals(viewerUserId),
+                conversation.getRequesterUserId().equals(viewerUserId)
+                        ? conversation.isRequesterFavorited()
+                        : conversation.isReceiverFavorited(),
                 conversation.getCreatedAt(),
                 conversation.getUpdatedAt(),
                 new MessageParticipantResponse(
@@ -173,7 +185,7 @@ public class DeveloperMessagingService {
         if (conversation.getReceiverUserId().equals(senderUserId)) {
             return conversation.getReceiverProfile().getName();
         }
-        return "Developer";
+        return "User";
     }
 
     private String normalizeBody(String body) {

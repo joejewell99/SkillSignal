@@ -3,7 +3,7 @@ package com.skillsignal.messaging.controller;
 import com.skillsignal.messaging.dto.DeveloperConversationResponse;
 import com.skillsignal.messaging.dto.ReplyDeveloperMessageRequest;
 import com.skillsignal.messaging.dto.SendDeveloperMessageRequest;
-import com.skillsignal.messaging.service.DeveloperMessagingService;
+import com.skillsignal.messaging.service.UserMessagingService;
 import com.skillsignal.security.UserPrincipal;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -18,11 +18,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/developer/messages")
-public class DeveloperMessagingController {
-    private final DeveloperMessagingService messagingService;
+@RequestMapping({"/api/developer/messages", "/api/employer/messages"})
+public class UserMessagingController {
+    private final UserMessagingService messagingService;
 
-    public DeveloperMessagingController(DeveloperMessagingService messagingService) {
+    public UserMessagingController(UserMessagingService messagingService) {
         this.messagingService = messagingService;
     }
 
@@ -61,6 +61,12 @@ public class DeveloperMessagingController {
     DeveloperConversationResponse accept(@PathVariable Long id, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         return messagingService.accept(principal.id(), id);
+    }
+
+    @PatchMapping("/{id}/favorite")
+    DeveloperConversationResponse favorite(@PathVariable Long id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return messagingService.toggleFavorite(principal.id(), id);
     }
 
     @DeleteMapping("/{id}")

@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Bookmark, BriefcaseBusiness, Camera, CheckCircle2, ExternalLink, Pencil, Plus, Search, Send, Trash2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Bookmark, BriefcaseBusiness, Camera, CheckCircle2, ExternalLink, MessageSquareText, Pencil, Plus, Search, Send, Star, Trash2 } from 'lucide-react';
 import { apiRequest } from '../../../api/client.js';
 import {
   emptyProject,
@@ -10,19 +10,105 @@ import {
   readStoredEmployerProfile,
   toEmployerProfilePayload,
 } from './profileData.js';
+
+function getOtherParticipant(thread) {
+  return thread.partner ?? null;
+}
+
+function isThreadAcceptedForUser(thread) {
+  return Boolean(thread.accepted);
+}
+
+function formatThreadTimestamp(value) {
+  if (!value) {
+    return 'Now';
+  }
+  const timestamp = new Date(value);
+  const diffMs = Date.now() - timestamp.getTime();
+
+  if (Number.isNaN(timestamp.getTime()) || diffMs < 0) {
+    return 'Now';
+  }
+
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diffMs < minute) {
+    return 'Now';
+  }
+  if (diffMs < hour) {
+    return `${Math.floor(diffMs / minute)}m ago`;
+  }
+  if (diffMs < day) {
+    return `${Math.floor(diffMs / hour)}h ago`;
+  }
+  return `${Math.floor(diffMs / day)}d ago`;
+}
+
+function formatThreadPreview(value) {
+  const preview = (value ?? '').replace(/\s+/g, ' ').trim();
+  if (!preview) {
+    return 'No messages yet.';
+  }
+  return preview.length > 72 ? `${preview.slice(0, 69)}...` : preview;
+}
+
+function formatChatTime(value) {
+  if (!value) {
+    return '';
+  }
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
+function isWithinLastDays(value, days) {
+  if (!value) {
+    return false;
+  }
+  const timestamp = new Date(value);
+  if (Number.isNaN(timestamp.getTime())) {
+    return false;
+  }
+  return Date.now() - timestamp.getTime() <= days * 24 * 60 * 60 * 1000;
+}
+
+function sortThreads(threads) {
+  return [...threads].sort((first, second) => {
+    if (Boolean(first.favorited) !== Boolean(second.favorited)) {
+      return Number(Boolean(second.favorited)) - Number(Boolean(first.favorited));
+    }
+    return new Date(second.updatedAt ?? 0).getTime() - new Date(first.updatedAt ?? 0).getTime();
+  });
+}
+
+const CANDIDATE_STAGE_OPTIONS = ['New', 'Considering', 'Strong fit'];
+
 export default function EmployerDashboard({ user, token }) {
+  const navigate = useNavigate();
   const storageKey = `skillsignal.employer-profile.${user.email}`;
   const [data, setData] = useState(null);
   const [backendData, setBackendData] = useState(null);
   const [error, setError] = useState('');
-  const [proofSignals, setProofSignals] = useState([]);
   const [savedCandidates, setSavedCandidates] = useState([]);
+  const [candidateFeed, setCandidateFeed] = useState([]);
+  const [chatThreads, setChatThreads] = useState([]);
+  const [activeThreadId, setActiveThreadId] = useState('');
+  const [threadReplyDraft, setThreadReplyDraft] = useState('');
+  const [messageStatus, setMessageStatus] = useState('');
+  const [messageFilter, setMessageFilter] = useState('all');
   const [focusInput, setFocusInput] = useState('');
   const [postInput, setPostInput] = useState('');
   const [isComposingPost, setIsComposingPost] = useState(false);
   const [isAddingNeed, setIsAddingNeed] = useState(false);
   const [needForm, setNeedForm] = useState(emptyProject);
   const [editingNeedId, setEditingNeedId] = useState(null);
+  const [feedWindow, setFeedWindow] = useState('recent');
   const [activeSection, setActiveSection] = useState('profile');
   const [profile, setProfile] = useState(() => readStoredEmployerProfile(storageKey, user));
 
@@ -75,19 +161,142 @@ export default function EmployerDashboard({ user, token }) {
   }, [token]);
 
   useEffect(() => {
-    apiRequest('/api/employer/proof-signals', { token })
-      .then(setProofSignals)
-      .catch((err) => setError(err.message));
-  }, [token]);
-
-  useEffect(() => {
     apiRequest('/api/employer/saved-candidates', { token })
       .then(setSavedCandidates)
       .catch((err) => setError(err.message));
   }, [token]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCandidateFeed() {
+      if (savedCandidates.length === 0) {
+        if (isMounted) {
+          setCandidateFeed([]);
+        }
+        return;
+      }
+
+      try {
+        const candidateProfiles = await Promise.all(
+          savedCandidates.map((candidate) => apiRequest(`/api/profiles/${candidate.developerProfileId}`).catch(() => null))
+        );
+        if (!isMounted) {
+          return;
+        }
+        const nextFeed = candidateProfiles
+          .filter(Boolean)
+          .flatMap((candidateProfile) => (candidateProfile.posts ?? []).map((post) => ({
+            authorProfileId: candidateProfile.id,
+            authorName: candidateProfile.name,
+            authorImage: candidateProfile.image,
+            postId: post.id,
+            createdAt: post.createdAt,
+            body: post.body,
+          })))
+          .sort((first, second) => new Date(second.createdAt ?? 0).getTime() - new Date(first.createdAt ?? 0).getTime());
+        setCandidateFeed(nextFeed);
+      } catch (err) {
+        if (isMounted) {
+          setError(err.message);
+        }
+      }
+    }
+
+    loadCandidateFeed();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [savedCandidates]);
+
+  useEffect(() => {
+    refreshMessages();
+  }, [token]);
+
+  useEffect(() => {
+    const savedCandidateProfileIds = new Set(savedCandidates.map((candidate) => String(candidate.developerProfileId)));
+    const filteredThreads = chatThreads.filter((thread) => {
+      const partnerProfileId = String(getOtherParticipant(thread)?.profileId ?? '');
+      if (messageFilter === 'requests') {
+        return thread.requestReceived && !isThreadAcceptedForUser(thread);
+      }
+      if (messageFilter === 'favorites') {
+        return Boolean(thread.favorited);
+      }
+      if (messageFilter === 'saved') {
+        return savedCandidateProfileIds.has(partnerProfileId);
+      }
+      return true;
+    });
+
+    setActiveThreadId((current) => {
+      if (filteredThreads.some((thread) => String(thread.id) === String(current))) {
+        return current;
+      }
+      return String(filteredThreads[0]?.id ?? '');
+    });
+  }, [chatThreads, messageFilter, savedCandidates]);
+
+  async function refreshMessages(preferredThreadId = null) {
+    try {
+      const inboxThreads = sortThreads(await apiRequest('/api/employer/messages', { token }));
+      setChatThreads(inboxThreads);
+      setActiveThreadId((current) => {
+        if (preferredThreadId && inboxThreads.some((thread) => String(thread.id) === String(preferredThreadId))) {
+          return String(preferredThreadId);
+        }
+        return current && inboxThreads.some((thread) => String(thread.id) === String(current))
+          ? current
+          : String(inboxThreads[0]?.id ?? '');
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function toggleFavorite(thread) {
+    setError('');
+    try {
+      const updatedThread = await apiRequest(`/api/employer/messages/${thread.id}/favorite`, {
+        token,
+        method: 'PATCH',
+      });
+      setChatThreads((current) => sortThreads(current.map((item) => (item.id === updatedThread.id ? updatedThread : item))));
+      setActiveThreadId(String(updatedThread.id));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   function updateEmployerProfile(field, value) {
     setProfile((current) => ({ ...current, [field]: value }));
+  }
+
+  function stageKeyForProfile(profileId) {
+    return String(profileId ?? '');
+  }
+
+  function stageForProfile(profileId) {
+    return profile.candidateStages?.[stageKeyForProfile(profileId)] ?? 'New';
+  }
+
+  function updateCandidateStage(profileId, stage) {
+    const key = stageKeyForProfile(profileId);
+    setProfile((current) => ({
+      ...current,
+      candidateStages: {
+        ...(current.candidateStages ?? {}),
+        [key]: stage,
+      },
+    }));
+  }
+
+  function cycleCandidateStage(profileId) {
+    const currentStage = stageForProfile(profileId);
+    const currentIndex = CANDIDATE_STAGE_OPTIONS.indexOf(currentStage);
+    const nextStage = CANDIDATE_STAGE_OPTIONS[(currentIndex + 1) % CANDIDATE_STAGE_OPTIONS.length];
+    updateCandidateStage(profileId, nextStage);
   }
 
   async function saveEmployerProfile(nextProfile, displayed = nextProfile.isDisplayed) {
@@ -272,15 +481,98 @@ export default function EmployerDashboard({ user, token }) {
     }
   }
 
-  const candidates = data?.matches ?? data?.candidates ?? [];
+  async function dismissMessageRequest(threadId) {
+    setError('');
+    setMessageStatus('');
+    try {
+      await apiRequest(`/api/employer/messages/${threadId}`, {
+        token,
+        method: 'DELETE',
+      });
+      await refreshMessages();
+      setActiveThreadId((current) => (String(current) === String(threadId) ? '' : current));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function acceptMessageRequest(thread) {
+    setError('');
+    try {
+      const updatedThread = await apiRequest(`/api/employer/messages/${thread.id}/accept`, {
+        token,
+        method: 'PATCH',
+      });
+      setChatThreads((current) => current.map((item) => (item.id === updatedThread.id ? updatedThread : item)));
+      setActiveThreadId(String(updatedThread.id));
+      setMessageStatus(`Accepted ${getOtherParticipant(updatedThread)?.name ?? 'this'} message request.`);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function sendReply(thread) {
+    const nextReply = threadReplyDraft.trim();
+    if (!nextReply) {
+      return;
+    }
+    setError('');
+    try {
+      const updatedThread = await apiRequest(`/api/employer/messages/${thread.id}/reply`, {
+        token,
+        method: 'POST',
+        body: JSON.stringify({ body: nextReply }),
+      });
+      setChatThreads((current) => {
+        const nextThreads = current.map((item) => (item.id === updatedThread.id ? updatedThread : item));
+        return [...nextThreads].sort((first, second) => new Date(second.updatedAt ?? 0).getTime() - new Date(first.updatedAt ?? 0).getTime());
+      });
+      setThreadReplyDraft('');
+      setActiveThreadId(String(updatedThread.id));
+      setMessageStatus(`Message sent to ${getOtherParticipant(updatedThread)?.name ?? 'user'}.`);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   const posts = profile.posts ?? [];
+  const visibleOwnPosts = feedWindow === 'recent'
+    ? posts.filter((post) => isWithinLastDays(post.createdAt, 7))
+    : posts;
+  const visibleCandidateFeed = feedWindow === 'recent'
+    ? candidateFeed.filter((post) => isWithinLastDays(post.createdAt, 7))
+    : candidateFeed;
   const dashboardTabs = [
-    { id: 'profile', label: 'Profile', count: null },
-    { id: 'needs', label: 'Looking For', count: profile.projects.length },
-    { id: 'proof', label: 'Inbox', count: proofSignals.length },
-    { id: 'saved', label: 'Saved', count: savedCandidates.length },
-    { id: 'matches', label: 'Matches', count: candidates.length },
+    { id: 'profile', label: 'My Profile', count: null },
+    { id: 'needs', label: 'Needs', count: profile.projects.length },
+    { id: 'proof', label: 'Messages', count: chatThreads.length },
+    { id: 'saved', label: 'Saved Candidates', count: savedCandidates.length },
+    { id: 'feed', label: 'Updates', count: posts.length + candidateFeed.length },
   ];
+  const savedCandidateProfileIds = new Set(savedCandidates.map((candidate) => String(candidate.developerProfileId)));
+  const filteredChatThreads = chatThreads.filter((thread) => {
+    const partnerProfileId = String(getOtherParticipant(thread)?.profileId ?? '');
+    if (messageFilter === 'requests') {
+      return thread.requestReceived && !isThreadAcceptedForUser(thread);
+    }
+    if (messageFilter === 'favorites') {
+      return Boolean(thread.favorited);
+    }
+    if (messageFilter === 'saved') {
+      return savedCandidateProfileIds.has(partnerProfileId);
+    }
+    return true;
+  });
+  const requestThreadCount = chatThreads.filter((thread) => thread.requestReceived && !isThreadAcceptedForUser(thread)).length;
+  const favoriteThreadCount = chatThreads.filter((thread) => Boolean(thread.favorited)).length;
+  const savedThreadCount = chatThreads.filter((thread) => (
+    savedCandidateProfileIds.has(String(getOtherParticipant(thread)?.profileId ?? ''))
+  )).length;
+  const activeThread = filteredChatThreads.find((thread) => String(thread.id) === String(activeThreadId)) ?? null;
+  const activeThreadPartner = activeThread ? getOtherParticipant(activeThread) : null;
+  const canReplyToActiveThread = activeThread
+    ? isThreadAcceptedForUser(activeThread)
+    : false;
 
   return (
     <section className="dashboard employer-dashboard">
@@ -342,7 +634,7 @@ export default function EmployerDashboard({ user, token }) {
           <section className="workspace-panel candidate-panel employer-needs-editor">
             <div className="panel-heading-row">
               <div>
-                <h2>Looking for</h2>
+                <h2>Needs</h2>
                 <p className="subtle">Publish the problems a developer can prove they can solve.</p>
               </div>
               <button className="primary-button" type="button" onClick={() => {
@@ -481,18 +773,39 @@ export default function EmployerDashboard({ user, token }) {
             ) : (
               <div className="candidate-list">
                 {savedCandidates.map((candidate) => (
-                  <article className="candidate-card proof-signal-card" key={candidate.id}>
+                  <article className="candidate-card proof-signal-card saved-candidate-card" key={candidate.id}>
                     {candidate.developerImage ? (
                       <img src={candidate.developerImage} alt={candidate.developerName} />
                     ) : (
                       <div className="profile-placeholder">{candidate.developerName?.[0] ?? 'D'}</div>
                     )}
-                    <div>
-                      <div className="panel-heading-row">
-                        <div>
+                    <div className="saved-candidate-card-copy">
+                      <div className="saved-candidate-card-main">
+                        <div className="saved-candidate-title-stack">
+                          <div className="saved-candidate-name-row">
                           <h3>{candidate.developerName}</h3>
+                          <button
+                            className={`candidate-stage-button ${stageForProfile(candidate.developerProfileId).toLowerCase().replace(' ', '-')}`}
+                            type="button"
+                            onClick={() => cycleCandidateStage(candidate.developerProfileId)}
+                            aria-label={`Candidate label: ${stageForProfile(candidate.developerProfileId)}. Click to change.`}
+                          >
+                            {stageForProfile(candidate.developerProfileId)}
+                          </button>
+                          </div>
                           <p>{candidate.developerTitle}</p>
                         </div>
+                        <div className="skill-list">
+                          {(candidate.skills ?? []).slice(0, 5).map((skill) => (
+                            <span key={skill}>{skill}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="saved-candidate-side-actions">
+                        <Link className="saved-candidate-view-link" to={`/profiles/${candidate.developerProfileId}`}>
+                          <ExternalLink size={16} />
+                          <span>View profile</span>
+                        </Link>
                         <button
                           className="delete-button destructive-button"
                           type="button"
@@ -501,17 +814,6 @@ export default function EmployerDashboard({ user, token }) {
                         >
                           <Trash2 size={16} />
                         </button>
-                      </div>
-                      <div className="skill-list">
-                        {(candidate.skills ?? []).slice(0, 5).map((skill) => (
-                          <span key={skill}>{skill}</span>
-                        ))}
-                      </div>
-                      <div className="project-links">
-                        <Link to={`/profiles/${candidate.developerProfileId}`}>
-                          <ExternalLink size={16} />
-                          <span>View profile</span>
-                        </Link>
                       </div>
                     </div>
                   </article>
@@ -525,107 +827,230 @@ export default function EmployerDashboard({ user, token }) {
           <section className="workspace-panel candidate-panel">
             <div className="panel-heading-row">
               <div>
-                <h2>Inbox</h2>
-                <p className="subtle">Incoming proof of work from developers interested in what you are looking for.</p>
+                <h2>Messages</h2>
+                <p className="subtle">Direct conversations, message requests, and follow-up chats with developers you are considering.</p>
               </div>
               <Link className="secondary-button" to="/profiles?type=DEVELOPER">
                 <Search size={16} />
                 <span>Find more</span>
               </Link>
             </div>
-            {proofSignals.length === 0 ? (
+            <div className="inbox-switcher employer-message-filters" role="tablist" aria-label="Message filters">
+              <button
+                className={messageFilter === 'all' ? 'active' : ''}
+                type="button"
+                onClick={() => setMessageFilter('all')}
+              >
+                <span>All messages</span>
+                <strong>{chatThreads.length}</strong>
+              </button>
+              <button
+                className={messageFilter === 'requests' ? 'active' : ''}
+                type="button"
+                onClick={() => setMessageFilter('requests')}
+              >
+                <span>Requests</span>
+                <strong>{requestThreadCount}</strong>
+              </button>
+              <button
+                className={messageFilter === 'favorites' ? 'active' : ''}
+                type="button"
+                onClick={() => setMessageFilter('favorites')}
+              >
+                <span>Favorites</span>
+                <strong>{favoriteThreadCount}</strong>
+              </button>
+              <button
+                className={messageFilter === 'saved' ? 'active' : ''}
+                type="button"
+                onClick={() => setMessageFilter('saved')}
+              >
+                <span>Saved candidates</span>
+                <strong>{savedThreadCount}</strong>
+              </button>
+            </div>
+            {filteredChatThreads.length === 0 ? (
               <div className="empty-state">
                 <Send size={28} />
-                <h3>No proof sent yet</h3>
-                <p>When developers send project proof from your employer profile, it will appear here for review.</p>
+                <h3>
+                  {messageFilter === 'requests'
+                    ? 'No message requests'
+                    : messageFilter === 'favorites'
+                      ? 'No favorite messages'
+                    : messageFilter === 'saved'
+                      ? 'No saved candidate messages'
+                      : 'No messages yet'}
+                </h3>
+                <p>
+                  {messageFilter === 'requests'
+                    ? 'New developer outreach will appear here first so you can review it before replying.'
+                    : messageFilter === 'favorites'
+                      ? 'Star the conversations you want to prioritize and they will appear together in this filtered view.'
+                    : messageFilter === 'saved'
+                      ? 'When saved candidates message you, their threads will be easy to revisit from this filtered view.'
+                      : 'When developers reach out about your hiring needs, their private conversation threads will appear here.'}
+                </p>
                 <Link className="secondary-button" to="/profiles?type=DEVELOPER">
                   <Search size={16} />
-                  <span>Browse developers</span>
+                  <span>{messageFilter === 'saved' ? 'Find developers' : 'Browse developers'}</span>
                 </Link>
               </div>
             ) : (
-              <div className="candidate-list proof-signal-list">
-                {proofSignals.map((signal) => (
-                  <article className="candidate-card proof-signal-card" key={signal.id}>
-                    {signal.developerImage ? (
-                      <img src={signal.developerImage} alt={signal.developerName} />
-                    ) : (
-                      <div className="profile-placeholder">{signal.developerName?.[0] ?? 'D'}</div>
-                    )}
-                    <div>
-                      <div className="panel-heading-row">
-                        <div>
-                          <h3>{signal.developerName}</h3>
-                          <p>{signal.developerTitle}</p>
-                        </div>
-                        <span className="profile-type developer">Proof</span>
-                      </div>
-                      <strong>{signal.projectName}</strong>
-                      <p>{signal.note}</p>
-                      <div className="project-links">
-                        <Link to={`/profiles/${signal.developerProfileId}`}>
-                          <ExternalLink size={16} />
-                          <span>Profile</span>
-                        </Link>
-                        {signal.projectUrl && (
-                          <a href={signal.projectUrl} target="_blank" rel="noreferrer">
-                            <ExternalLink size={16} />
-                            <span>Proof link</span>
-                          </a>
+              <div className="message-layout">
+                <div className="message-thread-list">
+                  {filteredChatThreads.map((thread) => {
+                    const partner = getOtherParticipant(thread);
+                    const lastMessage = thread.messages?.at(-1);
+                    const isActive = String(activeThreadId) === String(thread.id);
+                    return (
+                      <article className={`message-thread-card ${isActive ? 'active' : ''}`} key={thread.id}>
+                        <button
+                          className="message-thread-card-main"
+                          type="button"
+                          onClick={() => setActiveThreadId(String(thread.id))}
+                        >
+                          <div className="message-card-top">
+                            <div className="message-card-identity">
+                              {partner?.image ? (
+                                <img src={partner.image} alt={partner.name} />
+                              ) : (
+                                <div className="profile-placeholder">{partner?.name?.[0] ?? 'D'}</div>
+                              )}
+                              <div className="message-card-copy">
+                                <div className="message-list-topline">
+                                  {partner?.profileId ? (
+                                    <strong>
+                                      <button
+                                        className="message-name-link"
+                                        type="button"
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          navigate(`/profiles/${partner.profileId}`);
+                                        }}
+                                      >
+                                        {partner?.name ?? 'User'}
+                                      </button>
+                                    </strong>
+                                  ) : (
+                                    <strong>{partner?.name ?? 'User'}</strong>
+                                  )}
+                                </div>
+                                <p className="message-card-title">{partner?.title ?? 'Developer'}</p>
+                              </div>
+                            </div>
+                            <div className="message-card-actions">
+                              <button
+                                className={`candidate-stage-button candidate-stage-button-compact ${stageForProfile(partner?.profileId).toLowerCase().replace(' ', '-')}`}
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  cycleCandidateStage(partner?.profileId);
+                                }}
+                                aria-label={`Candidate label: ${stageForProfile(partner?.profileId)}. Click to change.`}
+                              >
+                                {stageForProfile(partner?.profileId)}
+                              </button>
+                              <button
+                                className={`message-favorite-button ${thread.favorited ? 'active' : ''}`}
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  toggleFavorite(thread);
+                                }}
+                                aria-label={thread.favorited ? `Remove ${partner?.name ?? 'conversation'} from favorites` : `Favorite ${partner?.name ?? 'conversation'}`}
+                              >
+                                <Star size={16} fill={thread.favorited ? 'currentColor' : 'none'} />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="message-card-body">
+                            <p>{formatThreadPreview(thread.preview || lastMessage?.body || 'No messages yet.')}</p>
+                          </div>
+                          <div className="message-thread-card-footer">
+                            <span className="compact-empty-copy">{thread.requestReceived && !isThreadAcceptedForUser(thread) ? '' : 'Private chat'}</span>
+                            <span className="message-last-update">Last update: {formatThreadTimestamp(thread.updatedAt)}</span>
+                          </div>
+                        </button>
+                        {thread.requestReceived && !isThreadAcceptedForUser(thread) && (
+                          <div className="message-request-actions">
+                            <button className="primary-button" type="button" onClick={() => acceptMessageRequest(thread)}>
+                              <CheckCircle2 size={16} />
+                              <span>Accept</span>
+                            </button>
+                            <button className="secondary-button" type="button" onClick={() => dismissMessageRequest(thread.id)}>
+                              Decline
+                            </button>
+                          </div>
                         )}
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
+                      </article>
+                    );
+                  })}
+                </div>
 
-        {activeSection === 'matches' && (
-          <section className="workspace-panel candidate-panel">
-            <div className="panel-heading-row">
-              <div>
-                <h2>Recommended developers</h2>
-                <p className="subtle">Starting point based on an authentication/dashboard requirement.</p>
-              </div>
-              <Link className="secondary-button" to="/profiles">
-                <Search size={16} />
-                <span>Find candidates</span>
-              </Link>
-            </div>
-            {error && <p className="error">{error}</p>}
-            {candidates.length === 0 ? (
-              <div className="empty-state">
-                <Search size={28} />
-                <h3>No recommended developers</h3>
-                <p>Use AI Match to search by skill, stack, work type, or project evidence.</p>
-                <Link className="secondary-button" to="/match">
-                  <Search size={16} />
-                  <span>Open AI Match</span>
-                </Link>
-              </div>
-            ) : (
-              <div className="candidate-list">
-                {candidates.slice(0, 3).map((candidate, index) => {
-                  const profile = candidate.profile ?? candidate;
-                  return (
-                    <article className="candidate-card" key={profile.id ?? profile.name ?? index}>
-                      {profile.image ? <img src={profile.image} alt={profile.name} /> : <div className="profile-placeholder">{profile.name?.[0] ?? 'D'}</div>}
-                      <div>
-                        <h3>{profile.name}</h3>
-                        <p>{profile.title}</p>
-                        <div className="skill-list">
-                          {(profile.skills ?? []).slice(0, 4).map((skill) => (
-                            <span key={skill}>{skill}</span>
-                          ))}
+                <div className="message-thread-panel">
+                  {activeThread && activeThreadPartner ? (
+                    <>
+                      <div className="message-thread-panel-header">
+                        <div className="message-thread-panel-title">
+                          <h3>{activeThreadPartner.name}</h3>
+                          <p className="subtle">{activeThreadPartner.title}</p>
                         </div>
+                        <button
+                          className={`candidate-stage-button candidate-stage-control-inline ${stageForProfile(activeThreadPartner.profileId).toLowerCase().replace(' ', '-')}`}
+                          type="button"
+                          onClick={() => cycleCandidateStage(activeThreadPartner.profileId)}
+                          aria-label={`Candidate label: ${stageForProfile(activeThreadPartner.profileId)}. Click to change.`}
+                        >
+                          {stageForProfile(activeThreadPartner.profileId)}
+                        </button>
                       </div>
-                    </article>
-                  );
-                })}
+
+                      <div className="chat-message-list">
+                        {(activeThread.messages ?? []).map((message) => {
+                          const isOwnMessage = String(message.senderUserId) === String(user.userId);
+                          const senderLabel = isOwnMessage ? 'Me' : (message.senderName ?? activeThreadPartner.name ?? 'User');
+                          return (
+                            <article className={`chat-bubble ${isOwnMessage ? 'own' : ''}`} key={message.id}>
+                              <div className="chat-message-meta">
+                                <strong>{senderLabel}</strong>
+                                <span>{formatChatTime(message.createdAt)}</span>
+                              </div>
+                              <p>{message.body}</p>
+                            </article>
+                          );
+                        })}
+                      </div>
+
+                      {activeThread.requestReceived && !isThreadAcceptedForUser(activeThread) && (
+                        <p className="chat-panel-note">This is a message request. Accept it from the left to unlock replies.</p>
+                      )}
+
+                      <form
+                        className="chat-reply-form"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          sendReply(activeThread);
+                        }}
+                      >
+                        <input
+                          className="chat-reply-input"
+                          type="text"
+                          value={threadReplyDraft}
+                          onChange={(event) => setThreadReplyDraft(event.target.value)}
+                          placeholder={canReplyToActiveThread ? `Message ${activeThreadPartner.name}...` : 'Accept this message request before replying.'}
+                          disabled={!canReplyToActiveThread}
+                        />
+                        <button className="primary-button chat-send-button" type="submit" disabled={!canReplyToActiveThread || !threadReplyDraft.trim()}>
+                          <Send size={16} />
+                          <span>Send</span>
+                        </button>
+                      </form>
+                    </>
+                  ) : null}
+                </div>
               </div>
             )}
+            {messageStatus && <p className="connection-toast inbox-toast">{messageStatus}</p>}
           </section>
         )}
 
@@ -667,63 +1092,6 @@ export default function EmployerDashboard({ user, token }) {
                     <Trash2 size={14} />
                   </button>
                   ))}
-                </div>
-              </section>
-
-              <section className="workspace-panel">
-                <div className="panel-heading-row">
-                  <div>
-                    <h2>Hiring feed</h2>
-                    <p className="subtle">Optional updates for developers browsing your profile.</p>
-                  </div>
-                  <button className="primary-button" type="button" onClick={() => setIsComposingPost((current) => !current)}>
-                    <Plus size={18} />
-                    <span>Post</span>
-                  </button>
-                </div>
-                {isComposingPost && (
-                  <form className="post-form compact-post-form" onSubmit={addPost}>
-                    <textarea
-                      value={postInput}
-                      onChange={(event) => setPostInput(event.target.value)}
-                      placeholder="Looking for a junior React developer with API experience for a dashboard project..."
-                    />
-                    <div className="composer-actions">
-                      <button className="secondary-button" type="button" onClick={() => setIsComposingPost(false)}>
-                        Cancel
-                      </button>
-                      <button className="primary-button" type="submit">
-                        <Send size={17} />
-                        <span>Post</span>
-                      </button>
-                    </div>
-                  </form>
-                )}
-                <div className="feed-list compact-feed-list">
-                  {posts.length === 0 ? (
-                    <article className="empty-feed">
-                      <Send size={28} />
-                      <p>Post a short hiring update when you want developers to see what you are actively looking for.</p>
-                    </article>
-                  ) : (
-                    posts.map((post) => (
-                      <article className="feed-post" key={post.id}>
-                        <div className="feed-post-header">
-                          <div className="feed-author">
-                            {profile.photo ? <img src={profile.photo} alt={`${user.name} avatar`} /> : <div className="profile-placeholder">{user.name?.[0] ?? 'E'}</div>}
-                            <div>
-                              <strong>{user.name}</strong>
-                              <span>{formatPostDate(post.createdAt)}</span>
-                            </div>
-                          </div>
-                          <button className="delete-button destructive-button" type="button" onClick={() => removePost(post.id)} aria-label="Remove post">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                        <p>{post.body}</p>
-                      </article>
-                    ))
-                  )}
                 </div>
               </section>
 
@@ -772,6 +1140,146 @@ export default function EmployerDashboard({ user, token }) {
                 </Link>
               </section>
             </aside>
+          </div>
+        )}
+
+        {activeSection === 'feed' && (
+          <div className="developer-feed-grid">
+            <section className="workspace-panel candidate-panel">
+              <div className="panel-heading-row">
+                <div>
+                  <h2>Your updates</h2>
+                  <p className="subtle">
+                    {feedWindow === 'recent'
+                      ? 'Recent hiring updates from the last 7 days, with older posts still available when you want the full history.'
+                      : 'Your full hiring update history, including older posts developers can still find on your public profile.'}
+                  </p>
+                </div>
+                <div className="feed-panel-actions">
+                  <div className="feed-window-toggle" role="tablist" aria-label="Feed range">
+                    <button
+                      className={feedWindow === 'recent' ? 'active' : ''}
+                      type="button"
+                      onClick={() => setFeedWindow('recent')}
+                    >
+                      This week
+                    </button>
+                    <button
+                      className={feedWindow === 'all' ? 'active' : ''}
+                      type="button"
+                      onClick={() => setFeedWindow('all')}
+                    >
+                      All time
+                    </button>
+                  </div>
+                  <button className="primary-button" type="button" onClick={() => setIsComposingPost((current) => !current)}>
+                    <Plus size={18} />
+                    <span>Post</span>
+                  </button>
+                </div>
+              </div>
+
+              {isComposingPost && (
+                <form className="post-form compact-post-form" onSubmit={addPost}>
+                  <textarea
+                    value={postInput}
+                    onChange={(event) => setPostInput(event.target.value)}
+                    placeholder="We are looking for a junior React developer who can improve dashboard UX and explain their implementation clearly."
+                  />
+                  <div className="composer-actions">
+                    <button className="secondary-button" type="button" onClick={() => setIsComposingPost(false)}>
+                      Cancel
+                    </button>
+                    <button className="primary-button" type="submit">
+                      <Send size={17} />
+                      <span>Post</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              <div className="feed-list compact-feed-list">
+                {visibleOwnPosts.length === 0 ? (
+                  <article className="empty-feed">
+                    <MessageSquareText size={28} />
+                    <p>
+                      {posts.length === 0
+                        ? 'Post short hiring updates so developers can see what you are actively hiring for and what kind of work is live right now.'
+                        : 'No posts from the last 7 days yet. Switch to all time to browse your older hiring updates.'}
+                    </p>
+                  </article>
+                ) : (
+                  visibleOwnPosts.map((post) => (
+                    <article className="feed-post" key={post.id}>
+                      <div className="feed-post-header">
+                        <div className="feed-author">
+                          {profile.photo ? <img src={profile.photo} alt={`${user.name} avatar`} /> : <div className="profile-placeholder">{user.name?.[0] ?? 'E'}</div>}
+                          <div>
+                            <strong>{user.name}</strong>
+                            <span>{formatPostDate(post.createdAt)}</span>
+                          </div>
+                        </div>
+                        <button className="delete-button destructive-button" type="button" onClick={() => removePost(post.id)} aria-label="Remove post">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                      <p>{post.body}</p>
+                    </article>
+                  ))
+                )}
+              </div>
+            </section>
+
+            <section className="workspace-panel connection-panel">
+              <div className="panel-heading-row">
+                <div>
+                  <h2>Saved candidate updates</h2>
+                  <p className="subtle">
+                    {feedWindow === 'recent'
+                      ? 'Recent posts from developers you already saved, so you can spot new work without scanning endless history.'
+                      : 'Every saved candidate update in one place when you want the longer history.'}
+                  </p>
+                </div>
+                <MessageSquareText size={20} />
+              </div>
+              {visibleCandidateFeed.length === 0 ? (
+                <div className="empty-state">
+                  <MessageSquareText size={28} />
+                  <h3>{candidateFeed.length === 0 ? 'No saved candidate updates yet' : 'No recent saved candidate updates'}</h3>
+                  <p>
+                    {candidateFeed.length === 0
+                      ? 'Save developers whose work looks promising, then their profile updates will appear here.'
+                      : 'Nothing new from the last 7 days. Switch to all time if you want to browse older saved candidate activity.'}
+                  </p>
+                  <Link className="secondary-button" to="/profiles?type=DEVELOPER">
+                    <ExternalLink size={16} />
+                    <span>Find developers</span>
+                  </Link>
+                </div>
+              ) : (
+                <div className="feed-list connection-feed-list">
+                  {visibleCandidateFeed.map((post) => (
+                    <article className="feed-post" key={`${post.authorProfileId}-${post.postId ?? post.createdAt}`}>
+                      <div className="feed-post-header">
+                        <div className="feed-author">
+                          {post.authorImage ? (
+                            <img src={post.authorImage} alt={`${post.authorName} avatar`} />
+                          ) : (
+                            <div className="profile-placeholder">{post.authorName?.[0] ?? 'D'}</div>
+                          )}
+                          <div>
+                            <strong>{post.authorName}</strong>
+                            <span>{formatPostDate(post.createdAt)}</span>
+                          </div>
+                        </div>
+                        <Link className="secondary-button" to={`/profiles/${post.authorProfileId}`}>Profile</Link>
+                      </div>
+                      <p>{post.body}</p>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
         )}
       </section>

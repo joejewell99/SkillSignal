@@ -83,6 +83,28 @@ function formatChatTime(value) {
     minute: '2-digit',
   }).format(new Date(value));
 }
+
+function sortThreads(threads) {
+  return [...threads].sort((first, second) => {
+    if (Boolean(first.favorited) !== Boolean(second.favorited)) {
+      return Number(Boolean(second.favorited)) - Number(Boolean(first.favorited));
+    }
+    return new Date(second.updatedAt ?? 0).getTime() - new Date(first.updatedAt ?? 0).getTime();
+  });
+}
+
+function isWithinLastDays(value, days) {
+  if (!value) {
+    return false;
+  }
+  const timestamp = new Date(value);
+  if (Number.isNaN(timestamp.getTime())) {
+    return false;
+  }
+  const diffMs = Date.now() - timestamp.getTime();
+  return diffMs >= 0 && diffMs <= days * 24 * 60 * 60 * 1000;
+}
+
 export default function DeveloperDashboard({ user, token }) {
   const navigate = useNavigate();
   const storageKey = `skillsignal.developer-profile.${user.email}`;
@@ -96,7 +118,7 @@ export default function DeveloperDashboard({ user, token }) {
   const [chatThreads, setChatThreads] = useState([]);
   const [activeThreadId, setActiveThreadId] = useState('');
   const [threadReplyDraft, setThreadReplyDraft] = useState('');
-  const [inboxView, setInboxView] = useState('messages');
+  const [messageFilter, setMessageFilter] = useState('all');
   const [messageStatus, setMessageStatus] = useState('');
   const [isComposingPost, setIsComposingPost] = useState(false);
   const [isAddingProject, setIsAddingProject] = useState(false);
@@ -105,6 +127,7 @@ export default function DeveloperDashboard({ user, token }) {
   const [projectForm, setProjectForm] = useState(emptyProject);
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [activeSection, setActiveSection] = useState('profile');
+  const [feedWindow, setFeedWindow] = useState('recent');
   const [profile, setProfile] = useState(() => readStoredDeveloperProfile(storageKey));
 
   useEffect(() => {
@@ -163,6 +186,25 @@ export default function DeveloperDashboard({ user, token }) {
     refreshMessages();
   }, [token]);
 
+  useEffect(() => {
+    const filteredThreads = chatThreads.filter((thread) => {
+      if (messageFilter === 'requests') {
+        return thread.requestReceived && !isThreadAcceptedForUser(thread);
+      }
+      if (messageFilter === 'favorites') {
+        return Boolean(thread.favorited);
+      }
+      return true;
+    });
+
+    setActiveThreadId((current) => {
+      if (filteredThreads.some((thread) => String(thread.id) === String(current))) {
+        return current;
+      }
+      return String(filteredThreads[0]?.id ?? '');
+    });
+  }, [chatThreads, messageFilter]);
+
   async function refreshConnections() {
     try {
       const [acceptedConnections, requests, feed] = await Promise.all([
@@ -180,7 +222,7 @@ export default function DeveloperDashboard({ user, token }) {
 
   async function refreshMessages(preferredThreadId = null) {
     try {
-      const inboxThreads = await apiRequest('/api/developer/messages', { token });
+      const inboxThreads = sortThreads(await apiRequest('/api/developer/messages', { token }));
       setChatThreads(inboxThreads);
       setActiveThreadId((current) => {
         if (preferredThreadId && inboxThreads.some((thread) => String(thread.id) === String(preferredThreadId))) {
@@ -190,6 +232,20 @@ export default function DeveloperDashboard({ user, token }) {
           ? current
           : String(inboxThreads[0]?.id ?? '');
       });
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function toggleFavorite(thread) {
+    setError('');
+    try {
+      const updatedThread = await apiRequest(`/api/developer/messages/${thread.id}/favorite`, {
+        token,
+        method: 'PATCH',
+      });
+      setChatThreads((current) => sortThreads(current.map((item) => (item.id === updatedThread.id ? updatedThread : item))));
+      setActiveThreadId(String(updatedThread.id));
     } catch (err) {
       setError(err.message);
     }
@@ -595,6 +651,12 @@ export default function DeveloperDashboard({ user, token }) {
   const completion = Math.round((completionItems.filter((item) => item.complete).length / completionItems.length) * 100);
   const proofQuality = backendData?.proofQuality;
   const posts = profile.posts ?? [];
+  const visibleOwnPosts = feedWindow === 'recent'
+    ? posts.filter((post) => isWithinLastDays(post.createdAt, 7))
+    : posts;
+  const visibleConnectionFeed = feedWindow === 'recent'
+    ? connectionFeed.filter((post) => isWithinLastDays(post.createdAt, 7))
+    : connectionFeed;
   const qualityChecklist = [
     { label: 'Add a clear profile photo', complete: Boolean(profile.photo) },
     { label: 'Add at least 3 core skills', complete: profile.skills.length >= 3 },
@@ -621,12 +683,40 @@ export default function DeveloperDashboard({ user, token }) {
     },
   ];
   const dashboardTabs = [
-    { id: 'profile', label: 'Profile', count: null },
+    { id: 'profile', label: 'My Profile', count: null },
     { id: 'projects', label: 'Projects', count: profile.projects.length },
-    { id: 'inbox', label: 'Inbox', count: chatThreads.length },
+    { id: 'inbox', label: 'Messages', count: chatThreads.length },
+    { id: 'connections', label: 'Connections', count: connectionRequests.length + connections.length },
     { id: 'feed', label: 'Updates', count: posts.length + connectionFeed.length },
   ];
-  const activeThread = chatThreads.find((thread) => String(thread.id) === String(activeThreadId)) ?? null;
+  const connectedProfileIds = new Set(
+    connections.map((connection) => (
+      String(
+        String(connection.requesterProfileId) === String(backendData?.id)
+          ? connection.receiverProfileId
+          : connection.requesterProfileId,
+      )
+    )),
+  );
+  const filteredChatThreads = chatThreads.filter((thread) => {
+    const partnerProfileId = String(getOtherParticipant(thread)?.profileId ?? '');
+    if (messageFilter === 'requests') {
+      return thread.requestReceived && !isThreadAcceptedForUser(thread);
+    }
+    if (messageFilter === 'favorites') {
+      return Boolean(thread.favorited);
+    }
+    if (messageFilter === 'connections') {
+      return connectedProfileIds.has(partnerProfileId);
+    }
+    return true;
+  });
+  const requestThreadCount = chatThreads.filter((thread) => thread.requestReceived && !isThreadAcceptedForUser(thread)).length;
+  const favoriteThreadCount = chatThreads.filter((thread) => Boolean(thread.favorited)).length;
+  const connectedThreadCount = chatThreads.filter((thread) => (
+    connectedProfileIds.has(String(getOtherParticipant(thread)?.profileId ?? ''))
+  )).length;
+  const activeThread = filteredChatThreads.find((thread) => String(thread.id) === String(activeThreadId)) ?? null;
   const activeThreadPartner = activeThread ? getOtherParticipant(activeThread) : null;
   const canReplyToActiveThread = activeThread
     ? isThreadAcceptedForUser(activeThread)
@@ -1094,39 +1184,69 @@ export default function DeveloperDashboard({ user, token }) {
           <section className="workspace-panel connection-panel">
             <div className="panel-heading-row">
               <div>
-                <h2>Inbox</h2>
+                <h2>Messages</h2>
                 <p className="subtle">Private conversation threads, message requests, and direct replies in one place.</p>
               </div>
               <div className="inbox-meta-pill">
                 <MessageSquareText size={16} />
-                <span>{inboxView === 'messages' ? `${chatThreads.length} thread${chatThreads.length === 1 ? '' : 's'}` : `${connectionRequests.length} request${connectionRequests.length === 1 ? '' : 's'} · ${connections.length} connection${connections.length === 1 ? '' : 's'}`}</span>
+                <span>{chatThreads.length} thread{chatThreads.length === 1 ? '' : 's'}</span>
               </div>
             </div>
-            <div className="inbox-switcher" role="tablist" aria-label="Inbox sections">
+            <div className="inbox-switcher employer-message-filters" role="tablist" aria-label="Message filters">
               <button
-                className={inboxView === 'messages' ? 'active' : ''}
+                className={messageFilter === 'all' ? 'active' : ''}
                 type="button"
-                onClick={() => setInboxView('messages')}
+                onClick={() => setMessageFilter('all')}
               >
-                <span>Messages</span>
+                <span>All messages</span>
                 <strong>{chatThreads.length}</strong>
               </button>
               <button
-                className={inboxView === 'connections' ? 'active' : ''}
+                className={messageFilter === 'requests' ? 'active' : ''}
                 type="button"
-                onClick={() => setInboxView('connections')}
+                onClick={() => setMessageFilter('requests')}
+              >
+                <span>Requests</span>
+                <strong>{requestThreadCount}</strong>
+              </button>
+              <button
+                className={messageFilter === 'favorites' ? 'active' : ''}
+                type="button"
+                onClick={() => setMessageFilter('favorites')}
+              >
+                <span>Favorites</span>
+                <strong>{favoriteThreadCount}</strong>
+              </button>
+              <button
+                className={messageFilter === 'connections' ? 'active' : ''}
+                type="button"
+                onClick={() => setMessageFilter('connections')}
               >
                 <span>Connections</span>
-                <strong>{connectionRequests.length + connections.length}</strong>
+                <strong>{connectedThreadCount}</strong>
               </button>
             </div>
-
-            {inboxView === 'messages' ? (
-              chatThreads.length === 0 ? (
+              {filteredChatThreads.length === 0 ? (
                 <div className="empty-state">
                   <MessageSquareText size={28} />
-                  <h3>No messages yet</h3>
-                  <p>When someone reaches out, a private thread will appear here so you can accept the request and chat directly.</p>
+                  <h3>
+                    {messageFilter === 'requests'
+                      ? 'No message requests'
+                      : messageFilter === 'favorites'
+                        ? 'No favorite messages'
+                        : messageFilter === 'connections'
+                          ? 'No connection messages'
+                        : 'No messages yet'}
+                  </h3>
+                  <p>
+                    {messageFilter === 'requests'
+                      ? 'New private conversation requests will appear here so you can review them before replying.'
+                      : messageFilter === 'favorites'
+                        ? 'Star the conversations you want to keep close and they will appear in this filtered view.'
+                        : messageFilter === 'connections'
+                          ? 'When people you are already connected with message you, their threads will appear in this filtered view.'
+                        : 'When someone reaches out, a private thread will appear here so you can accept the request and chat directly.'}
+                  </p>
                   <Link className="secondary-button" to="/profiles?type=DEVELOPER">
                     <ExternalLink size={16} />
                     <span>Browse developers</span>
@@ -1135,15 +1255,15 @@ export default function DeveloperDashboard({ user, token }) {
               ) : (
                 <div className="message-layout">
                   <div className="message-thread-list">
-                    {chatThreads.map((thread) => {
+                    {filteredChatThreads.map((thread) => {
                       const partner = getOtherParticipant(thread);
                       const lastMessage = thread.messages?.at(-1);
                       const isActive = String(activeThreadId) === String(thread.id);
                       return (
-                        <article className={`message-thread-card ${isActive ? 'active' : ''}`} key={thread.id}>
-                          <button
-                            className="message-thread-card-main"
-                            type="button"
+                      <article className={`message-thread-card ${isActive ? 'active' : ''}`} key={thread.id}>
+                        <button
+                          className="message-thread-card-main"
+                          type="button"
                             onClick={() => setActiveThreadId(String(thread.id))}
                           >
                             <div className="message-card-top">
@@ -1168,23 +1288,36 @@ export default function DeveloperDashboard({ user, token }) {
                                           {partner?.name ?? 'Developer'}
                                         </button>
                                       </strong>
-                                    ) : (
-                                      <strong>{partner?.name ?? 'Developer'}</strong>
-                                    )}
-                                    <span className="message-last-update">Last update: {formatThreadTimestamp(thread.updatedAt)}</span>
-                                  </div>
-                                  <p className="message-card-title">{partner?.title ?? 'Developer'}</p>
+                                  ) : (
+                                    <strong>{partner?.name ?? 'Developer'}</strong>
+                                  )}
                                 </div>
+                                <p className="message-card-title">{partner?.title ?? 'Developer'}</p>
                               </div>
-                              <span className="message-state-badge">
-                                {thread.requestReceived && !isThreadAcceptedForUser(thread) ? 'Request' : 'Chat'}
-                              </span>
+                              </div>
+                              <div className="message-card-actions">
+                                <span className="message-state-badge">
+                                  {thread.requestReceived && !isThreadAcceptedForUser(thread) ? 'Request' : 'Chat'}
+                                </span>
+                                <button
+                                  className={`message-favorite-button ${thread.favorited ? 'active' : ''}`}
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    toggleFavorite(thread);
+                                  }}
+                                  aria-label={thread.favorited ? `Remove ${partner?.name ?? 'conversation'} from favorites` : `Favorite ${partner?.name ?? 'conversation'}`}
+                                >
+                                  <Star size={16} fill={thread.favorited ? 'currentColor' : 'none'} />
+                                </button>
+                              </div>
                             </div>
                             <div className="message-card-body">
                               <p>{formatThreadPreview(thread.preview || lastMessage?.body || 'No messages yet.')}</p>
                             </div>
                             <div className="message-thread-card-footer">
                               <span className="compact-empty-copy">{thread.requestReceived && !isThreadAcceptedForUser(thread) ? '' : 'Private chat'}</span>
+                              <span className="message-last-update">Last update: {formatThreadTimestamp(thread.updatedAt)}</span>
                             </div>
                           </button>
                           {thread.requestReceived && !isThreadAcceptedForUser(thread) && (
@@ -1257,8 +1390,34 @@ export default function DeveloperDashboard({ user, token }) {
                     ) : null}
                   </div>
                 </div>
-              )
-            ) : (
+              )}
+            {messageStatus && <p className="connection-toast inbox-toast">{messageStatus}</p>}
+          </section>
+        )}
+
+        {activeSection === 'connections' && (
+          <section className="workspace-panel connection-panel">
+            <div className="panel-heading-row">
+              <div>
+                <h2>Connections</h2>
+                <p className="subtle">Manage connection requests and the developers whose connected updates you can see.</p>
+              </div>
+              <div className="inbox-meta-pill">
+                <UserRound size={16} />
+                <span>{connectionRequests.length} request{connectionRequests.length === 1 ? '' : 's'} · {connections.length} connection{connections.length === 1 ? '' : 's'}</span>
+              </div>
+            </div>
+            <div className="connection-summary-row">
+              <div className="connection-summary-pill">
+                <span>Requests</span>
+                <strong>{connectionRequests.length}</strong>
+              </div>
+              <div className="connection-summary-pill">
+                <span>Connections</span>
+                <strong>{connections.length}</strong>
+              </div>
+            </div>
+            
               <div className="connection-management-stack">
                 <section className="connection-subsection">
                   <div className="connection-subsection-heading">
@@ -1361,7 +1520,6 @@ export default function DeveloperDashboard({ user, token }) {
                   )}
                 </section>
               </div>
-            )}
             {messageStatus && <p className="connection-toast inbox-toast">{messageStatus}</p>}
           </section>
         )}
@@ -1372,12 +1530,34 @@ export default function DeveloperDashboard({ user, token }) {
               <div className="panel-heading-row">
                 <div>
                   <h2>Your updates</h2>
-                  <p className="subtle">Share project progress, learning notes, and what you are building next.</p>
+                  <p className="subtle">
+                    {feedWindow === 'recent'
+                      ? 'Recent updates from the last 7 days, with older posts still available when you want the full history.'
+                      : 'Your full posting history, including older updates and portfolio progress notes.'}
+                  </p>
                 </div>
-                <button className="primary-button" type="button" onClick={() => setIsComposingPost((current) => !current)}>
-                  <Plus size={18} />
-                  <span>Post</span>
-                </button>
+                <div className="feed-panel-actions">
+                  <div className="feed-window-toggle" role="tablist" aria-label="Feed range">
+                    <button
+                      className={feedWindow === 'recent' ? 'active' : ''}
+                      type="button"
+                      onClick={() => setFeedWindow('recent')}
+                    >
+                      This week
+                    </button>
+                    <button
+                      className={feedWindow === 'all' ? 'active' : ''}
+                      type="button"
+                      onClick={() => setFeedWindow('all')}
+                    >
+                      All time
+                    </button>
+                  </div>
+                  <button className="primary-button" type="button" onClick={() => setIsComposingPost((current) => !current)}>
+                    <Plus size={18} />
+                    <span>Post</span>
+                  </button>
+                </div>
               </div>
 
               {isComposingPost && (
@@ -1400,13 +1580,17 @@ export default function DeveloperDashboard({ user, token }) {
               )}
 
               <div className="feed-list compact-feed-list">
-                {posts.length === 0 ? (
+                {visibleOwnPosts.length === 0 ? (
                   <article className="empty-feed">
                     <MessageSquareText size={28} />
-                    <p>Post project progress, learning notes, goals, and what you are building next.</p>
+                    <p>
+                      {posts.length === 0
+                        ? 'Post project progress, learning notes, goals, and what you are building next.'
+                        : 'No posts from the last 7 days yet. Switch to all time to browse your older updates.'}
+                    </p>
                   </article>
                 ) : (
-                  posts.map((post) => (
+                  visibleOwnPosts.map((post) => (
                     <article className="feed-post" key={post.id}>
                       <div className="feed-post-header">
                         <div className="feed-author">
@@ -1431,15 +1615,23 @@ export default function DeveloperDashboard({ user, token }) {
               <div className="panel-heading-row">
                 <div>
                   <h2>Developer activity</h2>
-                  <p className="subtle">Updates from developers you are connected with.</p>
+                  <p className="subtle">
+                    {feedWindow === 'recent'
+                      ? 'Recent updates from connected developers, so the feed stays readable when people post often.'
+                      : 'Every connected developer update in one place when you want the longer history.'}
+                  </p>
                 </div>
                 <MessageSquareText size={20} />
               </div>
-              {connectionFeed.length === 0 ? (
+              {visibleConnectionFeed.length === 0 ? (
                 <div className="empty-state">
                   <MessageSquareText size={28} />
-                  <h3>No connection updates yet</h3>
-                  <p>Connect with developers from AI Match or public profiles, then their project updates will appear here.</p>
+                  <h3>{connectionFeed.length === 0 ? 'No connection updates yet' : 'No recent connection updates'}</h3>
+                  <p>
+                    {connectionFeed.length === 0
+                      ? 'Connect with developers from AI Match or public profiles, then their project updates will appear here.'
+                      : 'Nothing new from the last 7 days. Switch to all time if you want to browse older connected activity.'}
+                  </p>
                   <Link className="secondary-button" to="/match">
                     <ExternalLink size={16} />
                     <span>Find developers</span>
@@ -1447,7 +1639,7 @@ export default function DeveloperDashboard({ user, token }) {
                 </div>
               ) : (
                 <div className="feed-list connection-feed-list">
-                  {connectionFeed.map((post) => (
+                  {visibleConnectionFeed.map((post) => (
                     <article className="feed-post" key={`${post.authorProfileId}-${post.postId ?? post.createdAt}`}>
                       <div className="feed-post-header">
                         <div className="feed-author">

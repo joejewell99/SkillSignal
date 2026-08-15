@@ -45,6 +45,12 @@ public class DeveloperConversation {
     @Column(nullable = false)
     private Instant updatedAt = Instant.now();
 
+    @Column(nullable = false)
+    private boolean requesterFavorited = false;
+
+    @Column(nullable = false)
+    private boolean receiverFavorited = false;
+
     protected DeveloperConversation() {
     }
 
@@ -98,5 +104,21 @@ public class DeveloperConversation {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public boolean isRequesterFavorited() {
+        return requesterFavorited;
+    }
+
+    public void setRequesterFavorited(boolean requesterFavorited) {
+        this.requesterFavorited = requesterFavorited;
+    }
+
+    public boolean isReceiverFavorited() {
+        return receiverFavorited;
+    }
+
+    public void setReceiverFavorited(boolean receiverFavorited) {
+        this.receiverFavorited = receiverFavorited;
     }
 }

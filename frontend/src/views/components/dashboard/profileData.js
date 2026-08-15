@@ -27,6 +27,7 @@ export const defaultEmployerProfile = {
   focus: ['React', 'APIs', 'Junior developer'],
   projects: [],
   posts: [],
+  candidateStages: {},
 };
 
 const lipEmployerProfile = {
@@ -327,6 +328,7 @@ export function readStoredEmployerProfile(storageKey, user) {
       focus: hasCustomFocus ? parsedProfile.focus : seededProfile.focus,
       projects: normalizeProjects((parsedProfile.projects ?? []).length > 0 ? parsedProfile.projects : seededProfile.projects),
       posts: (parsedProfile.posts ?? []).length > 0 ? parsedProfile.posts : seededProfile.posts,
+      candidateStages: parsedProfile.candidateStages ?? seededProfile.candidateStages ?? {},
       name: user.name,
     };
   } catch {

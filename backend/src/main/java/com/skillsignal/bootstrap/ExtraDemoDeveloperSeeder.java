@@ -93,9 +93,10 @@ public class ExtraDemoDeveloperSeeder implements CommandLineRunner {
             user.setEmail(seed.email());
             user.setPasswordHash(passwordEncoder.encode(PASSWORD));
             user = userRepository.save(user);
+            Long userId = user.getId();
 
-            MarketplaceProfile profile = profileRepository.findByUserId(user.getId())
-                    .orElseGet(() -> profileRepository.save(MarketplaceProfile.forDeveloperUser(user.getId(), seed.name())));
+            MarketplaceProfile profile = profileRepository.findByUserId(userId)
+                    .orElseGet(() -> profileRepository.save(MarketplaceProfile.forDeveloperUser(userId, seed.name())));
 
             profile.setName(seed.name());
             profile.setTitle(seed.title());
