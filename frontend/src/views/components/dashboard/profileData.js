@@ -15,6 +15,7 @@
     workTypes: ['Frontend', 'Full-stack'],
     remotePreference: 'Remote or hybrid',
   },
+  connectionLabels: {},
   projects: [],
   posts: [],
 };
@@ -299,6 +300,7 @@ export function readStoredDeveloperProfile(storageKey) {
         ...(parsedProfile.preferences ?? {}),
         workTypes: parsedProfile.preferences?.workTypes ?? defaultDeveloperProfile.preferences.workTypes,
       },
+      connectionLabels: parsedProfile.connectionLabels ?? {},
       projects: normalizeProjects(parsedProfile.projects ?? []),
       posts: parsedProfile.posts ?? [],
     };

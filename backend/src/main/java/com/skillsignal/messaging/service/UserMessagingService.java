@@ -47,7 +47,7 @@ public class UserMessagingService {
     }
 
     @Transactional
-    public DeveloperConversationResponse sendMessage(Long senderUserId, Long receiverProfileId, String body) {
+    public DeveloperConversationResponse sendMessage(Long senderUserId, Long receiverProfileId, String body, String imageUrl) {
         MarketplaceProfile senderProfile = profileForUser(senderUserId);
         MarketplaceProfile receiverProfile = profileRepository.findById(receiverProfileId)
                 .filter(MarketplaceProfile::isDisplayed)
@@ -70,7 +70,7 @@ public class UserMessagingService {
                 )));
 
         if (conversation.getRequesterUserId().equals(senderUserId) && conversation.getStatus() == ConversationStatus.REQUEST) {
-            appendMessage(conversation, senderUserId, body);
+            appendMessage(conversation, senderUserId, body, imageUrl);
             return toConversationResponse(conversation, senderUserId);
         }
 
@@ -78,17 +78,17 @@ public class UserMessagingService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Accept this message request before replying.");
         }
 
-        appendMessage(conversation, senderUserId, body);
+        appendMessage(conversation, senderUserId, body, imageUrl);
         return toConversationResponse(conversation, senderUserId);
     }
 
     @Transactional
-    public DeveloperConversationResponse reply(Long userId, Long conversationId, String body) {
+    public DeveloperConversationResponse reply(Long userId, Long conversationId, String body, String imageUrl) {
         DeveloperConversation conversation = conversationForUser(userId, conversationId);
         if (conversation.getStatus() == ConversationStatus.REQUEST && conversation.getReceiverUserId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Accept this message request before replying.");
         }
-        appendMessage(conversation, userId, body);
+        appendMessage(conversation, userId, body, imageUrl);
         return toConversationResponse(conversation, userId);
     }
 
@@ -124,8 +124,8 @@ public class UserMessagingService {
         conversationRepository.delete(conversation);
     }
 
-    private void appendMessage(DeveloperConversation conversation, Long senderUserId, String body) {
-        messageRepository.save(new DeveloperMessage(conversation, senderUserId, normalizeBody(body)));
+    private void appendMessage(DeveloperConversation conversation, Long senderUserId, String body, String imageUrl) {
+        messageRepository.save(new DeveloperMessage(conversation, senderUserId, normalizeBody(body, imageUrl), normalizeImageUrl(imageUrl)));
         conversation.setUpdatedAt(Instant.now());
         conversationRepository.save(conversation);
     }
@@ -151,6 +151,7 @@ public class UserMessagingService {
                         message.getSenderUserId(),
                         resolveSenderName(conversation, message.getSenderUserId()),
                         message.getBody(),
+                        message.getImageUrl(),
                         message.getCreatedAt()
                 ))
                 .toList();
@@ -188,10 +189,21 @@ public class UserMessagingService {
         return "User";
     }
 
-    private String normalizeBody(String body) {
+    private String normalizeBody(String body, String imageUrl) {
         String trimmed = body == null ? "" : body.trim();
-        if (trimmed.isBlank()) {
+        if (trimmed.isBlank() && normalizeImageUrl(imageUrl) == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message cannot be blank.");
+        }
+        return trimmed;
+    }
+
+    private String normalizeImageUrl(String imageUrl) {
+        String trimmed = imageUrl == null ? "" : imageUrl.trim();
+        if (trimmed.isBlank()) {
+            return null;
+        }
+        if (!trimmed.startsWith("data:image/")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only image attachments are supported.");
         }
         return trimmed;
     }

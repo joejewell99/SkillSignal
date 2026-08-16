@@ -28,16 +28,20 @@ public class DeveloperMessage {
     @Column(nullable = false, columnDefinition = "text")
     private String body;
 
+    @Column(columnDefinition = "text")
+    private String imageUrl;
+
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
 
     protected DeveloperMessage() {
     }
 
-    public DeveloperMessage(DeveloperConversation conversation, Long senderUserId, String body) {
+    public DeveloperMessage(DeveloperConversation conversation, Long senderUserId, String body, String imageUrl) {
         this.conversation = conversation;
         this.senderUserId = senderUserId;
         this.body = body;
+        this.imageUrl = imageUrl;
     }
 
     public Long getId() {
@@ -54,6 +58,10 @@ public class DeveloperMessage {
 
     public String getBody() {
         return body;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
     }
 
     public Instant getCreatedAt() {

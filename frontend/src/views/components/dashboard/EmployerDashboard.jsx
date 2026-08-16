@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bookmark, BriefcaseBusiness, Camera, CheckCircle2, ExternalLink, MessageSquareText, Pencil, Plus, Search, Send, Star, Trash2 } from 'lucide-react';
+import { Bookmark, BriefcaseBusiness, Camera, CheckCircle2, ExternalLink, ImagePlus, MessageSquareText, Pencil, Plus, Search, Send, Star, Trash2 } from 'lucide-react';
 import { apiRequest } from '../../../api/client.js';
 import {
   emptyProject,
@@ -91,7 +91,9 @@ const CANDIDATE_STAGE_OPTIONS = ['New', 'Considering', 'Strong fit'];
 
 export default function EmployerDashboard({ user, token }) {
   const navigate = useNavigate();
+  const chatListRef = React.useRef(null);
   const storageKey = `skillsignal.employer-profile.${user.email}`;
+  const [expandedChatImage, setExpandedChatImage] = useState('');
   const [data, setData] = useState(null);
   const [backendData, setBackendData] = useState(null);
   const [error, setError] = useState('');
@@ -100,6 +102,7 @@ export default function EmployerDashboard({ user, token }) {
   const [chatThreads, setChatThreads] = useState([]);
   const [activeThreadId, setActiveThreadId] = useState('');
   const [threadReplyDraft, setThreadReplyDraft] = useState('');
+  const [threadReplyImageDraft, setThreadReplyImageDraft] = useState('');
   const [messageStatus, setMessageStatus] = useState('');
   const [messageFilter, setMessageFilter] = useState('all');
   const [focusInput, setFocusInput] = useState('');
@@ -374,6 +377,11 @@ export default function EmployerDashboard({ user, token }) {
     event.target.value = '';
   }
 
+  function handleReplyImageChange(event) {
+    readImage(event.target.files?.[0], (result) => setThreadReplyImageDraft(result));
+    event.target.value = '';
+  }
+
   function addFocus(event) {
     event.preventDefault();
     const nextFocus = focusInput.trim();
@@ -513,7 +521,7 @@ export default function EmployerDashboard({ user, token }) {
 
   async function sendReply(thread) {
     const nextReply = threadReplyDraft.trim();
-    if (!nextReply) {
+    if (!nextReply && !threadReplyImageDraft) {
       return;
     }
     setError('');
@@ -521,13 +529,14 @@ export default function EmployerDashboard({ user, token }) {
       const updatedThread = await apiRequest(`/api/employer/messages/${thread.id}/reply`, {
         token,
         method: 'POST',
-        body: JSON.stringify({ body: nextReply }),
+        body: JSON.stringify({ body: nextReply, imageUrl: threadReplyImageDraft || null }),
       });
       setChatThreads((current) => {
         const nextThreads = current.map((item) => (item.id === updatedThread.id ? updatedThread : item));
         return [...nextThreads].sort((first, second) => new Date(second.updatedAt ?? 0).getTime() - new Date(first.updatedAt ?? 0).getTime());
       });
       setThreadReplyDraft('');
+      setThreadReplyImageDraft('');
       setActiveThreadId(String(updatedThread.id));
       setMessageStatus(`Message sent to ${getOtherParticipant(updatedThread)?.name ?? 'user'}.`);
     } catch (err) {
@@ -573,6 +582,13 @@ export default function EmployerDashboard({ user, token }) {
   const canReplyToActiveThread = activeThread
     ? isThreadAcceptedForUser(activeThread)
     : false;
+
+  useEffect(() => {
+    if (!chatListRef.current) {
+      return;
+    }
+    chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
+  }, [activeThreadId, activeThread?.messages?.length]);
 
   return (
     <section className="dashboard employer-dashboard">
@@ -1005,7 +1021,7 @@ export default function EmployerDashboard({ user, token }) {
                         </button>
                       </div>
 
-                      <div className="chat-message-list">
+                      <div className="chat-message-list" ref={chatListRef}>
                         {(activeThread.messages ?? []).map((message) => {
                           const isOwnMessage = String(message.senderUserId) === String(user.userId);
                           const senderLabel = isOwnMessage ? 'Me' : (message.senderName ?? activeThreadPartner.name ?? 'User');
@@ -1015,6 +1031,16 @@ export default function EmployerDashboard({ user, token }) {
                                 <strong>{senderLabel}</strong>
                                 <span>{formatChatTime(message.createdAt)}</span>
                               </div>
+                              {message.imageUrl ? (
+                                <button
+                                  className="chat-message-image-button"
+                                  type="button"
+                                  onClick={() => setExpandedChatImage(message.imageUrl)}
+                                  aria-label="Expand message image"
+                                >
+                                  <img className="chat-message-image" src={message.imageUrl} alt="Message attachment" />
+                                </button>
+                              ) : null}
                               <p>{message.body}</p>
                             </article>
                           );
@@ -1032,6 +1058,16 @@ export default function EmployerDashboard({ user, token }) {
                           sendReply(activeThread);
                         }}
                       >
+                        <label className="chat-attachment-button" htmlFor="employer-chat-image" aria-label="Attach image">
+                          <ImagePlus size={18} />
+                        </label>
+                        <input
+                          id="employer-chat-image"
+                          className="chat-attachment-input"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleReplyImageChange}
+                        />
                         <input
                           className="chat-reply-input"
                           type="text"
@@ -1040,16 +1076,37 @@ export default function EmployerDashboard({ user, token }) {
                           placeholder={canReplyToActiveThread ? `Message ${activeThreadPartner.name}...` : 'Accept this message request before replying.'}
                           disabled={!canReplyToActiveThread}
                         />
-                        <button className="primary-button chat-send-button" type="submit" disabled={!canReplyToActiveThread || !threadReplyDraft.trim()}>
+                        <button className="primary-button chat-send-button" type="submit" disabled={!canReplyToActiveThread || (!threadReplyDraft.trim() && !threadReplyImageDraft)}>
                           <Send size={16} />
                           <span>Send</span>
                         </button>
                       </form>
+                      {threadReplyImageDraft ? (
+                        <div className="chat-image-preview">
+                          <img src={threadReplyImageDraft} alt="Pending attachment" />
+                          <button className="secondary-button" type="button" onClick={() => setThreadReplyImageDraft('')}>
+                            Remove image
+                          </button>
+                        </div>
+                      ) : null}
                     </>
                   ) : null}
                 </div>
               </div>
             )}
+            {expandedChatImage ? (
+              <div className="chat-image-lightbox" role="dialog" aria-modal="true" aria-label="Expanded message image" onClick={() => setExpandedChatImage('')}>
+                <button className="chat-image-lightbox-close" type="button" onClick={() => setExpandedChatImage('')}>
+                  Close
+                </button>
+                <img
+                  className="chat-image-lightbox-image"
+                  src={expandedChatImage}
+                  alt="Expanded message attachment"
+                  onClick={(event) => event.stopPropagation()}
+                />
+              </div>
+            ) : null}
             {messageStatus && <p className="connection-toast inbox-toast">{messageStatus}</p>}
           </section>
         )}

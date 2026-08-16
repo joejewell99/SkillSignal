@@ -44,7 +44,7 @@ public class UserMessagingController {
             Authentication authentication
     ) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        return messagingService.sendMessage(principal.id(), request.receiverProfileId(), request.body());
+        return messagingService.sendMessage(principal.id(), request.receiverProfileId(), request.body(), request.imageUrl());
     }
 
     @PostMapping("/{id}/reply")
@@ -54,7 +54,7 @@ public class UserMessagingController {
             Authentication authentication
     ) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        return messagingService.reply(principal.id(), id, request.body());
+        return messagingService.reply(principal.id(), id, request.body(), request.imageUrl());
     }
 
     @PatchMapping("/{id}/accept")

@@ -87,7 +87,7 @@ public class DemoMessagingSeeder implements CommandLineRunner {
                 )));
 
         if (messageRepository.findByConversationIdOrderByCreatedAtAsc(conversation.getId()).isEmpty()) {
-            messageRepository.save(new DeveloperMessage(conversation, requesterProfile.getUserId(), body));
+            messageRepository.save(new DeveloperMessage(conversation, requesterProfile.getUserId(), body, null));
         }
     }
 }

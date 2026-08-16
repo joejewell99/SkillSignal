@@ -105,9 +105,42 @@ function isWithinLastDays(value, days) {
   return diffMs >= 0 && diffMs <= days * 24 * 60 * 60 * 1000;
 }
 
+function latestOwnMessageClusterStatus(messages, viewerUserId) {
+  const threadMessages = messages ?? [];
+  const lastMessage = threadMessages.at(-1);
+  if (!lastMessage || String(lastMessage.senderUserId) !== String(viewerUserId)) {
+    return null;
+  }
+
+  const latestTimestamp = new Date(lastMessage.createdAt).getTime();
+  if (Number.isNaN(latestTimestamp)) {
+    return null;
+  }
+
+  for (let index = threadMessages.length - 2; index >= 0; index -= 1) {
+    const message = threadMessages[index];
+    if (String(message.senderUserId) !== String(viewerUserId)) {
+      break;
+    }
+    const timestamp = new Date(message.createdAt).getTime();
+    if (Number.isNaN(timestamp) || latestTimestamp - timestamp > 5 * 60 * 1000) {
+      break;
+    }
+  }
+
+  return {
+    anchorMessageId: lastMessage.id,
+    label: 'Sent',
+  };
+}
+
+const CONNECTION_LABEL_OPTIONS = ['New', 'Friend', 'Mentor', 'Mentee', 'Classmate', 'Collaborator'];
+
 export default function DeveloperDashboard({ user, token }) {
   const navigate = useNavigate();
+  const chatListRef = React.useRef(null);
   const storageKey = `skillsignal.developer-profile.${user.email}`;
+  const [expandedChatImage, setExpandedChatImage] = useState('');
   const [backendData, setBackendData] = useState(null);
   const [error, setError] = useState('');
   const [skillInput, setSkillInput] = useState('');
@@ -118,6 +151,7 @@ export default function DeveloperDashboard({ user, token }) {
   const [chatThreads, setChatThreads] = useState([]);
   const [activeThreadId, setActiveThreadId] = useState('');
   const [threadReplyDraft, setThreadReplyDraft] = useState('');
+  const [threadReplyImageDraft, setThreadReplyImageDraft] = useState('');
   const [messageFilter, setMessageFilter] = useState('all');
   const [messageStatus, setMessageStatus] = useState('');
   const [isComposingPost, setIsComposingPost] = useState(false);
@@ -303,6 +337,32 @@ export default function DeveloperDashboard({ user, token }) {
     }));
   }
 
+  function connectionLabelKeyForProfile(profileId) {
+    return String(profileId ?? '');
+  }
+
+  function connectionLabelForProfile(profileId) {
+    return profile.connectionLabels?.[connectionLabelKeyForProfile(profileId)] ?? 'New';
+  }
+
+  function updateConnectionLabel(profileId, label) {
+    const key = connectionLabelKeyForProfile(profileId);
+    setProfile((current) => ({
+      ...current,
+      connectionLabels: {
+        ...(current.connectionLabels ?? {}),
+        [key]: label,
+      },
+    }));
+  }
+
+  function cycleConnectionLabel(profileId) {
+    const currentLabel = connectionLabelForProfile(profileId);
+    const currentIndex = CONNECTION_LABEL_OPTIONS.indexOf(currentLabel);
+    const nextLabel = CONNECTION_LABEL_OPTIONS[(currentIndex + 1) % CONNECTION_LABEL_OPTIONS.length];
+    updateConnectionLabel(profileId, nextLabel);
+  }
+
   function toggleWorkType(workType) {
     setProfile((current) => {
       const currentTypes = current.preferences?.workTypes ?? [];
@@ -330,6 +390,11 @@ export default function DeveloperDashboard({ user, token }) {
 
   function handlePhotoChange(event) {
     readImage(event.target.files?.[0], (result) => updateProfile('photo', result));
+    event.target.value = '';
+  }
+
+  function handleReplyImageChange(event) {
+    readImage(event.target.files?.[0], (result) => setThreadReplyImageDraft(result));
     event.target.value = '';
   }
 
@@ -621,7 +686,7 @@ export default function DeveloperDashboard({ user, token }) {
 
   async function sendReply(thread) {
     const nextReply = threadReplyDraft.trim();
-    if (!nextReply) {
+    if (!nextReply && !threadReplyImageDraft) {
       return;
     }
     setError('');
@@ -629,13 +694,14 @@ export default function DeveloperDashboard({ user, token }) {
       const updatedThread = await apiRequest(`/api/developer/messages/${thread.id}/reply`, {
         token,
         method: 'POST',
-        body: JSON.stringify({ body: nextReply }),
+        body: JSON.stringify({ body: nextReply, imageUrl: threadReplyImageDraft || null }),
       });
       setChatThreads((current) => {
         const nextThreads = current.map((item) => (item.id === updatedThread.id ? updatedThread : item));
         return [...nextThreads].sort((first, second) => new Date(second.updatedAt ?? 0).getTime() - new Date(first.updatedAt ?? 0).getTime());
       });
       setThreadReplyDraft('');
+      setThreadReplyImageDraft('');
       setActiveThreadId(String(updatedThread.id));
       setMessageStatus(`Message sent to ${getOtherParticipant(updatedThread)?.name ?? 'developer'}.`);
     } catch (err) {
@@ -721,6 +787,14 @@ export default function DeveloperDashboard({ user, token }) {
   const canReplyToActiveThread = activeThread
     ? isThreadAcceptedForUser(activeThread)
     : false;
+  const activeOwnMessageClusterStatus = activeThread ? latestOwnMessageClusterStatus(activeThread.messages, user.userId) : null;
+
+  useEffect(() => {
+    if (!chatListRef.current) {
+      return;
+    }
+    chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
+  }, [activeThreadId, activeThread?.messages?.length]);
 
   return (
     <section className="dashboard developer-dashboard">
@@ -1296,9 +1370,17 @@ export default function DeveloperDashboard({ user, token }) {
                               </div>
                               </div>
                               <div className="message-card-actions">
-                                <span className="message-state-badge">
-                                  {thread.requestReceived && !isThreadAcceptedForUser(thread) ? 'Request' : 'Chat'}
-                                </span>
+                                <button
+                                  className={`candidate-stage-button candidate-stage-button-compact ${connectionLabelForProfile(partner?.profileId).toLowerCase()}`}
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    cycleConnectionLabel(partner?.profileId);
+                                  }}
+                                  aria-label={`Connection label: ${connectionLabelForProfile(partner?.profileId)}. Click to change.`}
+                                >
+                                  {connectionLabelForProfile(partner?.profileId)}
+                                </button>
                                 <button
                                   className={`message-favorite-button ${thread.favorited ? 'active' : ''}`}
                                   type="button"
@@ -1316,7 +1398,7 @@ export default function DeveloperDashboard({ user, token }) {
                               <p>{formatThreadPreview(thread.preview || lastMessage?.body || 'No messages yet.')}</p>
                             </div>
                             <div className="message-thread-card-footer">
-                              <span className="compact-empty-copy">{thread.requestReceived && !isThreadAcceptedForUser(thread) ? '' : 'Private chat'}</span>
+                              <span className="compact-empty-copy" aria-hidden="true"></span>
                               <span className="message-last-update">Last update: {formatThreadTimestamp(thread.updatedAt)}</span>
                             </div>
                           </button>
@@ -1344,20 +1426,46 @@ export default function DeveloperDashboard({ user, token }) {
                             <h3>{activeThreadPartner.name}</h3>
                             <p className="subtle">{activeThreadPartner.title}</p>
                           </div>
+                          <button
+                            className={`candidate-stage-button candidate-stage-control-inline ${connectionLabelForProfile(activeThreadPartner.profileId).toLowerCase()}`}
+                            type="button"
+                            onClick={() => cycleConnectionLabel(activeThreadPartner.profileId)}
+                            aria-label={`Connection label: ${connectionLabelForProfile(activeThreadPartner.profileId)}. Click to change.`}
+                          >
+                            {connectionLabelForProfile(activeThreadPartner.profileId)}
+                          </button>
                         </div>
 
-                        <div className="chat-message-list">
+                        <div className="chat-message-list" ref={chatListRef}>
                           {(activeThread.messages ?? []).map((message) => {
                             const isOwnMessage = String(message.senderUserId) === String(user.userId);
                             const senderLabel = isOwnMessage ? 'Me' : (message.senderName ?? activeThreadPartner.name ?? 'Developer');
+                            const showStatus = activeOwnMessageClusterStatus && String(activeOwnMessageClusterStatus.anchorMessageId) === String(message.id);
                             return (
-                              <article className={`chat-bubble ${isOwnMessage ? 'own' : ''}`} key={message.id}>
+                              <React.Fragment key={message.id}>
+                              <article className={`chat-bubble ${isOwnMessage ? 'own' : ''}`}>
                                 <div className="chat-message-meta">
                                   <strong>{senderLabel}</strong>
                                   <span>{formatChatTime(message.createdAt)}</span>
                                 </div>
+                                {message.imageUrl ? (
+                                  <button
+                                    className="chat-message-image-button"
+                                    type="button"
+                                    onClick={() => setExpandedChatImage(message.imageUrl)}
+                                    aria-label="Expand message image"
+                                  >
+                                    <img className="chat-message-image" src={message.imageUrl} alt="Message attachment" />
+                                  </button>
+                                ) : null}
                                 <p>{message.body}</p>
                               </article>
+                                {showStatus && (
+                                  <div className="chat-message-status" aria-label={`Message status: ${activeOwnMessageClusterStatus.label.toLowerCase()}`}>
+                                    {activeOwnMessageClusterStatus.label}
+                                  </div>
+                                )}
+                              </React.Fragment>
                             );
                           })}
                         </div>
@@ -1366,31 +1474,62 @@ export default function DeveloperDashboard({ user, token }) {
                           <p className="chat-panel-note">This is a message request. Accept it from the left to unlock replies.</p>
                         )}
 
-                        <form
-                          className="chat-reply-form"
-                          onSubmit={(event) => {
-                            event.preventDefault();
-                            sendReply(activeThread);
-                          }}
-                        >
-                          <input
-                            className="chat-reply-input"
-                            type="text"
-                            value={threadReplyDraft}
-                            onChange={(event) => setThreadReplyDraft(event.target.value)}
-                            placeholder={canReplyToActiveThread ? `Message ${activeThreadPartner.name}...` : 'Accept this message request before replying.'}
-                            disabled={!canReplyToActiveThread}
-                          />
-                          <button className="primary-button chat-send-button" type="submit" disabled={!canReplyToActiveThread || !threadReplyDraft.trim()}>
-                            <Send size={16} />
-                            <span>Send</span>
+                      <form
+                        className="chat-reply-form"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          sendReply(activeThread);
+                        }}
+                      >
+                        <label className="chat-attachment-button" htmlFor="developer-chat-image" aria-label="Attach image">
+                          <ImagePlus size={18} />
+                        </label>
+                        <input
+                          id="developer-chat-image"
+                          className="chat-attachment-input"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleReplyImageChange}
+                        />
+                        <input
+                          className="chat-reply-input"
+                          type="text"
+                          value={threadReplyDraft}
+                          onChange={(event) => setThreadReplyDraft(event.target.value)}
+                          placeholder={canReplyToActiveThread ? `Message ${activeThreadPartner.name}...` : 'Accept this message request before replying.'}
+                          disabled={!canReplyToActiveThread}
+                        />
+                        <button className="primary-button chat-send-button" type="submit" disabled={!canReplyToActiveThread || (!threadReplyDraft.trim() && !threadReplyImageDraft)}>
+                          <Send size={16} />
+                          <span>Send</span>
+                        </button>
+                      </form>
+                      {threadReplyImageDraft ? (
+                        <div className="chat-image-preview">
+                          <img src={threadReplyImageDraft} alt="Pending attachment" />
+                          <button className="secondary-button" type="button" onClick={() => setThreadReplyImageDraft('')}>
+                            Remove image
                           </button>
-                        </form>
+                        </div>
+                      ) : null}
                       </>
                     ) : null}
                   </div>
                 </div>
               )}
+              {expandedChatImage ? (
+                <div className="chat-image-lightbox" role="dialog" aria-modal="true" aria-label="Expanded message image" onClick={() => setExpandedChatImage('')}>
+                  <button className="chat-image-lightbox-close" type="button" onClick={() => setExpandedChatImage('')}>
+                    Close
+                  </button>
+                  <img
+                    className="chat-image-lightbox-image"
+                    src={expandedChatImage}
+                    alt="Expanded message attachment"
+                    onClick={(event) => event.stopPropagation()}
+                  />
+                </div>
+              ) : null}
             {messageStatus && <p className="connection-toast inbox-toast">{messageStatus}</p>}
           </section>
         )}

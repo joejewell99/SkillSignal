@@ -894,6 +894,36 @@
   color: color-mix(in srgb, #166534 78%, var(--text) 22%);
 }
 
+.candidate-stage-button.friend {
+  background: color-mix(in srgb, #ec4899 12%, var(--surface));
+  border-color: color-mix(in srgb, #ec4899 30%, var(--line));
+  color: color-mix(in srgb, #9d174d 78%, var(--text) 22%);
+}
+
+.candidate-stage-button.mentor {
+  background: color-mix(in srgb, #8b5cf6 12%, var(--surface));
+  border-color: color-mix(in srgb, #8b5cf6 30%, var(--line));
+  color: color-mix(in srgb, #5b21b6 78%, var(--text) 22%);
+}
+
+.candidate-stage-button.mentee {
+  background: color-mix(in srgb, #06b6d4 12%, var(--surface));
+  border-color: color-mix(in srgb, #06b6d4 30%, var(--line));
+  color: color-mix(in srgb, #155e75 78%, var(--text) 22%);
+}
+
+.candidate-stage-button.classmate {
+  background: color-mix(in srgb, #f59e0b 12%, var(--surface));
+  border-color: color-mix(in srgb, #f59e0b 30%, var(--line));
+  color: color-mix(in srgb, #9a5a00 78%, var(--text) 22%);
+}
+
+.candidate-stage-button.collaborator {
+  background: color-mix(in srgb, #10b981 12%, var(--surface));
+  border-color: color-mix(in srgb, #10b981 30%, var(--line));
+  color: color-mix(in srgb, #166534 78%, var(--text) 22%);
+}
+
 .candidate-stage-button-compact {
   min-width: 80px;
   padding: 4px 7px;
@@ -972,12 +1002,83 @@
   line-height: 1.2;
 }
 
+.chat-message-status {
+  color: color-mix(in srgb, var(--muted) 78%, transparent);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: -4px 6px 2px auto;
+  text-align: right;
+  width: fit-content;
+}
+
 .chat-bubble p {
   color: var(--text);
   font-size: 0.94rem;
   line-height: 1.5;
   margin: 0;
   white-space: pre-wrap;
+}
+
+.chat-message-image {
+  border: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
+  border-radius: 10px;
+  display: block;
+  margin-top: 8px;
+  max-height: 280px;
+  max-width: min(100%, 320px);
+  object-fit: cover;
+}
+
+.chat-message-image-button {
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  cursor: zoom-in;
+  display: inline-flex;
+  justify-self: start;
+  line-height: 0;
+  padding: 0;
+  transition: transform 160ms ease, filter 160ms ease;
+  width: auto;
+}
+
+.chat-message-image-button:hover,
+.chat-message-image-button:focus-visible {
+  filter: brightness(1.04);
+  outline: none;
+  transform: translateY(-2px);
+}
+
+.chat-message-image-button:hover .chat-message-image,
+.chat-message-image-button:focus-visible .chat-message-image {
+  border-color: color-mix(in srgb, var(--primary) 52%, var(--line));
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.chat-image-lightbox {
+  align-items: center;
+  background: rgba(8, 12, 18, 0.82);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 28px;
+  position: fixed;
+  z-index: 40;
+}
+
+.chat-image-lightbox-image {
+  border-radius: 14px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+  max-height: calc(100vh - 96px);
+  max-width: min(1100px, 100%);
+  object-fit: contain;
+}
+
+.chat-image-lightbox-close {
+  position: absolute;
+  right: 22px;
+  top: 22px;
 }
 
 .chat-reply-form {
@@ -1006,6 +1107,45 @@
   margin: 0;
   min-height: 48px;
   padding-block: 0;
+}
+
+.chat-attachment-button {
+  align-items: center;
+  background: color-mix(in srgb, var(--surface-strong) 92%, var(--primary) 4%);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 48px;
+  justify-content: center;
+  transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
+  width: 48px;
+}
+
+.chat-attachment-button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.chat-attachment-input {
+  display: none;
+}
+
+.chat-image-preview {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+}
+
+.chat-image-preview img {
+  border: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
+  border-radius: 10px;
+  max-height: 120px;
+  max-width: 180px;
+  object-fit: cover;
 }
 
 .chat-panel-note {

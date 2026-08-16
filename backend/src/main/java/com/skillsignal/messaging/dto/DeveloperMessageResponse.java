@@ -7,6 +7,7 @@ public record DeveloperMessageResponse(
         Long senderUserId,
         String senderName,
         String body,
+        String imageUrl,
         Instant createdAt
 ) {
 }
