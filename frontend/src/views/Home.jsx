@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BrainCircuit, CheckCircle2, Search, ShieldCheck } from 'lucide-react';
 import PublicHeader from '../ui/PublicHeader.jsx';
@@ -6,20 +6,39 @@ import heroBackdrop from '../assets/home-hero-soft-studio.png';
 
 const proofPoints = [
   {
-    icon: BrainCircuit,
-    title: 'Employers describe real work',
-    copy: 'Start with the actual problem: slow dashboards, auth cleanup, reporting, deployment friction, or production fixes.',
+    step: '01',
+    eyebrow: 'Problem in',
+    title: 'Employers explain the technical problem.',
+    copy: 'A hiring brief starts with the real work: auth cleanup, dashboard performance, reporting, deployment issues, or product features that need building.',
+    bullets: ['Real software problem', 'Stack and context', 'Hiring need in plain English'],
   },
   {
-    icon: Search,
-    title: 'SkillSignal extracts hiring signals',
-    copy: 'The brief becomes stack clues, proof requirements, problem types, gaps to probe, and smarter interview prompts.',
+    step: '02',
+    eyebrow: 'AI evaluation',
+    title: 'SkillSignal uses AI to read the brief and evaluate proof.',
+    copy: 'The system extracts stack clues, problem types, and proof requirements, then compares them against developer projects, screenshots, explanations, and linked work.',
+    bullets: ['Reads brief for signal', 'Maps proof requirements', 'Checks backed-up evidence'],
   },
   {
-    icon: ShieldCheck,
-    title: 'Developers are matched by proof',
-    copy: 'Projects, screenshots, explanations, links, and implementation depth matter more than polished keyword claims.',
+    step: '03',
+    eyebrow: 'Portfolio layer',
+    title: 'Developers present a technical portfolio with real proof.',
+    copy: 'Profiles are built for technical evaluation: projects, screenshots, implementation notes, tradeoffs, links, and the exact work a developer actually handled.',
+    bullets: ['Projects and screenshots', 'Technical explanations', 'Clear ownership and depth'],
   },
+  {
+    step: '04',
+    eyebrow: 'Best matches',
+    title: 'Employers get the best matched results and connect faster.',
+    copy: 'Instead of vague keyword filtering, employers receive ranked matches with fit reasons, while developers and employers connect inside one portfolio and discovery flow.',
+    bullets: ['Ranked by fit', 'Reasons behind each match', 'One space to connect'],
+  },
+];
+
+const matchSignals = [
+  'AI reads the employer brief',
+  'Proof-backed developer portfolios',
+  'Clear fit reasons for every match',
 ];
 
 const heroThoughts = [
@@ -56,6 +75,106 @@ const heroThoughts = [
 ];
 
 export default function Home() {
+  const processRef = useRef(null);
+  const [processProgress, setProcessProgress] = useState(0);
+  const [runnerProgress, setRunnerProgress] = useState(0);
+  const runnerProgressRef = useRef(0);
+
+  useEffect(() => {
+    let frameId = null;
+
+    const animateRunner = () => {
+      const current = runnerProgressRef.current;
+      const distance = processProgress - current;
+
+      if (Math.abs(distance) < 0.002) {
+        runnerProgressRef.current = processProgress;
+        setRunnerProgress(processProgress);
+        frameId = null;
+        return;
+      }
+
+      const next = current + distance * 0.11;
+      runnerProgressRef.current = next;
+      setRunnerProgress(next);
+      frameId = window.requestAnimationFrame(animateRunner);
+    };
+
+    frameId = window.requestAnimationFrame(animateRunner);
+
+    return () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, [processProgress]);
+
+  useEffect(() => {
+    const element = processRef.current;
+    if (!element || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return undefined;
+    }
+
+    let frameId = null;
+
+    const updateProgress = () => {
+      const rect = element.getBoundingClientRect();
+      const shell = element.querySelector('.how-it-works-shell');
+      const stickyTop = 80;
+      const shellHeight = shell?.getBoundingClientRect().height ?? window.innerHeight;
+      const scrollableDistance = rect.height - shellHeight;
+
+      if (scrollableDistance <= 0) {
+        setProcessProgress(0);
+        frameId = null;
+        return;
+      }
+
+      const rawProgressDistance = stickyTop - rect.top;
+      const endpointBuffer = Math.min(260, scrollableDistance * 0.16);
+      const animatedDistance = Math.max(scrollableDistance - endpointBuffer * 2, 1);
+      const nextProgress = Math.min(Math.max((rawProgressDistance - endpointBuffer) / animatedDistance, 0), 1);
+      setProcessProgress((current) => (Math.abs(current - nextProgress) > 0.002 ? nextProgress : current));
+      frameId = null;
+    };
+
+    const requestProgressUpdate = () => {
+      if (frameId !== null) {
+        return;
+      }
+
+      frameId = window.requestAnimationFrame(updateProgress);
+    };
+
+    requestProgressUpdate();
+    window.addEventListener('scroll', requestProgressUpdate, { passive: true });
+    window.addEventListener('resize', requestProgressUpdate);
+
+    return () => {
+      window.removeEventListener('scroll', requestProgressUpdate);
+      window.removeEventListener('resize', requestProgressUpdate);
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, []);
+
+  const activeStep =
+    processProgress < 0.24 ? 0 : processProgress < 0.58 ? 1 : processProgress < 0.92 ? 2 : 3;
+  const borderOffset = 0;
+  const runnerPercentX =
+    runnerProgress < 1 / 3
+      ? (runnerProgress / (1 / 3)) * 100
+      : runnerProgress < 2 / 3
+        ? 100
+        : 100 - (((runnerProgress - 2 / 3) / (1 / 3)) * 100);
+  const runnerPercentY =
+    runnerProgress < 1 / 3
+      ? 0
+      : runnerProgress < 2 / 3
+        ? ((runnerProgress - 1 / 3) / (1 / 3)) * 100
+        : 100;
+
   return (
     <main className="public-page public-page-home">
       <PublicHeader />
@@ -104,8 +223,16 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="landing-section how-it-works-section">
-        <div className="how-it-works-shell">
+      <section className="landing-section how-it-works-section" ref={processRef}>
+        <div className="how-it-works-shell how-it-works-shell-story">
+          <span
+            className="how-it-works-runner"
+            aria-hidden="true"
+            style={{
+              left: `calc(${borderOffset}px + (${runnerPercentX} * ((100% - ${borderOffset * 2}px) / 100)))`,
+              top: `calc(${borderOffset}px + (${runnerPercentY} * ((100% - ${borderOffset * 2}px) / 100)))`,
+            }}
+          />
           <div className="section-heading how-it-works-heading">
             <div>
               <p className="eyebrow">How it works</p>
@@ -116,19 +243,61 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="audience-grid proof-grid proof-grid-elevated">
-            {proofPoints.map((item) => {
-              const Icon = item.icon;
-              return (
-                <article className="audience-panel audience-panel-elevated" key={item.title}>
-                  <div className="proof-icon-shell">
-                    <Icon size={22} />
-                  </div>
-                  <h2>{item.title}</h2>
-                  <p>{item.copy}</p>
-                </article>
-              );
-            })}
+          <div className="how-it-works-grid how-it-works-story-grid">
+            <div className="how-it-works-story-panel">
+              <div className="how-it-works-step-list" aria-label="Process steps">
+                {proofPoints.map((item, index) => (
+                  <article className={`how-it-works-step ${index === activeStep ? 'active' : ''}`} key={item.step}>
+                    <div className="how-it-works-step-top">
+                      <span className="how-it-works-number">{item.step}</span>
+                      <p className="eyebrow">{item.eyebrow}</p>
+                    </div>
+                    <h3>{item.title}</h3>
+                    <p>{item.copy}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <aside className="how-it-works-outcome" aria-label="How SkillSignal turns a brief into better matches">
+              <div className="how-it-works-outcome-head">
+                <div className="proof-icon-shell">
+                  <BrainCircuit size={22} />
+                </div>
+                <div>
+                  <p className="eyebrow">What the product does</p>
+                  <h3>Explain the problem, get the best matched results.</h3>
+                </div>
+              </div>
+
+              <p className="how-it-works-outcome-copy">
+                SkillSignal gives both sides a place to present and evaluate technical work. Developers build proof-rich portfolios. Employers describe what needs solving and receive ranked matches shaped by AI plus backed-up evidence.
+              </p>
+
+              <div className="how-it-works-signal-list" aria-hidden="true">
+                {matchSignals.map((signal) => (
+                  <span key={signal}>{signal}</span>
+                ))}
+              </div>
+
+              <div className="how-it-works-result-card">
+                <p className="eyebrow">Match output</p>
+                <ul className="feature-list how-it-works-result-list">
+                  <li>
+                    <Search size={18} />
+                    <span>Brief turns into stack, proof, and problem signals</span>
+                  </li>
+                  <li>
+                    <ShieldCheck size={18} />
+                    <span>AI scores fit using real project evidence, not vague keywords</span>
+                  </li>
+                  <li>
+                    <CheckCircle2 size={18} />
+                    <span>Employers review clearer profiles and connect faster</span>
+                  </li>
+                </ul>
+              </div>
+            </aside>
           </div>
         </div>
       </section>

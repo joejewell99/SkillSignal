@@ -40,7 +40,7 @@
   display: block;
   margin: 0;
   max-width: none;
-  min-height: min(calc(100svh - 72px), 860px);
+  min-height: calc(100svh - 72px);
   overflow: hidden;
   padding: 72px 0 24px;
   position: relative;
@@ -152,10 +152,13 @@
 }
 
 .hero-thought-clouds {
+  contain: layout paint style;
   inset: 0;
+  isolation: isolate;
   overflow: hidden;
   pointer-events: none;
   position: absolute;
+  transform: translateZ(0);
   z-index: 1;
 }
 
@@ -171,13 +174,13 @@
 
 .thought-cloud {
   animation: thoughtStream var(--thought-duration, 22s) linear infinite;
-  backdrop-filter: blur(8px);
   background:
-    radial-gradient(circle at 28% 24%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.08) 42%, rgba(255, 255, 255, 0.03) 75%, rgba(255, 255, 255, 0.01) 100%);
+    radial-gradient(circle at 24% 22%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.08) 34%, rgba(255, 255, 255, 0.03) 68%, rgba(255, 255, 255, 0.01) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(216, 231, 246, 0.03));
   border: 1px solid rgba(231, 239, 248, 0.11);
   border-radius: 999px;
   box-shadow:
-    0 22px 54px rgba(1, 8, 14, 0.22),
+    0 14px 32px rgba(1, 8, 14, 0.16),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   left: auto;
   max-width: 280px;
@@ -186,8 +189,9 @@
   position: absolute;
   right: var(--thought-lane, 58%);
   top: 100%;
+  transform-origin: center;
   transform: translate3d(0, 0, 0);
-  will-change: opacity, transform;
+  will-change: transform;
   animation-delay: var(--thought-delay, 0s);
 }
 
@@ -358,8 +362,11 @@
 }
 
 .how-it-works-section {
-  margin-top: 10px;
-  padding-top: 0;
+  align-items: start;
+  margin-top: 0;
+  max-width: 1480px;
+  min-height: 230svh;
+  padding-top: 34px;
   position: relative;
   z-index: 3;
 }
@@ -373,8 +380,23 @@
   box-shadow: var(--shadow);
   display: grid;
   gap: 24px;
-  padding: 28px;
+  margin: 0 auto;
+  max-width: 1320px;
+  min-height: calc(100svh - 108px);
+  padding: 34px 38px;
+  position: sticky;
   scroll-margin-top: 96px;
+  top: 80px;
+  width: 100%;
+}
+
+.how-it-works-shell::before {
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, rgba(17, 87, 217, 0.18));
+  border-radius: 32px;
+  content: "";
+  inset: -1px;
+  pointer-events: none;
+  position: absolute;
 }
 
 .how-it-works-heading {
@@ -383,13 +405,172 @@
 
 .how-it-works-summary {
   color: var(--muted);
-  line-height: 1.65;
+  line-height: 1.5;
   margin: 0;
-  max-width: 420px;
+  max-width: 520px;
 }
 
 .proof-grid-elevated {
   gap: 18px;
+}
+
+.how-it-works-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+}
+
+.how-it-works-story-grid {
+  align-items: start;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.7fr);
+}
+
+.how-it-works-runner {
+  --runner-size: 18px;
+  background: linear-gradient(135deg, #ffffff, color-mix(in srgb, var(--primary) 32%, #ffffff));
+  border: 2px solid color-mix(in srgb, var(--primary) 58%, #ffffff);
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 8px rgba(17, 87, 217, 0.12),
+    0 12px 24px rgba(17, 87, 217, 0.2);
+  height: var(--runner-size);
+  position: absolute;
+  transform: translate(-50%, -50%) rotate(45deg);
+  transition:
+    border-color 240ms ease,
+    box-shadow 240ms ease;
+  width: var(--runner-size);
+  z-index: 3;
+}
+
+.how-it-works-story-panel {
+  display: grid;
+  min-height: 100%;
+  padding: 8px 0 0;
+  position: relative;
+  z-index: 1;
+}
+
+.how-it-works-step {
+  background: transparent;
+  border-left: 2px solid color-mix(in srgb, var(--line-strong) 72%, rgba(255, 255, 255, 0.12));
+  border-radius: 0;
+  box-shadow: none;
+  display: grid;
+  gap: 8px;
+  opacity: 0.46;
+  padding: 4px 0 4px 16px;
+  transition:
+    opacity 220ms ease,
+    border-color 220ms ease,
+    transform 220ms ease;
+}
+
+.how-it-works-step.active {
+  border-color: color-mix(in srgb, var(--primary) 54%, var(--line));
+  opacity: 1;
+  transform: translateX(6px);
+}
+
+.how-it-works-step-top {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.how-it-works-number {
+  align-items: center;
+  background: color-mix(in srgb, var(--primary) 10%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--line));
+  border-radius: 999px;
+  color: var(--primary);
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 800;
+  height: 30px;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  min-width: 30px;
+  padding: 0 9px;
+}
+
+.how-it-works-step .eyebrow,
+.how-it-works-outcome .eyebrow {
+  margin: 0;
+}
+
+.how-it-works-step h3,
+.how-it-works-outcome h3 {
+  font-size: 1.08rem;
+  line-height: 1.28;
+  margin: 0;
+}
+
+.how-it-works-step p:not(.eyebrow),
+.how-it-works-outcome-copy {
+  color: var(--muted);
+  line-height: 1.48;
+  margin: 0;
+}
+
+.how-it-works-step-list {
+  display: grid;
+  gap: 18px 22px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.how-it-works-outcome {
+  background:
+    radial-gradient(circle at top right, rgba(17, 87, 217, 0.1), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, rgba(17, 87, 217, 0.04)), color-mix(in srgb, var(--surface) 96%, rgba(255, 255, 255, 0.02))),
+    color-mix(in srgb, var(--surface) 98%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line-strong) 74%, rgba(255, 255, 255, 0.08));
+  border-radius: 28px;
+  box-shadow: 0 24px 56px rgba(9, 23, 35, 0.06);
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.how-it-works-outcome-head {
+  align-items: start;
+  display: flex;
+  gap: 14px;
+}
+
+.how-it-works-outcome-head .proof-icon-shell {
+  flex: 0 0 auto;
+}
+
+.how-it-works-signal-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.how-it-works-signal-list span {
+  background: color-mix(in srgb, var(--surface-strong) 82%, rgba(17, 87, 217, 0.04));
+  border: 1px solid color-mix(in srgb, var(--line-strong) 68%, rgba(255, 255, 255, 0.08));
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--ink) 76%, var(--muted));
+  font-size: 0.84rem;
+  font-weight: 700;
+  min-height: 30px;
+  padding: 6px 10px;
+}
+
+.how-it-works-result-card {
+  background: color-mix(in srgb, var(--surface-strong) 88%, rgba(17, 87, 217, 0.04));
+  border: 1px solid color-mix(in srgb, var(--line-strong) 66%, rgba(255, 255, 255, 0.1));
+  border-radius: 20px;
+  padding: 14px;
+}
+
+.how-it-works-result-list {
+  margin: 8px 0 0;
 }
 
 .landing-callout {
@@ -465,31 +646,39 @@
 @keyframes thoughtStream {
   0% {
     opacity: 0;
-    transform: translate3d(calc(var(--thought-drift, 0px) * -0.35), 12vh, 0) scale(0.94);
+    transform: translate3d(calc(var(--thought-drift, 0px) * -0.18), 10vh, 0) scale(0.965);
   }
 
-  10% {
-    opacity: 0.16;
+  14% {
+    opacity: 0.28;
   }
 
-  24% {
-    opacity: 0.72;
-    transform: translate3d(calc(var(--thought-drift, 0px) * 0.2), -18vh, 0) scale(1);
+  30% {
+    opacity: 0.68;
+    transform: translate3d(calc(var(--thought-drift, 0px) * 0.3), -24vh, 0) scale(1);
   }
 
-  52% {
-    opacity: 0.58;
-    transform: translate3d(var(--thought-drift, 0px), -46vh, 0) scale(1.02);
-  }
-
-  76% {
-    opacity: 0.24;
-    transform: translate3d(calc(var(--thought-drift, 0px) * 0.58), -76vh, 0) scale(0.99);
+  68% {
+    opacity: 0.42;
+    transform: translate3d(calc(var(--thought-drift, 0px) * 0.82), -66vh, 0) scale(1.01);
   }
 
   100% {
     opacity: 0;
-    transform: translate3d(calc(var(--thought-drift, 0px) * 0.3), -108vh, 0) scale(0.94);
+    transform: translate3d(calc(var(--thought-drift, 0px) * 0.62), -108vh, 0) scale(0.975);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thought-cloud {
+    animation: none;
+    opacity: 0.14;
+    transform: none;
+  }
+
+  .how-it-works-runner,
+  .how-it-works-step {
+    transition: none;
   }
 }
 

@@ -44,7 +44,7 @@
   }
 
   .landing-hero-thoughts {
-    min-height: calc(100svh - 96px);
+    min-height: calc(100svh - 72px);
     padding: 34px 0 18px;
   }
 
@@ -113,14 +113,56 @@
 
   .how-it-works-section {
     margin-top: 8px;
+    min-height: auto;
   }
 
   .how-it-works-heading {
     align-items: flex-start;
   }
 
+  .how-it-works-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .how-it-works-story-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .how-it-works-step-list {
+    grid-template-columns: 1fr;
+  }
+
   .how-it-works-shell {
-    padding: 22px;
+    min-height: auto;
+    padding: 24px 22px;
+    position: relative;
+    top: auto;
+  }
+
+  .how-it-works-runner {
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  .how-it-works-step {
+    padding: 4px 0 4px 16px;
+  }
+
+  .how-it-works-step-top {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .how-it-works-outcome {
+    padding: 20px;
+  }
+
+  .how-it-works-outcome-head {
+    flex-direction: column;
+  }
+
+  .how-it-works-story-panel {
+    padding: 10px 0 0;
   }
 
   .signal-flow svg {
