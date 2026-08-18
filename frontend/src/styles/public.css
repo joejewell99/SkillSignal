@@ -40,9 +40,9 @@
   display: block;
   margin: 0;
   max-width: none;
-  min-height: min(86vh, 900px);
+  min-height: min(calc(100svh - 72px), 860px);
   overflow: hidden;
-  padding: 88px 0 46px;
+  padding: 72px 0 24px;
   position: relative;
   background: #071018;
 }
@@ -73,17 +73,17 @@
   inset: 0;
   margin: 0 auto;
   max-width: 1440px;
-  padding: 34px clamp(28px, 6vw, 88px) 56px;
+  padding: 24px clamp(28px, 6vw, 88px) 24px;
   position: relative;
   z-index: 2;
 }
 
 .hero-copy-frame {
   display: grid;
-  gap: 24px;
+  gap: 18px;
   max-width: 690px;
-  min-height: 350px;
-  padding: 30px 0 34px;
+  min-height: 0;
+  padding: 18px 0 20px;
   position: relative;
 }
 
@@ -136,8 +136,8 @@
 .hero-proof-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 0;
 }
 
 .hero-proof-strip span {
@@ -209,9 +209,9 @@
 .hero-side-note {
   align-self: end;
   display: grid;
-  gap: 16px;
+  gap: 12px;
   justify-self: end;
-  margin-bottom: 18px;
+  margin-bottom: 6px;
   max-width: 320px;
 }
 
@@ -224,7 +224,7 @@
 
 .hero-side-note p {
   color: rgba(232, 239, 245, 0.88);
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   line-height: 1.5;
   margin: 0;
   text-align: right;

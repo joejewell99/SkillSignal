@@ -44,19 +44,19 @@
   }
 
   .landing-hero-thoughts {
-    min-height: 74vh;
-    padding: 56px 0 32px;
+    min-height: calc(100svh - 96px);
+    padding: 34px 0 18px;
   }
 
   .hero-copy-thoughts {
     align-items: start;
-    padding: 18px 18px 28px;
+    padding: 10px 18px 14px;
   }
 
   .hero-copy-frame {
     min-height: 0;
     max-width: 100%;
-    padding: 18px 0 12px;
+    padding: 12px 0 8px;
   }
 
   .hero-copy-thoughts h1 {
@@ -89,7 +89,7 @@
   .hero-side-note {
     justify-self: start;
     margin-bottom: 0;
-    margin-top: 18px;
+    margin-top: 10px;
     max-width: 240px;
   }
 
