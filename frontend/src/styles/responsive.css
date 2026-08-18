@@ -43,6 +43,86 @@
     padding-top: 54px;
   }
 
+  .landing-hero-thoughts {
+    min-height: 74vh;
+    padding: 56px 0 32px;
+  }
+
+  .hero-copy-thoughts {
+    align-items: start;
+    padding: 18px 18px 28px;
+  }
+
+  .hero-copy-frame {
+    min-height: 0;
+    max-width: 100%;
+    padding: 18px 0 12px;
+  }
+
+  .hero-copy-thoughts h1 {
+    font-size: clamp(2.45rem, 9.8vw, 3.6rem);
+    max-width: none;
+  }
+
+  .hero-answer {
+    font-size: 0.96rem;
+  }
+
+  .hero-thought-clouds {
+    opacity: 0.72;
+  }
+
+  .thought-cloud {
+    max-width: 170px;
+    right: clamp(6px, var(--thought-lane, 70%), 64%);
+    padding: 12px 14px;
+  }
+
+  .thought-cloud:nth-child(n + 13) {
+    display: none;
+  }
+
+  .thought-cloud p {
+    font-size: 0.72rem;
+  }
+
+  .hero-side-note {
+    justify-self: start;
+    margin-bottom: 0;
+    margin-top: 18px;
+    max-width: 240px;
+  }
+
+  .hero-side-note p {
+    text-align: left;
+  }
+
+  .hero-proof-strip {
+    gap: 8px;
+  }
+
+  .hero-proof-strip span {
+    width: 100%;
+  }
+
+  .hero-backdrop-overlay {
+    background:
+      linear-gradient(180deg, rgba(5, 12, 18, 0.78) 0%, rgba(5, 12, 18, 0.64) 42%, rgba(5, 12, 18, 0.76) 100%),
+      linear-gradient(180deg, rgba(5, 12, 18, 0.12), rgba(5, 12, 18, 0.22) 72%, rgba(245, 247, 250, 0.1) 100%);
+  }
+
+  .how-it-works-section {
+    margin-top: 8px;
+  }
+
+  .how-it-works-heading {
+    align-items: flex-start;
+  }
+
+  .how-it-works-shell {
+    padding: 22px;
+  }
+
   .signal-flow svg {
     display: none;
   }
