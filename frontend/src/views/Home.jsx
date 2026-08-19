@@ -189,7 +189,7 @@ const homeSections = [
   { id: 'home', label: 'Home' },
   { id: 'why-skillsignal', label: 'Why SkillSignal' },
   { id: 'how-it-works', label: 'How it works' },
-  { id: 'try-it-out', label: 'Try it out' },
+  { id: 'try-it-out', label: 'Get started' },
 ];
 
 export default function Home() {
