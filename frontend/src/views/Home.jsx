@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { BrainCircuit, CheckCircle2, Search, ShieldCheck } from 'lucide-react';
 import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
+import { apiRequest } from '../api/client.js';
 import heroBackdrop from '../assets/home-hero-soft-studio.png';
 
 const proofPoints = [
@@ -85,19 +86,26 @@ const whyOutcomes = [
 
 const tryCards = [
   {
+    title: "I'm a developer",
+    copy: 'Describe what you know, what you have built, and the kind of employer or work you want to find.',
+    bullets: ['Create a developer account', 'Build a proof-rich profile', 'Find employers that match your skills'],
+    action: 'Create developer account',
+    to: '/register?role=DEVELOPER',
+  },
+  {
+    title: "I'm hiring",
+    copy: 'Describe the role, stack, and software problem you need solved, then find candidates with relevant proof.',
+    bullets: ['Create an employer account', 'Describe the work in plain English', 'Find candidates by evidence'],
+    action: 'Create employer account',
+    to: '/register?role=EMPLOYER',
+  },
+  {
     title: 'Try the AI matcher',
-    copy: 'Describe the developer you need and see proof-backed matches with clear fit reasoning.',
-    bullets: ['Write the brief in plain English', 'AI extracts stack and problem signals', 'Review ranked developer matches'],
+    copy: 'Use a developer or employer brief to see how SkillSignal connects skills, needs, and project proof.',
+    bullets: ['Choose your search direction', 'Start from an example brief', 'Review matches with fit reasoning'],
     action: 'Try AI matcher',
     to: '/match',
     primary: true,
-  },
-  {
-    title: 'Create your profile',
-    copy: 'Build a developer portfolio that makes your projects easier to understand, evaluate, and discover.',
-    bullets: ['Add projects, screenshots, and links', 'Explain your role and decisions', 'Get noticed for proof, not buzzwords'],
-    action: 'Create account',
-    to: '/register',
   },
   {
     title: 'Browse proof-rich profiles',
@@ -108,7 +116,41 @@ const tryCards = [
   },
 ];
 
-const demoSignals = ['React dashboard', 'Spring Boot API', 'PostgreSQL', 'Auth flow', 'Clear project proof'];
+const demoBriefs = [
+  {
+    mode: 'employer',
+    person: 'Google Cloud',
+    role: 'Employer profile',
+    avatar: 'G',
+    label: 'Employer brief example',
+    copy: 'I am looking for developers with React, Spring Boot, PostgreSQL, and dashboard experience. I would like to see GitHub projects, deployed work, screenshots, or proof they have handled auth, APIs, data cleanup, or production fixes.',
+    signals: ['React', 'Spring Boot', 'PostgreSQL', 'Auth', 'Dashboard work'],
+    resultTitle: 'Joe · Full-stack developer',
+    resultCopy: 'Best fit for this need based on full-stack project evidence, backend work, and clear explanations of implementation decisions.',
+    proof: ['Spring Boot project', 'PostgreSQL work', 'Auth flow proof'],
+  },
+  {
+    mode: 'developer',
+    person: 'Joe',
+    role: 'Developer profile',
+    avatar: 'J',
+    label: 'Developer brief example',
+    copy: 'I am strongest with React, Python, SQL, APIs, and dashboard work. I am looking for employers hiring junior developers for data cleanup, admin screens, reporting tools, or full-stack projects where my GitHub work would be useful.',
+    signals: ['React', 'Python', 'SQL', 'APIs', 'Dashboard work'],
+    resultTitle: 'Google Cloud team',
+    resultCopy: 'A strong fit for dashboard, API, and developer-experience work based on the brief and Joe’s project proof.',
+    proof: ['Dashboard project', 'API integration', 'Clear technical notes'],
+  },
+];
+
+const gettingStartedMessages = [
+  'Describe what you know and want to build.',
+  'Explain the work you need help with.',
+  'Show the proof behind your skills.',
+  'Find a better fit, faster.',
+];
+
+const employerSampleMatchNames = ['Leah Haddad', 'Isla Mason', 'Mia Hernandez', 'Lena Baker', 'jojodev'];
 
 const heroThoughts = [
   'Why does junior tech hiring feel like sending a CV into a void?',
@@ -153,6 +195,11 @@ const homeSections = [
 export default function Home() {
   const processRef = useRef(null);
   const [activeHomeSection, setActiveHomeSection] = useState(0);
+  const [briefProfiles, setBriefProfiles] = useState({});
+  const [employerSampleMatches, setEmployerSampleMatches] = useState([]);
+  const [developerSampleMatches, setDeveloperSampleMatches] = useState([]);
+  const [briefMode, setBriefMode] = useState('developer');
+  const [gettingStartedIndex, setGettingStartedIndex] = useState(0);
   const [processProgress, setProcessProgress] = useState(0);
   const [runnerProgress, setRunnerProgress] = useState(0);
   const runnerProgressRef = useRef(0);
@@ -207,25 +254,59 @@ export default function Home() {
       return;
     }
 
-    if (sectionId === 'why-skillsignal') {
-      const element = document.getElementById(sectionId);
-      const headerHeight = document.querySelector('.site-header')?.getBoundingClientRect().height ?? 0;
+    const element = document.getElementById(sectionId);
+    const headerHeight = document.querySelector('.site-header')?.getBoundingClientRect().height ?? 0;
 
-      if (element) {
-        window.scrollTo({
-          top: element.getBoundingClientRect().top + window.scrollY - headerHeight,
-          behavior: 'smooth',
+    if (element) {
+      const pageTop = element.getBoundingClientRect().top + window.scrollY;
+      const sectionBottom = pageTop + element.getBoundingClientRect().height;
+      const topAligned = pageTop - headerHeight;
+      const bottomAligned = sectionBottom - window.innerHeight + 16;
+
+      window.scrollTo({
+        top: Math.max(topAligned, bottomAligned),
+        behavior: 'smooth',
+      });
+    }
+  };
+
+  useEffect(() => {
+    Promise.all([
+      apiRequest('/api/profiles?name=Google'),
+      apiRequest('/api/profiles?name=Joe'),
+      ...employerSampleMatchNames.map((name) => apiRequest(`/api/profiles?name=${encodeURIComponent(name)}`)),
+      apiRequest('/api/profiles?type=EMPLOYER'),
+    ])
+      .then(([googleProfiles, joeProfiles, ...profileLists]) => {
+        const employerMatchLists = profileLists.slice(0, employerSampleMatchNames.length);
+        const employerProfiles = profileLists[employerSampleMatchNames.length] ?? [];
+        setBriefProfiles({
+          employer: googleProfiles.find((profile) => profile.name?.toLowerCase().includes('google')) ?? googleProfiles[0],
+          developer: joeProfiles.find((profile) => profile.name?.toLowerCase().includes('joe')) ?? joeProfiles[0],
         });
-      }
+        setEmployerSampleMatches(employerMatchLists.map((profiles, index) => (
+          profiles.find((profile) => profile.name?.toLowerCase() === employerSampleMatchNames[index].toLowerCase()) ?? profiles[0]
+        )).filter(Boolean));
+        setDeveloperSampleMatches(employerProfiles.slice(0, 5));
+      })
+      .catch(() => {
+        setBriefProfiles({});
+        setEmployerSampleMatches([]);
+        setDeveloperSampleMatches([]);
+      });
+  }, []);
 
-      return;
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return undefined;
     }
 
-    document.getElementById(sectionId)?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-  };
+    const intervalId = window.setInterval(() => {
+      setGettingStartedIndex((current) => (current + 1) % gettingStartedMessages.length);
+    }, 3200);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     let frameId = null;
@@ -321,6 +402,8 @@ export default function Home() {
       : runnerProgress < 2 / 3
         ? ((runnerProgress - 1 / 3) / (1 / 3)) * 100
         : 100;
+  const activeBrief = demoBriefs.find((brief) => brief.mode === briefMode) ?? demoBriefs[0];
+  const activeSampleMatches = activeBrief.mode === 'employer' ? employerSampleMatches : developerSampleMatches;
 
   return (
     <main className="public-page public-page-home">
@@ -372,10 +455,10 @@ export default function Home() {
 
         <div className="hero-copy hero-copy-thoughts">
           <div className="hero-copy-frame hero-copy-frame-dark">
-            <p className="eyebrow">Proof-based junior hiring</p>
-            <h1>Match junior developers to real software work by proof, not keywords.</h1>
+            <p className="eyebrow">Proof-based early-stage hiring</p>
+            <h1>Match developers to real software work by proof, not resumes.</h1>
             <p className="hero-answer">
-              SkillSignal gives technical hiring a place where projects, screenshots, explanations, and proof of work are presented clearly, while employers search by the real problems they need solved instead of throwing resumes into a vague job-board abyss.
+              SkillSignal gives early-stage developers a place to package real technical evidence, while helping employers find people whose work matches the problems they need solved.
             </p>
             <div className="hero-actions">
               <Link className="primary-button" to="/match">Try AI match</Link>
@@ -391,7 +474,6 @@ export default function Home() {
 
       <section className="landing-section why-skillsignal-section" id="why-skillsignal">
         <div className="why-signal-shell">
-          <p className="eyebrow why-section-kicker">Why SkillSignal</p>
           <div className="why-skillsignal-heading">
             <h2>Why use SkillSignal?</h2>
             <p className="why-signal-lead">
@@ -529,34 +611,82 @@ export default function Home() {
         <div className="try-it-out-shell">
           <div className="try-it-out-hero">
             <div className="try-it-out-copy">
-              <p className="eyebrow">Try it out</p>
-              <h2>Choose where you want to start.</h2>
+              <h2>Choose where you want to start</h2>
               <p>
                 Employers can test the AI matcher with a real hiring problem. Developers can create a profile, add proof, and start getting noticed for what they can actually build.
               </p>
+              <div className="getting-started-strip" aria-live="polite">
+                <span className="getting-started-message" key={gettingStartedIndex}>
+                  {gettingStartedMessages[gettingStartedIndex]}
+                </span>
+              </div>
             </div>
 
-            <aside className="try-match-preview" aria-label="Example SkillSignal match preview">
-              <div className="try-match-window">
-                <div className="signal-board-header" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
+            <aside className="try-match-preview" aria-label="Example SkillSignal briefs">
+              <article className="try-brief-card try-brief-card-active">
+                <div className="try-demo-author">
+                  {briefProfiles[activeBrief.mode]?.image ? (
+                    <img
+                      className={`try-demo-avatar try-demo-avatar-${activeBrief.mode}`}
+                      src={briefProfiles[activeBrief.mode].image}
+                      alt={`${activeBrief.person} profile`}
+                    />
+                  ) : (
+                    <span className={`try-demo-avatar try-demo-avatar-${activeBrief.mode}`} aria-hidden="true">{activeBrief.avatar}</span>
+                  )}
+                  <div>
+                    <strong>{activeBrief.person}</strong>
+                    <span>{activeBrief.role}</span>
+                  </div>
+                  <span className="try-demo-label">{activeBrief.label}</span>
+                  <div className="try-brief-filter" aria-label="Choose an example brief">
+                    {demoBriefs.map((brief) => (
+                      <button
+                        className={`${briefMode === brief.mode ? 'active ' : ''}${brief.mode}`}
+                        key={brief.mode}
+                        onClick={() => setBriefMode(brief.mode)}
+                        type="button"
+                      >
+                        {brief.mode === 'developer' ? 'Developer' : 'Employer'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <p className="eyebrow">Employer brief</p>
-                <p className="try-match-brief">
-                  Need a junior full-stack developer for auth, dashboards, API work, and PostgreSQL-backed features.
-                </p>
-                <div className="try-match-signals">
-                  {demoSignals.map((signal) => (
-                    <span key={signal}>{signal}</span>
-                  ))}
+                <p className="try-match-brief">{activeBrief.copy}</p>
+                <div className="try-match-signals" aria-label="Brief signals">
+                  {activeBrief.signals.map((signal) => <span key={signal}>{signal}</span>)}
                 </div>
-                <div className="try-match-result">
-                  <strong>Best match reason</strong>
-                  <p>Matched because the profile shows a full-stack dashboard, protected routes, Spring endpoints, database models, and implementation notes.</p>
+                <div className="try-demo-result">
+                  <div className="try-demo-result-heading">
+                    <div className="try-demo-result-kicker-row">
+                      <span className="try-demo-result-kicker">Best match · matched by proof</span>
+                      {activeSampleMatches.length > 0 && (
+                        <div className="try-demo-match-count">
+                          <div className="try-demo-match-avatars" aria-label="Five additional matched profiles">
+                            {activeSampleMatches.map((profile) => (
+                              profile.image ? (
+                                <img key={profile.id ?? profile.name} src={profile.image} alt={`${profile.name} profile`} />
+                              ) : (
+                                <span key={profile.id ?? profile.name} aria-hidden="true">
+                                  {profile.name?.slice(0, 2).toUpperCase()}
+                                </span>
+                              )
+                            ))}
+                          </div>
+                          <span>and 5 more matches</span>
+                        </div>
+                      )}
+                    </div>
+                    <strong>{activeBrief.resultTitle}</strong>
+                  </div>
+                  <p>{activeBrief.resultCopy}</p>
+                  <div className="try-demo-proof-row">
+                    <div className="try-demo-proof-list">
+                      {activeBrief.proof.map((item) => <span key={item}>{item}</span>)}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </article>
             </aside>
           </div>
 
@@ -582,13 +712,6 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="try-it-out-example" aria-label="Example employer brief">
-            <p className="eyebrow">The feeling we want</p>
-            <p>
-              Less guessing, less keyword theatre, fewer cold applications into the void. More visible proof, clearer reasons, and faster movement between developers and employers.
-            </p>
-            <span>SkillSignal turns technical work into a hiring signal people can actually use.</span>
-          </div>
         </div>
       </section>
       <PublicFooter />

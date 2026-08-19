@@ -128,18 +128,24 @@
   }
 
   .how-it-works-section {
-    margin-top: 8px;
+    margin-top: 40px;
     min-height: auto;
   }
 
   .why-skillsignal-section {
     min-height: auto;
-    padding-top: 34px;
+    margin-top: 0;
+    padding-top: 16px;
+    padding-bottom: 28px;
   }
 
   .why-signal-shell,
   .try-it-out-shell {
     min-height: auto;
+  }
+
+  .try-it-out-section {
+    margin-top: 40px;
   }
 
   .why-skillsignal-heading {
@@ -191,6 +197,32 @@
 
   .try-match-window {
     min-height: auto;
+  }
+
+  .try-brief-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .try-brief-filter {
+    margin-left: 0;
+    flex: 0 0 152px;
+    width: 152px;
+  }
+
+  .try-brief-filter button {
+    padding: 7px 4px;
+  }
+
+  .getting-started-strip {
+    align-items: center;
+    flex-direction: column;
+    gap: 0;
+    justify-self: center;
+    text-align: center;
+  }
+
+  .getting-started-message {
+    white-space: normal;
   }
 
   .try-card {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BriefcaseBusiness, Code2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext.jsx';
 
 const roleOptions = {
@@ -20,12 +20,15 @@ const roleOptions = {
 
 export default function Register() {
   const { register } = useAuth();
-  const [selectedRole, setSelectedRole] = useState(null);
+  const [searchParams] = useSearchParams();
+  const requestedRole = searchParams.get('role');
+  const initialRole = requestedRole === 'EMPLOYER' || requestedRole === 'DEVELOPER' ? requestedRole : null;
+  const [selectedRole, setSelectedRole] = useState(initialRole);
   const [form, setForm] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'DEVELOPER',
+    role: initialRole || 'DEVELOPER',
   });
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
