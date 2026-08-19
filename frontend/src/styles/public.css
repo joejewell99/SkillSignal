@@ -1,7 +1,9 @@
 .account-link {
   align-items: center;
-  border: 1px solid var(--line-strong);
-  border-radius: 6px;
+  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line-strong) 54%, transparent);
+  border-radius: 999px;
   display: inline-flex;
   gap: 8px;
   min-height: 40px;

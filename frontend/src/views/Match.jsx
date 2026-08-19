@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BrainCircuit, CheckCircle2, ChevronDown, ExternalLink, Info, LayoutGrid, List, Sparkles, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import { apiRequest } from '../api/client.js';
 import { useAuth } from '../state/AuthContext.jsx';
@@ -583,6 +584,7 @@ export default function Match() {
         </section>
       )}
 
+      <PublicFooter />
     </main>
   );
 }

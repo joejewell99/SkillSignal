@@ -13,6 +13,20 @@
     flex-wrap: wrap;
   }
 
+  .public-footer {
+    margin-top: 28px;
+  }
+
+  .public-footer-main,
+  .public-footer-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .public-footer-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .search-hero,
   .home-hero,
     .landing-hero,

@@ -3,6 +3,7 @@ import { Bookmark, ExternalLink, Github, MessageSquareText, Send, Star, UserPlus
 import { Link, useParams } from 'react-router-dom';
 import { apiRequest } from '../api/client.js';
 import { useAuth } from '../state/AuthContext.jsx';
+import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import ContactLinks from './components/profile/ContactLinks.jsx';
 import EmployerNeedsList from './components/profile/EmployerNeedsList.jsx';
@@ -852,6 +853,7 @@ export default function ProfileDetail() {
           </section>
         </section>
       )}
+      <PublicFooter />
     </main>
   );
 }

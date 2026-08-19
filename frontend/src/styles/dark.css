@@ -3,11 +3,15 @@
   background: #0d1216;
 }
 
-:root[data-theme="dark"] .site-header,
 :root[data-theme="dark"] .sidebar,
 :root[data-theme="dark"] .dashboard-topbar {
   background: rgba(17, 24, 29, 0.96);
   border-color: #26323a;
+}
+
+:root[data-theme="dark"] .site-header {
+  background: transparent;
+  border-color: transparent;
 }
 
 :root[data-theme="dark"] .site-brand,

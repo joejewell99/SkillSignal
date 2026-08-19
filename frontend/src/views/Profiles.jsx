@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ExternalLink, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import { apiRequest } from '../api/client.js';
 
@@ -223,6 +224,7 @@ export default function Profiles() {
           })}
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

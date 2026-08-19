@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BrainCircuit, CheckCircle2, Search, ShieldCheck } from 'lucide-react';
+import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import heroBackdrop from '../assets/home-hero-soft-studio.png';
 
@@ -590,6 +591,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

@@ -86,9 +86,9 @@ a {
 
 .site-header {
   align-items: center;
-  backdrop-filter: blur(18px);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  border-bottom: 1px solid var(--line);
+  backdrop-filter: none;
+  background: transparent;
+  border-bottom: 1px solid transparent;
   display: flex;
   gap: 24px;
   justify-content: space-between;
@@ -104,6 +104,7 @@ a {
   color: var(--ink);
   display: inline-flex;
   gap: 12px;
+  text-shadow: 0 1px 18px color-mix(in srgb, var(--surface) 88%, transparent);
 }
 
 .site-nav {
@@ -114,19 +115,98 @@ a {
 
 .site-nav a {
   color: var(--muted);
+  text-shadow: 0 1px 18px color-mix(in srgb, var(--surface) 88%, transparent);
   white-space: nowrap;
 }
 
 .theme-toggle {
   align-items: center;
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: 6px;
+  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line-strong) 54%, transparent);
+  border-radius: 999px;
   color: var(--ink);
   display: inline-flex;
   gap: 8px;
   font-weight: 800;
   min-height: 40px;
   padding: 8px 12px;
+}
+
+.public-footer {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 28px;
+  margin: 42px auto 0;
+  max-width: 1480px;
+  padding: 28px clamp(18px, 5vw, 56px) 34px;
+}
+
+.public-footer-main {
+  align-items: start;
+  display: grid;
+  gap: 42px;
+  grid-template-columns: minmax(280px, 1fr) minmax(420px, 0.85fr);
+}
+
+.public-footer-brand {
+  display: grid;
+  gap: 10px;
+}
+
+.public-footer-brand p {
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 420px;
+}
+
+.public-footer-columns {
+  display: grid;
+  gap: 26px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.public-footer-column {
+  display: grid;
+  gap: 10px;
+}
+
+.public-footer-column h2 {
+  color: var(--ink);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  margin: 0 0 2px;
+  text-transform: uppercase;
+}
+
+.public-footer-column a,
+.public-footer-bottom a {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.public-footer-column a:hover,
+.public-footer-bottom a:hover {
+  color: var(--primary);
+}
+
+.public-footer-bottom {
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.86rem;
+  gap: 16px;
+  justify-content: space-between;
+  padding-top: 18px;
+}
+
+.public-footer-bottom div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
 }
 
