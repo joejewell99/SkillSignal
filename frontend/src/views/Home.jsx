@@ -41,6 +41,74 @@ const matchSignals = [
   'Clear fit reasons for every match',
 ];
 
+const whyCards = [
+  {
+    eyebrow: 'CV problem',
+    title: 'CVs show claims. SkillSignal shows proof.',
+    copy: 'A CV can say a developer knows the stack, but it cannot show how they think or what they have actually built. SkillSignal puts the work itself at the centre of the profile.',
+  },
+  {
+    eyebrow: 'Employer pain',
+    title: 'Employers should search by problems, not job titles.',
+    copy: 'Most hiring tools start with labels and filters. SkillSignal starts with the issue an employer needs solved, then looks for developers whose project proof matches that work.',
+  },
+  {
+    eyebrow: 'Developer pain',
+    title: 'Good work gets scattered and overlooked.',
+    copy: 'Projects live across GitHub, portfolios, screenshots, notes, and demos. SkillSignal brings that evidence into one technical profile built for evaluation.',
+  },
+  {
+    eyebrow: 'AI shift',
+    title: 'AI connects the brief to the proof.',
+    copy: 'AI reads the employer brief, evaluates project evidence, and explains why a developer is relevant, so both sides can move with more confidence.',
+  },
+];
+
+const whyOutcomes = [
+  {
+    label: 'For developers',
+    badge: 'Shows credible proof',
+    value: 'Turns projects, screenshots, links, and explanations into a profile employers can evaluate.',
+  },
+  {
+    label: 'For employers',
+    badge: 'Highlights real talent',
+    value: 'Describe the issue once, then get credible developers whose project proof shows they can solve it.',
+  },
+  {
+    label: 'For matching',
+    badge: 'Builds valuable connections',
+    value: 'Removes guesswork by showing why a developer fits the problem, based on their actual project proof.',
+  },
+];
+
+const tryCards = [
+  {
+    title: 'Try the AI matcher',
+    copy: 'Describe the developer you need and see proof-backed matches with clear fit reasoning.',
+    bullets: ['Write the brief in plain English', 'AI extracts stack and problem signals', 'Review ranked developer matches'],
+    action: 'Try AI matcher',
+    to: '/match',
+    primary: true,
+  },
+  {
+    title: 'Create your profile',
+    copy: 'Build a developer portfolio that makes your projects easier to understand, evaluate, and discover.',
+    bullets: ['Add projects, screenshots, and links', 'Explain your role and decisions', 'Get noticed for proof, not buzzwords'],
+    action: 'Create account',
+    to: '/register',
+  },
+  {
+    title: 'Browse proof-rich profiles',
+    copy: 'Explore developers by projects, stack, evidence, and the kind of problems they can help solve.',
+    bullets: ['Inspect technical work quickly', 'Compare fit by evidence', 'Connect inside the same flow'],
+    action: 'Browse profiles',
+    to: '/profiles',
+  },
+];
+
+const demoSignals = ['React dashboard', 'Spring Boot API', 'PostgreSQL', 'Auth flow', 'Clear project proof'];
+
 const heroThoughts = [
   'Why does junior tech hiring feel like sending a CV into a void?',
   'Can I show real proof instead of just keywords?',
@@ -74,11 +142,89 @@ const heroThoughts = [
   'Can one platform handle proof, presentation, and pipeline together?',
 ];
 
+const homeSections = [
+  { id: 'home', label: 'Home' },
+  { id: 'why-skillsignal', label: 'Why SkillSignal' },
+  { id: 'how-it-works', label: 'How it works' },
+  { id: 'try-it-out', label: 'Try it out' },
+];
+
 export default function Home() {
   const processRef = useRef(null);
+  const [activeHomeSection, setActiveHomeSection] = useState(0);
   const [processProgress, setProcessProgress] = useState(0);
   const [runnerProgress, setRunnerProgress] = useState(0);
   const runnerProgressRef = useRef(0);
+
+  useEffect(() => {
+    let frameId = null;
+
+    const updateActiveSection = () => {
+      const triggerLine = window.scrollY + 120;
+      const nextSection = homeSections.reduce((current, section, index) => {
+        const element = document.getElementById(section.id);
+        if (!element) {
+          return current;
+        }
+
+        return element.offsetTop <= triggerLine ? index : current;
+      }, 0);
+
+      setActiveHomeSection(nextSection);
+      frameId = null;
+    };
+
+    const requestUpdate = () => {
+      if (frameId !== null) {
+        return;
+      }
+
+      frameId = window.requestAnimationFrame(updateActiveSection);
+    };
+
+    requestUpdate();
+    window.addEventListener('scroll', requestUpdate, { passive: true });
+    window.addEventListener('resize', requestUpdate);
+
+    return () => {
+      window.removeEventListener('scroll', requestUpdate);
+      window.removeEventListener('resize', requestUpdate);
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, []);
+
+  const handleSectionNavClick = (event, sectionId) => {
+    event.preventDefault();
+
+    if (sectionId === 'home') {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+      return;
+    }
+
+    if (sectionId === 'why-skillsignal') {
+      const element = document.getElementById(sectionId);
+      const headerHeight = document.querySelector('.site-header')?.getBoundingClientRect().height ?? 0;
+
+      if (element) {
+        window.scrollTo({
+          top: element.getBoundingClientRect().top + window.scrollY - headerHeight,
+          behavior: 'smooth',
+        });
+      }
+
+      return;
+    }
+
+    document.getElementById(sectionId)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  };
 
   useEffect(() => {
     let frameId = null;
@@ -177,9 +323,33 @@ export default function Home() {
 
   return (
     <main className="public-page public-page-home">
+      <nav
+        className="home-section-nav"
+        aria-label="Home page sections"
+        style={{
+          '--home-nav-index': activeHomeSection,
+        }}
+      >
+        <span className="home-section-nav-line" aria-hidden="true" />
+        <span className="home-section-nav-dot" aria-hidden="true" />
+        <div className="home-section-nav-links">
+          {homeSections.map((section, index) => (
+            <a
+              className={index === activeHomeSection ? 'active' : ''}
+              href={`#${section.id}`}
+              key={section.id}
+              onClick={(event) => handleSectionNavClick(event, section.id)}
+            >
+              <span className="home-section-nav-mark" aria-hidden="true" />
+              <span className="home-section-nav-label">{section.label}</span>
+            </a>
+          ))}
+        </div>
+      </nav>
+
       <PublicHeader />
 
-      <section className="landing-hero landing-hero-thoughts">
+      <section className="landing-hero landing-hero-thoughts" id="home">
         <img className="hero-backdrop-image" src={heroBackdrop} alt="" aria-hidden="true" />
         <div className="hero-backdrop-overlay" aria-hidden="true" />
         <div className="hero-thought-clouds" aria-hidden="true">
@@ -210,11 +380,6 @@ export default function Home() {
               <Link className="primary-button" to="/match">Try AI match</Link>
               <Link className="secondary-button" to="/profiles">Browse profiles</Link>
             </div>
-            <div className="hero-proof-strip">
-              <span>Structured technical profiles</span>
-              <span>Problem-based employer search</span>
-              <span>Proof-rich matching flow</span>
-            </div>
           </div>
           <div className="hero-side-note" aria-hidden="true">
             <span className="hero-side-note-line" />
@@ -223,7 +388,64 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="landing-section how-it-works-section" ref={processRef}>
+      <section className="landing-section why-skillsignal-section" id="why-skillsignal">
+        <div className="why-signal-shell">
+          <p className="eyebrow why-section-kicker">Why SkillSignal</p>
+          <div className="why-skillsignal-heading">
+            <h2>Why use SkillSignal?</h2>
+            <p className="why-signal-lead">
+              SkillSignal gives developers a place to package real technical evidence, and gives employers a faster way to find people who match the actual work.
+            </p>
+          </div>
+
+          <div className="why-signal-layout">
+            <article className="why-signal-feature">
+              <p className="eyebrow">The product idea</p>
+              <h3>Hiring should start with proof, not polished claims.</h3>
+              <p>
+                SkillSignal connects developers to employers through the work they can prove. Developers create a technical portfolio with project evidence. Employers explain the problem they need solved. The AI layer evaluates the brief against project evidence and returns matches with clear, traceable reasoning behind every recommendation.
+              </p>
+            </article>
+
+            <div className="why-signal-grid">
+              {whyCards.map((card) => (
+                <article className="why-signal-card" key={card.title} tabIndex={0}>
+                  <div className="why-signal-card-inner">
+                    <div className="why-signal-card-face why-signal-card-front">
+                      <p className="eyebrow">{card.eyebrow}</p>
+                      <span className="why-signal-flip-hint">Flip for context</span>
+                    </div>
+                    <div className="why-signal-card-face why-signal-card-back">
+                      <div className="why-signal-card-top">
+                        <p className="eyebrow">{card.eyebrow}</p>
+                      </div>
+                      <h3>{card.title}</h3>
+                      <p>{card.copy}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <article className="why-signal-proof">
+            <div>
+              <p className="eyebrow">What it solves</p>
+            </div>
+            <div className="why-outcome-grid">
+              {whyOutcomes.map((outcome) => (
+                <div className="why-outcome" key={outcome.label}>
+                  <span className="why-outcome-label">{outcome.label}</span>
+                  <strong className="why-outcome-badge">{outcome.badge}</strong>
+                  <p>{outcome.value}</p>
+                </div>
+              ))}
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section className="landing-section how-it-works-section" id="how-it-works" ref={processRef}>
         <div className="how-it-works-shell how-it-works-shell-story">
           <span
             className="how-it-works-runner"
@@ -302,30 +524,71 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="landing-section">
-        <article className="workspace-panel landing-callout landing-callout-elevated">
-          <div>
-            <p className="eyebrow">For junior developers</p>
-            <h2>Show what you can actually handle</h2>
-            <p className="subtle">
-              Profiles are built around projects, evidence links, stack choices, tradeoffs, and clear explanations of what you personally built.
-            </p>
+      <section className="landing-section try-it-out-section" id="try-it-out">
+        <div className="try-it-out-shell">
+          <div className="try-it-out-hero">
+            <div className="try-it-out-copy">
+              <p className="eyebrow">Try it out</p>
+              <h2>Choose where you want to start.</h2>
+              <p>
+                Employers can test the AI matcher with a real hiring problem. Developers can create a profile, add proof, and start getting noticed for what they can actually build.
+              </p>
+            </div>
+
+            <aside className="try-match-preview" aria-label="Example SkillSignal match preview">
+              <div className="try-match-window">
+                <div className="signal-board-header" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+                <p className="eyebrow">Employer brief</p>
+                <p className="try-match-brief">
+                  Need a junior full-stack developer for auth, dashboards, API work, and PostgreSQL-backed features.
+                </p>
+                <div className="try-match-signals">
+                  {demoSignals.map((signal) => (
+                    <span key={signal}>{signal}</span>
+                  ))}
+                </div>
+                <div className="try-match-result">
+                  <strong>Best match reason</strong>
+                  <p>Matched because the profile shows a full-stack dashboard, protected routes, Spring endpoints, database models, and implementation notes.</p>
+                </div>
+              </div>
+            </aside>
           </div>
-          <ul className="feature-list">
-            <li>
-              <CheckCircle2 size={18} />
-              <span>Turn projects into hiring evidence</span>
-            </li>
-            <li>
-              <CheckCircle2 size={18} />
-              <span>Understand which roles you are close to</span>
-            </li>
-            <li>
-              <CheckCircle2 size={18} />
-              <span>Get matched to employer problems, not vague job titles</span>
-            </li>
-          </ul>
-        </article>
+
+          <div className="try-card-grid">
+            {tryCards.map((card) => (
+              <article className={`try-card ${card.primary ? 'try-card-primary' : ''}`} key={card.title}>
+                <div>
+                  <h3>{card.title}</h3>
+                  <p>{card.copy}</p>
+                </div>
+                <ul className="try-card-list">
+                  {card.bullets.map((bullet) => (
+                    <li key={bullet}>
+                      <CheckCircle2 size={16} />
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link className={card.primary ? 'primary-button' : 'secondary-button'} to={card.to}>
+                  {card.action}
+                </Link>
+              </article>
+            ))}
+          </div>
+
+          <div className="try-it-out-example" aria-label="Example employer brief">
+            <p className="eyebrow">The feeling we want</p>
+            <p>
+              Less guessing, less keyword theatre, fewer cold applications into the void. More visible proof, clearer reasons, and faster movement between developers and employers.
+            </p>
+            <span>SkillSignal turns technical work into a hiring signal people can actually use.</span>
+          </div>
+        </div>
       </section>
     </main>
   );

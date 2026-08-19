@@ -1,4 +1,8 @@
 @media (max-width: 800px) {
+  .home-section-nav {
+    display: none;
+  }
+
   .site-header,
   .section-heading {
     align-items: flex-start;
@@ -11,12 +15,18 @@
 
   .search-hero,
   .home-hero,
-  .landing-hero,
-  .tool-hero,
-  .proof-grid,
-  .landing-callout,
-  .signal-flow,
-  .directory-metrics,
+    .landing-hero,
+    .tool-hero,
+    .proof-grid,
+    .why-signal-layout,
+    .why-signal-grid,
+    .why-signal-proof,
+    .why-outcome-grid,
+    .try-it-out-hero,
+    .try-card-grid,
+    .landing-callout,
+    .signal-flow,
+    .directory-metrics,
   .match-columns,
   .developer-grid,
   .profile-grid,
@@ -97,14 +107,6 @@
     text-align: left;
   }
 
-  .hero-proof-strip {
-    gap: 8px;
-  }
-
-  .hero-proof-strip span {
-    width: 100%;
-  }
-
   .hero-backdrop-overlay {
     background:
       linear-gradient(180deg, rgba(5, 12, 18, 0.78) 0%, rgba(5, 12, 18, 0.64) 42%, rgba(5, 12, 18, 0.76) 100%),
@@ -113,6 +115,71 @@
 
   .how-it-works-section {
     margin-top: 8px;
+    min-height: auto;
+  }
+
+  .why-skillsignal-section {
+    min-height: auto;
+    padding-top: 34px;
+  }
+
+  .why-signal-shell,
+  .try-it-out-shell {
+    min-height: auto;
+  }
+
+  .why-skillsignal-heading {
+    align-items: center;
+    text-align: center;
+  }
+
+  .why-skillsignal-heading h2,
+  .why-signal-feature h3 {
+    max-width: none;
+  }
+
+  .why-signal-feature {
+    min-height: auto;
+  }
+
+  .why-signal-card {
+    min-height: auto;
+  }
+
+  .why-signal-card-inner {
+    min-height: auto;
+    transform: none;
+  }
+
+  .why-signal-card:hover .why-signal-card-inner,
+  .why-signal-card:focus-visible .why-signal-card-inner {
+    transform: none;
+  }
+
+  .why-signal-card-front {
+    display: none;
+  }
+
+  .why-signal-card-back {
+    min-height: auto;
+    position: relative;
+    transform: none;
+  }
+
+  .try-it-out-section {
+    padding-bottom: 48px;
+    min-height: auto;
+  }
+
+  .try-it-out-copy h2 {
+    max-width: none;
+  }
+
+  .try-match-window {
+    min-height: auto;
+  }
+
+  .try-card {
     min-height: auto;
   }
 
