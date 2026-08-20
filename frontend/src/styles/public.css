@@ -1,13 +1,78 @@
-.account-link {
+.account-cluster {
   align-items: center;
-  backdrop-filter: blur(14px);
-  background: color-mix(in srgb, var(--surface) 42%, transparent);
-  border: 1px solid color-mix(in srgb, var(--line-strong) 54%, transparent);
-  border-radius: 999px;
   display: inline-flex;
-  gap: 8px;
-  min-height: 40px;
-  padding: 8px 12px;
+  gap: 14px;
+  position: relative;
+}
+
+.dashboard-link {
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
+}
+
+.account-avatar-link {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  padding: 0;
+  transition: transform 180ms ease;
+}
+
+.account-avatar-link:hover,
+.account-avatar-link:focus-visible {
+  transform: translateY(-2px) scale(1.04);
+}
+
+.account-menu {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+  min-width: 148px;
+  padding: 6px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 20;
+}
+
+.account-menu-settings,
+.account-menu-signout {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.86rem;
+  font-weight: 800;
+  gap: 7px;
+  justify-content: flex-start;
+  min-height: 34px;
+  padding: 8px 10px;
+  width: 100%;
+  transition:
+    background 180ms ease,
+    color 180ms ease;
+}
+
+.account-menu-settings:hover,
+.account-menu-settings:focus-visible {
+  background: var(--signal-soft);
+  color: var(--primary);
+}
+
+.account-menu-signout {
+  color: #b33a3a;
+}
+
+.account-menu-signout:hover,
+.account-menu-signout:focus-visible {
+  background: #fff0f0;
+  color: #9d2424;
 }
 
 html {
@@ -80,7 +145,7 @@ html {
   letter-spacing: 0.08em;
   min-height: 34px;
   text-transform: uppercase;
-  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.45);
+  text-shadow: none;
   transition:
     color 180ms ease,
     transform 180ms ease;
@@ -165,6 +230,39 @@ html {
   padding: 72px 0 24px;
   position: relative;
   background: #071018;
+}
+
+.public-page-home .site-header {
+  left: 0;
+  position: sticky;
+  right: 0;
+  top: 0;
+  width: 100%;
+}
+
+.public-page-home .landing-hero-thoughts {
+  margin-top: -72px;
+  min-height: 100svh;
+  padding-top: 96px;
+}
+
+.public-page-home .hero-copy-thoughts {
+  padding-top: 108px;
+}
+
+:root:not([data-theme="dark"]) .public-page-home .site-brand,
+:root:not([data-theme="dark"]) .public-page-home .site-nav a,
+:root:not([data-theme="dark"]) .public-page-home .theme-toggle,
+:root:not([data-theme="dark"]) .public-page-home .dashboard-link {
+  color: #f5f8fc;
+  text-shadow: none;
+}
+
+:root:not([data-theme="dark"]) .public-page-home .site-nav a:hover,
+:root:not([data-theme="dark"]) .public-page-home .site-nav a:focus-visible,
+:root:not([data-theme="dark"]) .public-page-home .theme-toggle:hover,
+:root:not([data-theme="dark"]) .public-page-home .theme-toggle:focus-visible {
+  color: #ffffff;
 }
 
 .hero-backdrop-image,
@@ -570,7 +668,7 @@ html {
 .why-signal-feature:hover,
 .why-signal-feature:focus-within {
   border-color: color-mix(in srgb, var(--primary) 44%, var(--line-strong));
-  box-shadow: 0 14px 30px color-mix(in srgb, var(--ink) 10%, transparent);
+  box-shadow: none;
   transform: translateY(-3px);
 }
 
@@ -1018,7 +1116,7 @@ html {
     linear-gradient(180deg, color-mix(in srgb, var(--primary) 4%, transparent), transparent 120px),
     color-mix(in srgb, var(--surface) 97%, transparent);
   border-radius: 24px;
-  box-shadow: 0 24px 70px rgba(9, 23, 35, 0.08);
+  box-shadow: none;
   gap: 16px;
   padding: 24px;
 }
@@ -1039,7 +1137,7 @@ html {
     radial-gradient(circle at top right, rgba(17, 87, 217, 0.12), transparent 34%),
     color-mix(in srgb, var(--surface) 97%, transparent);
   border-radius: 28px;
-  box-shadow: 0 30px 80px rgba(9, 23, 35, 0.09);
+  box-shadow: none;
   padding: 28px;
 }
 
@@ -1209,7 +1307,7 @@ html {
 .try-brief-card:hover,
 .try-brief-card:focus-within {
   border-color: rgba(189, 216, 255, 0.48);
-  box-shadow: 0 12px 28px rgba(6, 17, 27, 0.16);
+  box-shadow: none;
   transform: translateY(-3px);
 }
 
@@ -1440,9 +1538,7 @@ html {
     rgba(255, 255, 255, 0.075);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 28px;
-  box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  box-shadow: none;
   display: grid;
   gap: 14px;
   min-height: 100%;
@@ -1518,7 +1614,7 @@ html {
 .try-card:hover,
 .try-card:focus-within {
   border-color: rgba(189, 216, 255, 0.48);
-  box-shadow: 0 16px 34px rgba(6, 17, 27, 0.16);
+  box-shadow: none;
   transform: translateY(-4px);
 }
 
@@ -1669,7 +1765,7 @@ html {
     linear-gradient(180deg, color-mix(in srgb, var(--primary) 5%, transparent), transparent 90px),
     var(--surface);
   border-color: var(--line-strong);
-  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
+  box-shadow: none;
   gap: 16px;
   padding: 22px;
 }

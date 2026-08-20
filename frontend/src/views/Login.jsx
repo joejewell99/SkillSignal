@@ -4,8 +4,8 @@ import { useAuth } from '../state/AuthContext.jsx';
 
 export default function Login() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('admin@skillsignal.dev');
-  const [password, setPassword] = useState('Admin123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,11 +38,24 @@ export default function Login() {
         <form className="form" onSubmit={handleSubmit}>
           <label>
             Email
-            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />
+            <input
+              autoComplete="email"
+              placeholder="JordanBlake@example.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              type="email"
+              required
+            />
           </label>
           <label>
             Password
-            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required />
+            <input
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              type="password"
+              required
+            />
           </label>
           {status && <p className="success">{status}</p>}
           {error && <p className="error">{error}</p>}

@@ -221,6 +221,7 @@ export default function ProfileDetail() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [messageDraft, setMessageDraft] = useState('');
   const [messagePreviewStatus, setMessagePreviewStatus] = useState('');
+  const [isMessagePreviewStatusLeaving, setIsMessagePreviewStatusLeaving] = useState(false);
   const [isMessageComposerOpen, setIsMessageComposerOpen] = useState(false);
   const [savedCandidateId, setSavedCandidateId] = useState(null);
   const [saveMessage, setSaveMessage] = useState('');
@@ -380,6 +381,8 @@ export default function ProfileDetail() {
         body: JSON.stringify({ receiverProfileId: profile.id }),
       });
       setConnectionStatus(connection.status);
+      setConnectionId(connection.id);
+      setConnectionDirection('OUTGOING');
       setConnectionMessage(connection.status === 'ACCEPTED' ? 'Connected' : 'Request sent');
       window.setTimeout(() => setIsConnectionMessageLeaving(true), 1200);
       window.setTimeout(() => setConnectionMessage(''), 1800);
@@ -496,6 +499,8 @@ export default function ProfileDetail() {
     if (!messageDraft.trim()) {
       return;
     }
+    setMessagePreviewStatus('');
+    setIsMessagePreviewStatusLeaving(false);
     try {
       const messageEndpoint = user?.role === 'EMPLOYER'
         ? '/api/employer/messages'
@@ -508,9 +513,11 @@ export default function ProfileDetail() {
           body: messageDraft.trim(),
         }),
       });
-      setMessagePreviewStatus(`Conversation started with ${profile.name}.`);
+      setMessagePreviewStatus('Message sent');
       setMessageDraft('');
       setIsMessageComposerOpen(false);
+      window.setTimeout(() => setIsMessagePreviewStatusLeaving(true), 1200);
+      window.setTimeout(() => setMessagePreviewStatus(''), 1800);
     } catch (err) {
       setMessagePreviewStatus(err.message);
     }
@@ -624,7 +631,7 @@ export default function ProfileDetail() {
                         {connectionStatus === 'ACCEPTED'
                           ? isConnecting ? 'Removing...' : 'Remove connection'
                           : connectionStatus === 'PENDING' && connectionDirection === 'OUTGOING'
-                            ? 'Request sent'
+                              ? 'Cancel request'
                           : isConnecting ? 'Sending request...' : 'Connect'}
                       </span>
                     </button>
@@ -675,7 +682,14 @@ export default function ProfileDetail() {
                       {connectionMessage}
                     </p>
                   )}
-                  {messagePreviewStatus && <p className="connection-toast">{messagePreviewStatus}</p>}
+                  {messagePreviewStatus && (
+                    <p className={messagePreviewStatus === 'Message sent'
+                      ? `connection-toast ${isMessagePreviewStatusLeaving ? 'leaving' : ''}`
+                      : 'error'}
+                    >
+                      {messagePreviewStatus}
+                    </p>
+                  )}
                   {saveMessage && (
                     <p className={
                       saveMessage.includes('not')

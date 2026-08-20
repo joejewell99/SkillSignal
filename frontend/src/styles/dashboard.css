@@ -1,3 +1,17 @@
+.app-shell > .site-header {
+  align-self: start;
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  border-bottom-color: var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.app-shell .site-brand,
+.app-shell .site-nav a {
+  text-shadow: none;
+}
+
 .dashboard-topbar {
   align-items: center;
   border-bottom: 1px solid var(--line);
@@ -737,7 +751,7 @@
 .message-thread-card:hover {
   background: color-mix(in srgb, var(--primary) 5%, var(--surface-strong));
   border-color: color-mix(in srgb, var(--primary) 20%, var(--line));
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 10%, transparent);
+  box-shadow: none;
   transform: translateY(-1px);
 }
 
@@ -761,9 +775,7 @@
 
 .message-thread-card.active:hover {
   background: color-mix(in srgb, var(--primary) 7%, var(--surface));
-  box-shadow:
-    inset 3px 0 0 color-mix(in srgb, var(--primary) 80%, transparent),
-    0 12px 28px color-mix(in srgb, var(--primary) 12%, transparent);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--primary) 80%, transparent);
 }
 
 .message-favorite-button {
@@ -1053,7 +1065,7 @@
 .chat-message-image-button:hover .chat-message-image,
 .chat-message-image-button:focus-visible .chat-message-image {
   border-color: color-mix(in srgb, var(--primary) 52%, var(--line));
-  box-shadow: 0 10px 22px color-mix(in srgb, var(--primary) 14%, transparent);
+  box-shadow: none;
 }
 
 .chat-image-lightbox {

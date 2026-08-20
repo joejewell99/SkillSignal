@@ -55,7 +55,7 @@
 :root[data-theme="dark"] .segmented-control {
   background: #11181d;
   border-color: #26323a;
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.24);
+  box-shadow: none;
 }
 
 :root[data-theme="dark"] .hero-copy p:not(.eyebrow),
@@ -78,6 +78,16 @@
   color: #a9b7c1;
 }
 
+:root[data-theme="dark"] .app-shell .workspace-panel,
+:root[data-theme="dark"] .app-shell .developer-header,
+:root[data-theme="dark"] .app-shell .project-card,
+:root[data-theme="dark"] .app-shell .message-thread-panel,
+:root[data-theme="dark"] .app-shell .message-thread-card,
+:root[data-theme="dark"] .app-shell .feed-toolbar,
+:root[data-theme="dark"] .app-shell .feed-composer {
+  box-shadow: none;
+}
+
 :root[data-theme="dark"] .feed-post p {
   color: #e8eef2;
 }
@@ -90,7 +100,6 @@
 :root[data-theme="dark"] select,
 :root[data-theme="dark"] textarea,
 :root[data-theme="dark"] .search-box,
-:root[data-theme="dark"] .theme-toggle,
 :root[data-theme="dark"] .account-link,
 :root[data-theme="dark"] .secondary-button,
 :root[data-theme="dark"] .ghost-button,
@@ -124,7 +133,7 @@
 :root[data-theme="dark"] .message-card.expanded {
   background: #122131;
   border-color: #3d5e83;
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28);
+  box-shadow: none;
 }
 
 :root[data-theme="dark"] .inbox-meta-pill {

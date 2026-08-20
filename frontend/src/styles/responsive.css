@@ -77,6 +77,10 @@
     padding: 10px 18px 14px;
   }
 
+  .public-page-home .hero-copy-thoughts {
+    padding-top: 70px;
+  }
+
   .hero-copy-frame {
     min-height: 0;
     max-width: 100%;

@@ -69,7 +69,7 @@
   background: var(--surface);
   border: 1px solid var(--line-strong);
   border-radius: 8px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  box-shadow: none;
   display: inline-flex;
   gap: 4px;
   margin: 10px 0 22px;
@@ -89,7 +89,7 @@
 
 .ai-mode-toggle button.active {
   background: var(--primary);
-  box-shadow: 0 7px 16px color-mix(in srgb, var(--primary) 24%, transparent);
+  box-shadow: none;
   color: #ffffff;
 }
 
@@ -109,7 +109,7 @@
 }
 
 .ai-status-banner {
-  backdrop-filter: blur(10px);
+  backdrop-filter: none;
   border: 1px solid color-mix(in srgb, var(--line-strong) 72%, transparent);
   border-radius: 8px;
   display: grid;
@@ -129,14 +129,14 @@
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--primary) 10%, var(--surface)) 0%, color-mix(in srgb, var(--surface) 92%, transparent) 100%);
   border-color: color-mix(in srgb, var(--primary) 20%, var(--line-strong));
-  box-shadow: 0 12px 30px color-mix(in srgb, var(--primary) 10%, transparent);
+  box-shadow: none;
 }
 
 .ai-status-banner.complete {
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--signal) 12%, var(--surface)) 0%, color-mix(in srgb, var(--surface) 94%, transparent) 100%);
   border-color: color-mix(in srgb, var(--signal) 28%, var(--line-strong));
-  box-shadow: 0 14px 32px color-mix(in srgb, var(--signal) 14%, transparent);
+  box-shadow: none;
 }
 
 .ai-status-banner.fallback {
@@ -649,7 +649,7 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  box-shadow: var(--shadow);
+  box-shadow: none;
   color: var(--text);
   display: none;
   max-width: min(360px, calc(100vw - 32px));

@@ -25,7 +25,7 @@
 .developer-card:hover,
 .match-card:hover {
   border-color: color-mix(in srgb, var(--primary) 40%, var(--line));
-  box-shadow: var(--shadow);
+  box-shadow: none;
   transform: translateY(-2px);
 }
 
