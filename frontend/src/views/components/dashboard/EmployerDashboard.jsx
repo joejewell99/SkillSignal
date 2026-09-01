@@ -251,6 +251,7 @@ export default function EmployerDashboard({ user, token, selectedSection }) {
     try {
       const inboxThreads = sortThreads(await apiRequest('/api/employer/messages', { token }));
       setChatThreads(inboxThreads);
+      window.dispatchEvent(new Event('skillsignal:message-state-changed'));
       setActiveThreadId((current) => {
         if (preferredThreadId && inboxThreads.some((thread) => String(thread.id) === String(preferredThreadId))) {
           return String(preferredThreadId);

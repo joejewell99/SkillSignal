@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, LogOut, Settings } from 'lucide-react';
+import { ChevronRight, LayoutDashboard, LogOut, Settings } from 'lucide-react';
 import { useAuth } from '../state/AuthContext.jsx';
 import { apiRequest } from '../api/client.js';
 
@@ -274,7 +274,6 @@ export default function PublicHeader() {
         <Link to="/profiles">Profiles</Link>
         {user ? (
           <div className="account-cluster" ref={accountMenuRef}>
-            <Link className="dashboard-link" to="/dashboard">Dashboard{attentionCount > 0 ? <strong className="dashboard-attention-count">{attentionCount > 99 ? '99+' : attentionCount}</strong> : null}</Link>
             <button
               className={`account-avatar-link presence-ring ${currentPresence.value.toLowerCase().replaceAll('_', '-')}`}
               type="button"
@@ -285,9 +284,10 @@ export default function PublicHeader() {
                 prepareNotificationSound();
                 setIsAccountMenuOpen((isOpen) => !isOpen);
               }}
-            >
-              {profileImage ? <img className="account-avatar" src={profileImage} alt="Your profile" decoding="sync" fetchPriority="high" /> : <span className="account-avatar account-avatar-fallback" aria-hidden="true">{profileInitial}</span>}
-            </button>
+              >
+                {profileImage ? <img className="account-avatar" src={profileImage} alt="Your profile" decoding="sync" fetchPriority="high" /> : <span className="account-avatar account-avatar-fallback" aria-hidden="true">{profileInitial}</span>}
+                {attentionCount > 0 ? <strong className="account-notification-count">{attentionCount > 99 ? '99+' : attentionCount}</strong> : null}
+              </button>
             {isAccountMenuOpen ? (
               <div className="account-menu" role="menu">
                 <div className="presence-menu" aria-label="Set your presence">
@@ -307,6 +307,19 @@ export default function PublicHeader() {
                     </div>
                   ) : null}
                 </div>
+                <button
+                  className="account-menu-settings account-menu-dashboard"
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsAccountMenuOpen(false);
+                    navigate('/dashboard');
+                  }}
+                >
+                  <LayoutDashboard size={16} />
+                  <span>Dashboard</span>
+                  {attentionCount > 0 ? <strong className="dashboard-attention-count account-menu-attention-count">{attentionCount > 99 ? '99+' : attentionCount}</strong> : null}
+                </button>
                 <button
                   className="account-menu-settings"
                   type="button"

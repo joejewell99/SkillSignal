@@ -264,6 +264,7 @@ export default function DeveloperDashboard({ user, token, selectedSection }) {
     try {
       const inboxThreads = sortThreads(await apiRequest('/api/developer/messages', { token }));
       setChatThreads(inboxThreads);
+      window.dispatchEvent(new Event('skillsignal:message-state-changed'));
       setActiveThreadId((current) => {
         if (preferredThreadId && inboxThreads.some((thread) => String(thread.id) === String(preferredThreadId))) {
           return String(preferredThreadId);

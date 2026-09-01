@@ -17,6 +17,7 @@
   border: 0;
   border-radius: 50%;
   display: inline-flex;
+  overflow: visible;
   padding: 0;
   position: relative;
   transition: transform 180ms ease;
@@ -32,6 +33,7 @@
 .account-avatar-link.presence-ring.idle::before { background: #d59a24; }
 .account-avatar-link.presence-ring.do-not-disturb::before { background: #d34f4f; }
 .account-avatar-link.presence-ring.invisible::before { background: #94a3ad; }
+.account-notification-count { align-items: center; background: #d34f4f; border: 2px solid var(--surface); border-radius: 999px; color: #ffffff; display: inline-flex; font-size: 0.62rem; font-weight: 900; height: 17px; justify-content: center; line-height: 1; min-width: 17px; padding: 0 4px; position: absolute; right: -7px; top: -7px; z-index: 2; }
 
 .account-menu {
   background: var(--surface);
@@ -83,6 +85,8 @@
 }
 
 .dashboard-attention-count { align-items: center; background: var(--primary); border-radius: 999px; color: #ffffff; display: inline-flex; font-size: 0.68rem; justify-content: center; line-height: 1; min-width: 18px; padding: 4px 5px; }
+.account-menu-dashboard { flex-wrap: nowrap; white-space: nowrap; }
+.account-menu-attention-count { background: #d34f4f; margin-left: auto; }
 
 .presence-menu { border-bottom: 1px solid var(--line); display: grid; gap: 4px; margin-bottom: 5px; padding: 4px; }
 .presence-menu-current, .presence-menu-option { align-items: center; background: transparent; border: 0; border-radius: 6px; color: var(--muted); display: flex; font-size: 0.82rem; font-weight: 800; gap: 8px; min-height: 32px; padding: 6px; text-align: left; width: 100%; }
