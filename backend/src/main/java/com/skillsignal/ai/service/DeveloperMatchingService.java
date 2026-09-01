@@ -957,6 +957,7 @@ public class DeveloperMatchingService {
                 response.title(),
                 response.summary(),
                 response.image(),
+                response.presence(),
                 response.skills(),
                 response.featured(),
                 response.displayed(),

@@ -10,6 +10,7 @@ import Match from './views/Match.jsx';
 import ProfileDetail from './views/ProfileDetail.jsx';
 import Profiles from './views/Profiles.jsx';
 import Register from './views/Register.jsx';
+import Settings from './views/Settings.jsx';
 import Dashboard from './views/Dashboard.jsx';
 import './styles/index.css';
 
@@ -56,6 +57,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                   <AppShell>
                     <Dashboard />
                   </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
                 </ProtectedRoute>
               }
             />

@@ -161,6 +161,13 @@ public class MarketplaceProfileService {
                 .orElseGet(() -> profileRepository.save(MarketplaceProfile.forEmployerUser(userId, name)));
     }
 
+    public void updateProfileName(Long userId, String name) {
+        profileRepository.findByUserId(userId).ifPresent(profile -> {
+            profile.setName(name);
+            profileRepository.save(profile);
+        });
+    }
+
     private boolean matchesQuery(MarketplaceProfile profile, String query) {
         String searchableText = String.join(" ",
                 profile.getName(),
@@ -190,7 +197,17 @@ public class MarketplaceProfileService {
         DeveloperPreferencesResponse preferences = profile.getType() == ProfileType.DEVELOPER
                 ? readPreferences(profile)
                 : null;
-        return ProfileResponse.from(profile, projects, needs, proofQuality, readPosts(profile), readContactLinks(profile), preferences);
+        ProfileResponse response = ProfileResponse.from(profile, projects, needs, proofQuality, readPosts(profile), readContactLinks(profile), preferences);
+        return new ProfileResponse(response.id(), response.type(), response.name(), response.title(), response.summary(), response.image(), presenceFor(profile), response.skills(), response.featured(), response.displayed(), response.acceptsConnections(), response.demoProfile(), response.contactLinks(), response.preferences(), response.projects(), response.needs(), response.proofQuality(), response.posts());
+    }
+
+    private String presenceFor(MarketplaceProfile profile) {
+        if (profile.getUserId() == null) {
+            return "OFFLINE";
+        }
+        return userRepository.findById(profile.getUserId())
+                .map(user -> user.getPresence().name().equals("INVISIBLE") ? "OFFLINE" : user.getPresence().name())
+                .orElse("OFFLINE");
     }
 
     private EmployerNeedResponse toEmployerNeed(ProfileProjectResponse project) {

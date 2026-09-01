@@ -13,6 +13,8 @@ public record DeveloperConversationResponse(
         Instant updatedAt,
         MessageParticipantResponse partner,
         String preview,
-        List<DeveloperMessageResponse> messages
+        List<DeveloperMessageResponse> messages,
+        boolean unread,
+        int unreadCount
 ) {
 }

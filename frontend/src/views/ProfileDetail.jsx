@@ -575,11 +575,10 @@ export default function ProfileDetail() {
       {profile && (
         <section className="profile-detail-shell">
           <header className="profile-detail-header">
-            {profile.image ? (
-              <img src={profile.image} alt={profile.name} />
-            ) : (
-              <div className="profile-placeholder">{profile.name.slice(0, 2).toUpperCase()}</div>
-            )}
+            <div className="profile-avatar-wrap profile-detail-avatar-wrap">
+              {profile.image ? <img src={profile.image} alt={profile.name} /> : <div className="profile-placeholder">{profile.name.slice(0, 2).toUpperCase()}</div>}
+              <span className={`presence-dot profile-presence ${profile.presence?.toLowerCase().replaceAll('_', '-') ?? 'offline'}`} title={profile.presence?.replaceAll('_', ' ') ?? 'Offline'} />
+            </div>
             <div className="profile-detail-copy">
               <p className="eyebrow">{isEmployerProfile ? 'Employer profile' : 'Developer profile'}</p>
               <h1>{profile.name}</h1>

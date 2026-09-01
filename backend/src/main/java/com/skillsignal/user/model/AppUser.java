@@ -30,6 +30,9 @@ public class AppUser {
     @Column(nullable = false)
     private Role role;
 
+    @Enumerated(EnumType.STRING)
+    private PresenceStatus presence = PresenceStatus.ONLINE;
+
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -73,6 +76,14 @@ public class AppUser {
 
     public Role getRole() {
         return role;
+    }
+
+    public PresenceStatus getPresence() {
+        return presence == null ? PresenceStatus.ONLINE : presence;
+    }
+
+    public void setPresence(PresenceStatus presence) {
+        this.presence = presence;
     }
 
     public Instant getCreatedAt() {

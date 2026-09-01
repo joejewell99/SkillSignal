@@ -44,6 +44,11 @@ export function AuthProvider({ children }) {
     setAuth(null);
   }
 
+  function updateAuth(nextAuth) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextAuth));
+    setAuth(nextAuth);
+  }
+
   const value = useMemo(
     () => ({
       user: auth,
@@ -51,6 +56,7 @@ export function AuthProvider({ children }) {
       login,
       register,
       logout,
+      updateAuth,
     }),
     [auth]
   );

@@ -1,6 +1,8 @@
 package com.skillsignal.auth.service;
 
 import com.skillsignal.auth.dto.AuthResponse;
+import com.skillsignal.auth.dto.AccountNameUpdateRequest;
+import com.skillsignal.auth.dto.PresenceUpdateRequest;
 import com.skillsignal.auth.dto.LoginRequest;
 import com.skillsignal.auth.dto.RegisterRequest;
 import com.skillsignal.marketplace.service.MarketplaceProfileService;
@@ -13,6 +15,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
@@ -72,9 +75,26 @@ public class AuthService {
         return toAuthResponse(user);
     }
 
+    @Transactional
+    public AuthResponse updateAccountName(Long userId, AccountNameUpdateRequest request) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Account not found."));
+        user.setName(request.name().trim());
+        AppUser savedUser = userRepository.save(user);
+        marketplaceProfileService.updateProfileName(savedUser.getId(), savedUser.getName());
+        return toAuthResponse(savedUser);
+    }
+
+    public AuthResponse updatePresence(Long userId, PresenceUpdateRequest request) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Account not found."));
+        user.setPresence(request.presence());
+        return toAuthResponse(userRepository.save(user));
+    }
+
     private AuthResponse toAuthResponse(AppUser user) {
         UserPrincipal principal = new UserPrincipal(user);
         String token = jwtService.generateToken(principal);
-        return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole().name());
+        return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole().name(), user.getPresence().name());
     }
 }

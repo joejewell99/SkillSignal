@@ -25,6 +25,11 @@
   width: 100%;
 }
 
+.profile-detail-avatar-wrap { flex: 0 0 auto; height: 132px; width: 132px; }
+.profile-detail-avatar-wrap > img,
+.profile-detail-avatar-wrap > .profile-placeholder { height: 100%; width: 100%; }
+.profile-detail-avatar-wrap .profile-presence { bottom: 5px; right: 5px; }
+
 .profile-detail-copy {
   display: grid;
   gap: 12px;

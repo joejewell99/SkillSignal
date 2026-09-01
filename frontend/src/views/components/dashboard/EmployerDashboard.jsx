@@ -89,7 +89,7 @@ function sortThreads(threads) {
 
 const CANDIDATE_STAGE_OPTIONS = ['New', 'Considering', 'Strong fit'];
 
-export default function EmployerDashboard({ user, token }) {
+export default function EmployerDashboard({ user, token, selectedSection }) {
   const navigate = useNavigate();
   const chatListRef = React.useRef(null);
   const storageKey = `skillsignal.employer-profile.${user.email}`;
@@ -113,6 +113,12 @@ export default function EmployerDashboard({ user, token }) {
   const [editingNeedId, setEditingNeedId] = useState(null);
   const [feedWindow, setFeedWindow] = useState('recent');
   const [activeSection, setActiveSection] = useState('profile');
+
+  useEffect(() => {
+    if (selectedSection === 'profile') {
+      setActiveSection('profile');
+    }
+  }, [selectedSection]);
   const [profile, setProfile] = useState(() => readStoredEmployerProfile(storageKey, user));
 
   useEffect(() => {
@@ -253,6 +259,23 @@ export default function EmployerDashboard({ user, token }) {
           ? current
           : String(inboxThreads[0]?.id ?? '');
       });
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function previewThread(thread) {
+    setActiveThreadId(String(thread.id));
+    if (!thread.unread) {
+      return;
+    }
+    try {
+      const updatedThread = await apiRequest(`/api/employer/messages/${thread.id}/read`, {
+        token,
+        method: 'PATCH',
+      });
+      setChatThreads((current) => current.map((item) => (item.id === updatedThread.id ? updatedThread : item)));
+      window.dispatchEvent(new Event('skillsignal:message-state-changed'));
     } catch (err) {
       setError(err.message);
     }
@@ -553,10 +576,10 @@ export default function EmployerDashboard({ user, token }) {
     : candidateFeed;
   const dashboardTabs = [
     { id: 'profile', label: 'My Profile', count: null },
-    { id: 'needs', label: 'Needs', count: profile.projects.length },
-    { id: 'proof', label: 'Messages', count: chatThreads.length },
-    { id: 'saved', label: 'Saved Candidates', count: savedCandidates.length },
-    { id: 'feed', label: 'Updates', count: posts.length + candidateFeed.length },
+    { id: 'needs', label: 'Needs', count: null },
+    { id: 'proof', label: 'Messages', count: chatThreads.reduce((count, thread) => count + (thread.unreadCount ?? 0), 0) || null },
+    { id: 'saved', label: 'Saved Candidates', count: null },
+    { id: 'feed', label: 'Updates', count: null },
   ];
   const savedCandidateProfileIds = new Set(savedCandidates.map((candidate) => String(candidate.developerProfileId)));
   const filteredChatThreads = chatThreads.filter((thread) => {
@@ -923,7 +946,7 @@ export default function EmployerDashboard({ user, token }) {
                         <button
                           className="message-thread-card-main"
                           type="button"
-                          onClick={() => setActiveThreadId(String(thread.id))}
+                          onClick={() => previewThread(thread)}
                         >
                           <div className="message-card-top">
                             <div className="message-card-identity">
@@ -955,6 +978,7 @@ export default function EmployerDashboard({ user, token }) {
                               </div>
                             </div>
                             <div className="message-card-actions">
+                              {thread.unreadCount > 0 ? <span className="message-unread-count" aria-label={`${thread.unreadCount} new message${thread.unreadCount === 1 ? '' : 's'}`}>{thread.unreadCount}</span> : null}
                               <button
                                 className={`candidate-stage-button candidate-stage-button-compact ${stageForProfile(partner?.profileId).toLowerCase().replace(' ', '-')}`}
                                 type="button"

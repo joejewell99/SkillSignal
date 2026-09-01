@@ -69,6 +69,12 @@ public class UserMessagingController {
         return messagingService.toggleFavorite(principal.id(), id);
     }
 
+    @PatchMapping("/{id}/read")
+    DeveloperConversationResponse markRead(@PathVariable Long id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return messagingService.markRead(principal.id(), id);
+    }
+
     @DeleteMapping("/{id}")
     void decline(@PathVariable Long id, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();

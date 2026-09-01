@@ -115,6 +115,17 @@ public class UserMessagingService {
     }
 
     @Transactional
+    public DeveloperConversationResponse markRead(Long userId, Long conversationId) {
+        DeveloperConversation conversation = conversationForUser(userId, conversationId);
+        if (conversation.getRequesterUserId().equals(userId)) {
+            conversation.setRequesterReadAt(Instant.now());
+        } else {
+            conversation.setReceiverReadAt(Instant.now());
+        }
+        return toConversationResponse(conversationRepository.save(conversation), userId);
+    }
+
+    @Transactional
     public void decline(Long userId, Long conversationId) {
         DeveloperConversation conversation = conversationForUser(userId, conversationId);
         if (!conversation.getReceiverUserId().equals(userId) || conversation.getStatus() != ConversationStatus.REQUEST) {
@@ -126,6 +137,11 @@ public class UserMessagingService {
 
     private void appendMessage(DeveloperConversation conversation, Long senderUserId, String body, String imageUrl) {
         messageRepository.save(new DeveloperMessage(conversation, senderUserId, normalizeBody(body, imageUrl), normalizeImageUrl(imageUrl)));
+        if (conversation.getRequesterUserId().equals(senderUserId)) {
+            conversation.setRequesterReadAt(Instant.now());
+        } else {
+            conversation.setReceiverReadAt(Instant.now());
+        }
         conversation.setUpdatedAt(Instant.now());
         conversationRepository.save(conversation);
     }
@@ -156,6 +172,10 @@ public class UserMessagingService {
                 ))
                 .toList();
         String preview = messages.isEmpty() ? "" : messages.get(messages.size() - 1).body();
+        int unreadCount = (int) messages.stream()
+                .filter(message -> !message.senderUserId().equals(viewerUserId))
+                .filter(message -> wasSentAfter(message.createdAt(), readAtFor(conversation, viewerUserId)))
+                .count();
 
         return new DeveloperConversationResponse(
                 conversation.getId(),
@@ -175,8 +195,20 @@ public class UserMessagingService {
                         partnerProfile.getImage()
                 ),
                 preview,
-                messages
-        );
+                messages,
+                unreadCount > 0,
+                unreadCount
+            );
+    }
+
+    private Instant readAtFor(DeveloperConversation conversation, Long viewerUserId) {
+        return conversation.getRequesterUserId().equals(viewerUserId)
+                ? conversation.getRequesterReadAt()
+                : conversation.getReceiverReadAt();
+    }
+
+    private boolean wasSentAfter(Instant createdAt, Instant readAt) {
+        return readAt == null || createdAt.isAfter(readAt);
     }
 
     private String resolveSenderName(DeveloperConversation conversation, Long senderUserId) {

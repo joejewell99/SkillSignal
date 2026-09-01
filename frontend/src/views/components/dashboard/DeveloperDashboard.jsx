@@ -136,7 +136,7 @@ function latestOwnMessageClusterStatus(messages, viewerUserId) {
 
 const CONNECTION_LABEL_OPTIONS = ['New', 'Friend', 'Mentor', 'Mentee', 'Classmate', 'Collaborator'];
 
-export default function DeveloperDashboard({ user, token }) {
+export default function DeveloperDashboard({ user, token, selectedSection }) {
   const navigate = useNavigate();
   const chatListRef = React.useRef(null);
   const storageKey = `skillsignal.developer-profile.${user.email}`;
@@ -213,6 +213,12 @@ export default function DeveloperDashboard({ user, token }) {
   }, [storageKey, token]);
 
   useEffect(() => {
+    if (selectedSection === 'profile') {
+      setActiveSection('profile');
+    }
+  }, [selectedSection]);
+
+  useEffect(() => {
     refreshConnections();
   }, [token]);
 
@@ -266,6 +272,23 @@ export default function DeveloperDashboard({ user, token }) {
           ? current
           : String(inboxThreads[0]?.id ?? '');
       });
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function previewThread(thread) {
+    setActiveThreadId(String(thread.id));
+    if (!thread.unread) {
+      return;
+    }
+    try {
+      const updatedThread = await apiRequest(`/api/developer/messages/${thread.id}/read`, {
+        token,
+        method: 'PATCH',
+      });
+      setChatThreads((current) => current.map((item) => (item.id === updatedThread.id ? updatedThread : item)));
+      window.dispatchEvent(new Event('skillsignal:message-state-changed'));
     } catch (err) {
       setError(err.message);
     }
@@ -750,10 +773,10 @@ export default function DeveloperDashboard({ user, token }) {
   ];
   const dashboardTabs = [
     { id: 'profile', label: 'My Profile', count: null },
-    { id: 'projects', label: 'Projects', count: profile.projects.length },
-    { id: 'inbox', label: 'Messages', count: chatThreads.length },
-    { id: 'connections', label: 'Connections', count: connectionRequests.length + connections.length },
-    { id: 'feed', label: 'Updates', count: posts.length + connectionFeed.length },
+    { id: 'projects', label: 'Projects', count: null },
+    { id: 'inbox', label: 'Messages', count: chatThreads.reduce((count, thread) => count + (thread.unreadCount ?? 0), 0) || null },
+    { id: 'connections', label: 'Connections', count: null },
+    { id: 'feed', label: 'Updates', count: null },
   ];
   const connectedProfileIds = new Set(
     connections.map((connection) => (
@@ -1338,7 +1361,7 @@ export default function DeveloperDashboard({ user, token }) {
                         <button
                           className="message-thread-card-main"
                           type="button"
-                            onClick={() => setActiveThreadId(String(thread.id))}
+                            onClick={() => previewThread(thread)}
                           >
                             <div className="message-card-top">
                               <div className="message-card-identity">
@@ -1370,6 +1393,7 @@ export default function DeveloperDashboard({ user, token }) {
                               </div>
                               </div>
                               <div className="message-card-actions">
+                                {thread.unreadCount > 0 ? <span className="message-unread-count" aria-label={`${thread.unreadCount} new message${thread.unreadCount === 1 ? '' : 's'}`}>{thread.unreadCount}</span> : null}
                                 <button
                                   className={`candidate-stage-button candidate-stage-button-compact ${connectionLabelForProfile(partner?.profileId).toLowerCase()}`}
                                   type="button"
@@ -1540,20 +1564,6 @@ export default function DeveloperDashboard({ user, token }) {
               <div>
                 <h2>Connections</h2>
                 <p className="subtle">Manage connection requests and the developers whose connected updates you can see.</p>
-              </div>
-              <div className="inbox-meta-pill">
-                <UserRound size={16} />
-                <span>{connectionRequests.length} request{connectionRequests.length === 1 ? '' : 's'} · {connections.length} connection{connections.length === 1 ? '' : 's'}</span>
-              </div>
-            </div>
-            <div className="connection-summary-row">
-              <div className="connection-summary-pill">
-                <span>Requests</span>
-                <strong>{connectionRequests.length}</strong>
-              </div>
-              <div className="connection-summary-pill">
-                <span>Connections</span>
-                <strong>{connections.length}</strong>
               </div>
             </div>
             

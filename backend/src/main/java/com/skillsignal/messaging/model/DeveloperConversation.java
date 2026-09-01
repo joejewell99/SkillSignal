@@ -51,6 +51,12 @@ public class DeveloperConversation {
     @Column(nullable = false)
     private boolean receiverFavorited = false;
 
+    @Column
+    private Instant requesterReadAt;
+
+    @Column
+    private Instant receiverReadAt;
+
     protected DeveloperConversation() {
     }
 
@@ -120,5 +126,21 @@ public class DeveloperConversation {
 
     public void setReceiverFavorited(boolean receiverFavorited) {
         this.receiverFavorited = receiverFavorited;
+    }
+
+    public Instant getRequesterReadAt() {
+        return requesterReadAt;
+    }
+
+    public void setRequesterReadAt(Instant requesterReadAt) {
+        this.requesterReadAt = requesterReadAt;
+    }
+
+    public Instant getReceiverReadAt() {
+        return receiverReadAt;
+    }
+
+    public void setReceiverReadAt(Instant receiverReadAt) {
+        this.receiverReadAt = receiverReadAt;
     }
 }

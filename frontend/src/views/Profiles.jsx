@@ -184,11 +184,10 @@ export default function Profiles() {
 
             return (
               <article className="profile-card" key={profileKey}>
-                {profile.image ? (
-                  <img src={profile.image} alt={profile.name} />
-                ) : (
-                  <div className="profile-placeholder">{profile.name.slice(0, 2).toUpperCase()}</div>
-                )}
+                <div className="profile-avatar-wrap">
+                  {profile.image ? <img src={profile.image} alt={profile.name} /> : <div className="profile-placeholder">{profile.name.slice(0, 2).toUpperCase()}</div>}
+                  <span className={`presence-dot profile-presence ${profile.presence?.toLowerCase().replaceAll('_', '-') ?? 'offline'}`} title={profile.presence?.replaceAll('_', ' ') ?? 'Offline'} />
+                </div>
                 <div className="profile-card-heading">
                   <div className="profile-badges">
                     <span className={`profile-type ${profile.type.toLowerCase()}`}>

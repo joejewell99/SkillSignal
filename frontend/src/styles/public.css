@@ -75,6 +75,20 @@
   color: #9d2424;
 }
 
+.dashboard-attention-count { align-items: center; background: var(--primary); border-radius: 999px; color: #ffffff; display: inline-flex; font-size: 0.68rem; justify-content: center; line-height: 1; min-width: 18px; padding: 4px 5px; }
+
+.presence-menu { border-bottom: 1px solid var(--line); display: grid; gap: 4px; margin-bottom: 5px; padding: 4px; }
+.presence-menu-current, .presence-menu-option { align-items: center; background: transparent; border: 0; border-radius: 6px; color: var(--muted); display: flex; font-size: 0.82rem; font-weight: 800; gap: 8px; min-height: 32px; padding: 6px; text-align: left; width: 100%; }
+.presence-menu-current svg { margin-left: auto; transition: transform 160ms ease; }
+.presence-menu-current:hover, .presence-menu-option:hover, .presence-menu-option.active { background: var(--signal-soft); color: var(--ink); }
+.presence-menu-options { border-top: 1px solid var(--line); display: grid; gap: 2px; padding-top: 4px; }
+.presence-menu-option { align-items: center; background: transparent; border: 0; border-radius: 6px; color: var(--muted); display: flex; font-size: 0.82rem; font-weight: 800; gap: 8px; min-height: 30px; padding: 5px 6px; text-align: left; }
+.presence-dot { background: #94a3ad; border: 2px solid var(--surface); border-radius: 50%; display: inline-block; height: 11px; width: 11px; }
+.presence-dot.online { background: #29a872; }
+.presence-dot.idle { background: #d59a24; }
+.presence-dot.do-not-disturb { background: #d34f4f; }
+.presence-dot.invisible, .presence-dot.offline { background: #94a3ad; }
+
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 120px;

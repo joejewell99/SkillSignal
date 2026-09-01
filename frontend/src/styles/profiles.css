@@ -37,6 +37,11 @@
   width: 100%;
 }
 
+.profile-avatar-wrap { position: relative; }
+.profile-avatar-wrap > img,
+.profile-avatar-wrap > .profile-placeholder { display: block; }
+.profile-presence { bottom: 8px; position: absolute; right: 8px; }
+
 .developer-card img,
 .profile-card img {
   object-fit: cover;
