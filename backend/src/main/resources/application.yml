@@ -16,6 +16,9 @@ spring:
 
 logging:
   level:
+    root: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.web: WARN
     org.springframework.web.client.RestClient: INFO
     org.springframework.http.converter.json: INFO
 

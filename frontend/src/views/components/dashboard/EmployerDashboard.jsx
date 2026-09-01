@@ -333,6 +333,7 @@ export default function EmployerDashboard({ user, token, selectedSection }) {
       body: JSON.stringify(toEmployerProfilePayload(nextProfile, displayed)),
     });
     setBackendData(profileData);
+    window.dispatchEvent(new CustomEvent('skillsignal:profile-updated', { detail: { email: user.email, profile: profileData } }));
     setProfile((current) => ({
       ...current,
       isDisplayed: profileData.displayed,

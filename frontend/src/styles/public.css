@@ -18,6 +18,7 @@
   border-radius: 50%;
   display: inline-flex;
   padding: 0;
+  position: relative;
   transition: transform 180ms ease;
 }
 
@@ -25,6 +26,12 @@
 .account-avatar-link:focus-visible {
   transform: translateY(-2px) scale(1.04);
 }
+
+.account-avatar-link.presence-ring::before { background: #94a3ad; border: 2px solid var(--surface); border-radius: 50%; bottom: -2px; content: ''; height: 9px; pointer-events: none; position: absolute; right: -2px; transition: background 160ms ease; width: 9px; }
+.account-avatar-link.presence-ring.online::before { background: #29a872; }
+.account-avatar-link.presence-ring.idle::before { background: #d59a24; }
+.account-avatar-link.presence-ring.do-not-disturb::before { background: #d34f4f; }
+.account-avatar-link.presence-ring.invisible::before { background: #94a3ad; }
 
 .account-menu {
   background: var(--surface);

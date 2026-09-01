@@ -17,17 +17,18 @@ const SETTINGS_SECTIONS = [
 
 function readPreferences() {
   try {
+    const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? '{}');
     return {
       messages: true,
-      connections: true,
-      matching: true,
-      profileActivity: true,
+      messageRequests: true,
+      connectionRequests: stored.connections ?? true,
+      connectionAccepted: true,
       weeklySummary: false,
       profileReminders: false,
-      ...JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? '{}'),
+      ...stored,
     };
   } catch {
-    return { messages: true, connections: true, matching: true, profileActivity: true, weeklySummary: false, profileReminders: false };
+    return { messages: true, messageRequests: true, connectionRequests: true, connectionAccepted: true, weeklySummary: false, profileReminders: false };
   }
 }
 
@@ -129,7 +130,12 @@ export default function Settings() {
   }, []);
 
   function togglePreference(key) {
-    setPreferences((current) => ({ ...current, [key]: !current[key] }));
+    setPreferences((current) => {
+      const nextPreferences = { ...current, [key]: !current[key] };
+      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(nextPreferences));
+      window.dispatchEvent(new Event('skillsignal:notification-preferences-changed'));
+      return nextPreferences;
+    });
   }
 
   function updateAppearance(key, value) {
@@ -283,10 +289,10 @@ export default function Settings() {
           <div className="settings-subsection">
             <div className="settings-subsection-heading"><div><h3>Activity</h3><p>Stay close to the conversations and opportunities that need your attention.</p></div><BellRing size={18} /></div>
             <div className="settings-toggle-list">
-              <PreferenceToggle label="Messages" description="New messages and replies in your conversations." checked={preferences.messages} onChange={() => togglePreference('messages')} />
-              <PreferenceToggle label="Connection requests" description="Requests to connect and updates to existing connections." checked={preferences.connections} onChange={() => togglePreference('connections')} />
-              <PreferenceToggle label="Matching activity" description="New matches and activity related to your profile or hiring needs." checked={preferences.matching} onChange={() => togglePreference('matching')} />
-              <PreferenceToggle label="Profile activity" description="Useful updates when people interact with your profile or proof." checked={preferences.profileActivity} onChange={() => togglePreference('profileActivity')} />
+              <PreferenceToggle label="New messages" description="Show alerts for unread replies in conversations you have already accepted." checked={preferences.messages} onChange={() => togglePreference('messages')} />
+              <PreferenceToggle label="Message requests" description="Show alerts when someone starts a new conversation that needs your approval." checked={preferences.messageRequests} onChange={() => togglePreference('messageRequests')} />
+              <PreferenceToggle label="Connection requests" description="Show alerts when another developer asks to connect with you." checked={preferences.connectionRequests} onChange={() => togglePreference('connectionRequests')} />
+              <PreferenceToggle label="Connection accepted" description="Show an alert when someone accepts a connection request you sent." checked={preferences.connectionAccepted} onChange={() => togglePreference('connectionAccepted')} />
             </div>
           </div>
           <div className="settings-subsection">
