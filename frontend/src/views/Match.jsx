@@ -6,20 +6,30 @@ import PublicHeader from '../ui/PublicHeader.jsx';
 import { apiRequest } from '../api/client.js';
 import { useAuth } from '../state/AuthContext.jsx';
 
-const peerExampleBriefs = [
-  'React dashboard projects',
-  'Spring Boot and PostgreSQL',
-  'Developers learning auth',
-  'Python data cleanup',
-];
-const employerExampleBriefs = [
-  'React admin screens',
-  'Spring Boot authentication',
-  'PostgreSQL reporting',
-  'Python data cleanup',
-];
 const developerPlaceholder = 'Example: I am looking for developers with React, Spring Boot, PostgreSQL, and dashboard experience. I would like to see GitHub projects, deployed work, screenshots, or proof they have handled auth, APIs, data cleanup, or production fixes.';
 const employerPlaceholder = 'Example: I am strongest with React, Python, SQL, APIs, and dashboard work. I am looking for employers hiring junior developers for data cleanup, admin screens, reporting tools, or full-stack projects where my GitHub work would be useful.';
+const exampleBriefs = {
+  DEVELOPER: [
+    {
+      label: 'React · TypeScript · Spring Boot · PostgreSQL',
+      prompt: 'I am looking for a developer to improve a React dashboard used to manage customer records and internal reporting. The current interface has slow data tables, inconsistent filters, and API requests that make the page feel unresponsive when users search or sort large datasets.\n\nThe ideal developer should be comfortable with React, JavaScript or TypeScript, REST APIs, Spring Boot, and PostgreSQL. I would like to see evidence of dashboard work, reusable components, loading and error states, API integration, authentication or role-based permissions, and thoughtful handling of performance issues.\n\nPlease prioritise developers who can show GitHub projects, deployed apps, screenshots, tests, or examples of solving similar problems rather than only listing the technologies.',
+    },
+    {
+      label: 'Python · Django · Celery · PostgreSQL',
+      prompt: 'I am looking for a developer to stabilise an internal operations platform that imports supplier CSV files, validates product data, and prepares records for reporting. Imports currently time out on larger files, duplicate records appear after retries, and staff have to manually investigate failures without a clear audit trail.\n\nThe ideal developer should be comfortable with Python, Django, PostgreSQL, Celery, Redis, Docker, and background job processing. They should be able to design reliable import pipelines, validate and clean data, make jobs safe to retry, surface useful failure messages, and improve the admin workflow for reviewing problem records. Experience with database constraints, migrations, tests, logging, and deployment is especially valuable.\n\nPlease prioritise developers who can show GitHub projects, deployed tools, tests, dashboards, or examples of data processing and backend reliability work. I want to see evidence that they can reason carefully about data quality, queues, retries, and maintainable operational systems rather than only listing the stack.',
+    },
+  ],
+  EMPLOYER: [
+    {
+      label: 'React · TypeScript · Node.js · PostgreSQL',
+      prompt: 'I am a junior full-stack developer looking for employers who need help improving internal dashboards, admin workflows, customer portals, or API-driven tools. I am strongest with React, TypeScript, Node.js, PostgreSQL, REST APIs, authentication, and responsive interface work.\n\nI have built a project called ShiftFlow, a deployed React and TypeScript operations dashboard for managing rota changes, team availability, and approval workflows. It includes reusable table and filter components, loading and error states, protected routes, form validation, and a Node.js API backed by PostgreSQL. I also built SupportDesk, a small customer-support portal with role-based access, ticket status tracking, search, and a responsive interface designed around real support workflows.\n\nI am looking for an employer with practical front-end or full-stack work where I can contribute to improving workflows, fixing UI issues, building reliable forms and tables, integrating APIs, or adding features to an existing product. I can provide GitHub repositories, deployed links, screenshots, and a walkthrough of the decisions behind each project.',
+    },
+    {
+      label: 'Python · FastAPI · Docker · AWS',
+      prompt: 'I am a developer looking for employers with backend, data-processing, reporting, or operational reliability problems to solve. My strongest areas are Python, FastAPI, PostgreSQL, Docker, AWS, REST APIs, automated testing, and building tools that make repetitive work more reliable.\n\nI built ImportWatch, a Python and FastAPI service that receives supplier CSV files, validates fields, records import outcomes, and gives staff an audit view of rejected rows. The project uses PostgreSQL for data integrity, Docker for a repeatable local environment, background processing for longer jobs, and structured logs so failures can be investigated without guessing. I also built a reporting API that turns cleaned operational data into scheduled summaries and downloadable exports, with tests around validation and edge cases.\n\nI am looking for an employer where I can help improve data imports, backend APIs, internal reporting, automation, deployment reliability, or the quality of operational information. I can show GitHub code, tests, architecture notes, screenshots, and deployed project evidence, and I am especially interested in teams that value careful problem solving and clear feedback.',
+    },
+  ],
+};
 
 function readStoredMatchState(storageKey) {
   try {
@@ -354,15 +364,14 @@ export default function Match() {
   };
 
   const isEmployerMode = matchMode === 'EMPLOYER';
-  const activeExamples = isEmployerMode ? employerExampleBriefs : peerExampleBriefs;
-  const formLabel = isEmployerMode ? 'Employer search' : 'Developer search';
-  const heroHeading = isEmployerMode ? 'Find employers by need and stack.' : 'Find devs by skill and project proof.';
+  const formLabel = 'Describe the work';
+  const heroHeading = isEmployerMode ? 'Find employers with work for your stack.' : 'Find devs by skill and project proof.';
   const heroCopy = isEmployerMode
     ? 'Search by stack, work type, or problem area. SkillSignal will find employer profiles with related hiring needs.'
     : 'Search by stack, project type, learning goal, or collaboration idea. SkillSignal will find developers with related proof.';
   const panelCopy = isEmployerMode
-    ? 'SkillSignal will rank employers by their needs, technical focus, and evidence they are likely to value.'
-    : 'SkillSignal will rank developers by shared skills, project evidence, and useful connection signals.';
+    ? 'Name the stack, the hiring problem, and the proof you want to see.'
+    : 'Name the stack, the work you want to do, and the proof that matters to you.';
   const submitLabel = isEmployerMode ? 'Find employers' : 'Find devs';
   const loadingLabel = isEmployerMode ? 'Finding employers...' : 'Finding devs...';
   const placeholder = isEmployerMode ? employerPlaceholder : developerPlaceholder;
@@ -388,12 +397,12 @@ export default function Match() {
           : 'Guests get 3 AI searches per day';
 
   return (
-    <main className="public-page">
+    <main className="public-page match-discovery">
       <PublicHeader />
 
-      <section className="tool-hero">
+      <section className="tool-hero match-discovery-hero">
         <div className="hero-copy">
-          <p className="eyebrow">AI match</p>
+          <p className="eyebrow">AI match <span>Proof-led matching</span></p>
           <div className="ai-mode-toggle" aria-label="AI match mode">
             <button className={matchMode === 'DEVELOPER' ? 'active' : ''} type="button" onClick={() => updateMatchMode('DEVELOPER')}>
               Find Developers
@@ -404,9 +413,27 @@ export default function Match() {
           </div>
           <h1>{heroHeading}</h1>
           <p>{heroCopy}</p>
+          <div className="match-flow-guide" aria-label="How AI Match works">
+            <div>
+              <span>01</span>
+              <p><strong>Describe the work</strong> Add the stack, task, and proof that matters.</p>
+            </div>
+            <div>
+              <span>02</span>
+              <p><strong>Match against evidence</strong> SkillSignal compares it with real project signals.</p>
+            </div>
+            <div>
+              <span>03</span>
+              <p><strong>Review and connect</strong> Open the strongest profiles and make the next move.</p>
+            </div>
+          </div>
         </div>
 
         <form className="ai-search-panel" onSubmit={handleAiSearch}>
+          <div className="ai-brief-meta" aria-hidden="true">
+            <span>Your match brief</span>
+            <span>Work in. Proof out.</span>
+          </div>
           <div className="ai-panel-heading">
             <BrainCircuit size={24} />
             <div>
@@ -446,15 +473,25 @@ export default function Match() {
             placeholder={placeholder}
             rows={8}
           />
-          <div className="prompt-chips" aria-label="Example briefs">
-            {activeExamples.map((brief) => (
-              <button key={brief} type="button" onClick={() => {
-                setAiBrief((current) => current.trim() ? `${current.trim()}\n${brief}` : brief);
-                setAiResults(null);
-                setAiError('');
-              }}>
-                {brief}
-              </button>
+          <div className="ai-example-prompts" aria-label="Full example match briefs">
+            {Object.entries(exampleBriefs).map(([mode, examples]) => (
+              <div className="ai-example-group" key={mode}>
+                <span>{mode === 'DEVELOPER' ? 'Find devs' : 'Find employers'}</span>
+                <div>
+                  {examples.map((example) => (
+                    <button
+                      key={example.label}
+                      type="button"
+                      onClick={() => {
+                        updateMatchMode(mode);
+                        setAiBrief(example.prompt);
+                      }}
+                    >
+                      {example.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
           <button className="primary-button ai-submit" disabled={isAiLoading} type="submit">

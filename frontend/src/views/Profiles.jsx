@@ -11,7 +11,7 @@ const profileFilters = [
   { label: 'Developers', value: 'DEVELOPER' },
   { label: 'Employers', value: 'EMPLOYER' },
 ];
-const summaryWordLimit = 28;
+const summaryWordLimit = 22;
 
 function summaryPreview(summary = '', isExpanded = false) {
   const words = summary.trim().split(/\s+/).filter(Boolean);
@@ -77,18 +77,30 @@ export default function Profiles() {
   ), [nameQuery, profiles]);
 
   return (
-    <main className="public-page">
+    <main className="public-page profiles-discovery">
       <PublicHeader />
 
-      <section className="profiles-hero">
+      <section className="profiles-hero directory-intro profiles-discovery-hero">
         <div>
           <p className="eyebrow">Profiles</p>
-          <h1>Browse the current SkillSignal marketplace.</h1>
+          <h1>Start with the work people can show.</h1>
           <p>
             Search developers and employer needs by skills, names, project evidence, and technical focus.
           </p>
         </div>
-        <div className="directory-metrics" aria-label="Profile directory metrics">
+        <aside className="directory-guide" aria-label="How to browse profiles">
+          <p className="eyebrow">Browse with intent</p>
+          <h2>Look beyond the headline.</h2>
+          <p>Use the directory to find a useful overlap between the work, the stack, and the evidence behind it.</p>
+          <div className="directory-guide-signals" aria-label="Profile signals to inspect">
+            <span>Stack</span>
+            <span>Project proof</span>
+            <span>Work style</span>
+          </div>
+        </aside>
+      </section>
+
+      <section className="directory-metrics directory-metrics-compact directory-metrics-bar" aria-label="Profile directory metrics">
           <div>
             <strong>{formatMetric(metrics?.totalAccounts, isLoadingMetrics)}</strong>
             <span>accounts</span>
@@ -105,10 +117,9 @@ export default function Profiles() {
             <strong>{formatMetric(metrics?.employerProfiles, isLoadingMetrics)}</strong>
             <span>employers</span>
           </div>
-        </div>
       </section>
 
-      <section className="search-strip">
+      <section className="search-strip directory-search-strip">
         <div className="search-panel universal-search">
           <label htmlFor="marketplace-search">Search profiles by keyword</label>
           <div className="search-box">
