@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, LayoutDashboard, LogOut, Settings } from 'lucide-react';
+import { Bell, ChevronRight, LayoutDashboard, LogOut, Settings, X } from 'lucide-react';
 import { useAuth } from '../state/AuthContext.jsx';
 import { apiRequest } from '../api/client.js';
 
@@ -11,6 +11,122 @@ const PRESENCE_OPTIONS = [
   { value: 'INVISIBLE', label: 'Invisible' },
 ];
 const NOTIFICATION_PREFERENCES_KEY = 'skillsignal.settings';
+
+function attentionCountCacheKey(user) {
+  return user?.email ? `skillsignal.header-attention-count.${user.email}` : '';
+}
+
+function readCachedAttentionCount(user) {
+  const cacheKey = attentionCountCacheKey(user);
+  if (!cacheKey) {
+    return 0;
+  }
+  try {
+    const count = JSON.parse(localStorage.getItem(cacheKey) ?? '0');
+    return Number.isInteger(count) && count >= 0 ? count : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function cacheAttentionCount(user, count) {
+  const cacheKey = attentionCountCacheKey(user);
+  if (!cacheKey) {
+    return;
+  }
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify(count));
+  } catch {
+    // Keep the current in-memory value if browser storage is unavailable.
+  }
+}
+
+function notificationCacheKey(user) {
+  return user?.email ? `skillsignal.header-notifications.${user.email}` : '';
+}
+
+function readCachedNotifications(user) {
+  const cacheKey = notificationCacheKey(user);
+  if (!cacheKey) {
+    return [];
+  }
+  try {
+    const notifications = JSON.parse(localStorage.getItem(cacheKey) ?? '[]');
+    return Array.isArray(notifications) ? notifications.filter((notification) => notification?.id && notification?.title).slice(0, 100) : [];
+  } catch {
+    return [];
+  }
+}
+
+function cacheNotifications(user, notifications) {
+  const cacheKey = notificationCacheKey(user);
+  if (!cacheKey) {
+    return;
+  }
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify(notifications.slice(0, 100)));
+  } catch {
+    // Keep the current in-memory notifications if browser storage is unavailable.
+  }
+}
+
+function acceptedConnectionNotificationCacheKey(user) {
+  return user?.email ? `skillsignal.accepted-connection-notifications.${user.email}` : '';
+}
+
+function readAcceptedConnectionNotifications(user) {
+  const cacheKey = acceptedConnectionNotificationCacheKey(user);
+  if (!cacheKey) {
+    return [];
+  }
+  try {
+    const notifications = JSON.parse(localStorage.getItem(cacheKey) ?? '[]');
+    return Array.isArray(notifications) ? notifications.filter((notification) => notification?.id && notification?.title).slice(0, 100) : [];
+  } catch {
+    return [];
+  }
+}
+
+function cacheAcceptedConnectionNotifications(user, notifications) {
+  const cacheKey = acceptedConnectionNotificationCacheKey(user);
+  if (!cacheKey) {
+    return;
+  }
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify(notifications.slice(0, 100)));
+  } catch {
+    // Keep acceptance alerts for the current session if browser storage is unavailable.
+  }
+}
+
+function dismissedNotificationCacheKey(user) {
+  return user?.email ? `skillsignal.dismissed-notifications.${user.email}` : '';
+}
+
+function readDismissedNotificationIds(user) {
+  const cacheKey = dismissedNotificationCacheKey(user);
+  if (!cacheKey) {
+    return [];
+  }
+  try {
+    const ids = JSON.parse(localStorage.getItem(cacheKey) ?? '[]');
+    return Array.isArray(ids) ? ids.filter((id) => typeof id === 'string').slice(-100) : [];
+  } catch {
+    return [];
+  }
+}
+
+function cacheDismissedNotificationIds(user, ids) {
+  const cacheKey = dismissedNotificationCacheKey(user);
+  if (!cacheKey) {
+    return;
+  }
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify(ids.slice(-100)));
+  } catch {
+    // Dismissing remains available for the current session if storage is unavailable.
+  }
+}
 
 function headerProfileCacheKey(user) {
   return user?.email ? `skillsignal.header-profile.${user.email}` : '';
@@ -55,22 +171,46 @@ function readNotificationPreferences() {
   }
 }
 
-function countNewAcceptedConnections(connections, email) {
+function findNewAcceptedConnections(connections, email) {
   const storageKey = `skillsignal.seen-accepted-connections.${email}`;
   const currentIds = connections.map((connection) => String(connection.id));
   try {
     const seenIds = JSON.parse(localStorage.getItem(storageKey));
     if (!Array.isArray(seenIds)) {
       localStorage.setItem(storageKey, JSON.stringify(currentIds));
-      return 0;
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      return connections.filter((connection) => {
+        const acceptedAt = new Date(connection.respondedAt ?? connection.createdAt).getTime();
+        return !Number.isNaN(acceptedAt) && acceptedAt >= oneDayAgo;
+      });
     }
-    const newCount = currentIds.filter((id) => !seenIds.includes(id)).length;
+    const newConnections = connections.filter((connection) => !seenIds.includes(String(connection.id)));
     localStorage.setItem(storageKey, JSON.stringify(currentIds));
-    return newCount;
+    return newConnections;
   } catch {
-    localStorage.setItem(storageKey, JSON.stringify(currentIds));
-    return 0;
+    return [];
   }
+}
+
+function otherConnectionName(connection, user) {
+  return connection.requesterName === user?.name ? connection.receiverName : connection.requesterName;
+}
+
+function otherConnectionProfileId(connection, user) {
+  return connection.requesterName === user?.name ? connection.receiverProfileId : connection.requesterProfileId;
+}
+
+function messageDashboardHref(user, threadId) {
+  const section = user?.role === 'EMPLOYER' ? 'proof' : 'inbox';
+  return `/dashboard?section=${section}&thread=${encodeURIComponent(threadId)}`;
+}
+
+function notificationPreview(value) {
+  const preview = (value ?? '').replace(/\s+/g, ' ').trim();
+  if (!preview) {
+    return 'Open the conversation to read it.';
+  }
+  return preview.length > 90 ? `${preview.slice(0, 87).trimEnd()}...` : preview;
 }
 
 export default function PublicHeader() {
@@ -80,11 +220,17 @@ export default function PublicHeader() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isPresenceMenuOpen, setIsPresenceMenuOpen] = useState(false);
   const [selectedPresence, setSelectedPresence] = useState(user?.presence ?? 'ONLINE');
-  const [attentionCount, setAttentionCount] = useState(0);
+  const [attentionCount, setAttentionCount] = useState(() => readCachedAttentionCount(user));
+  const [notifications, setNotifications] = useState(() => readCachedNotifications(user));
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isUpdatingNotifications, setIsUpdatingNotifications] = useState(false);
   const accountMenuRef = useRef(null);
+  const notificationMenuRef = useRef(null);
   const notificationAudioRef = useRef(null);
   const previousAttentionCountRef = useRef(null);
   const isRefreshingAttentionRef = useRef(false);
+  const dismissedNotificationIdsRef = useRef(readDismissedNotificationIds(user));
+  const notificationCloseTimerRef = useRef(null);
 
   useEffect(() => {
     if (!user || !token) {
@@ -131,8 +277,12 @@ export default function PublicHeader() {
   useEffect(() => {
     if (!user || !token) {
       setAttentionCount(0);
+      setNotifications([]);
       return undefined;
     }
+    dismissedNotificationIdsRef.current = readDismissedNotificationIds(user);
+    setNotifications(readCachedNotifications(user));
+    setAttentionCount(readCachedAttentionCount(user));
     if (selectedPresence === 'DO_NOT_DISTURB') {
       setAttentionCount(0);
       return undefined;
@@ -155,19 +305,73 @@ export default function PublicHeader() {
         .then(([threads, requests, connections]) => {
           if (isCurrent) {
             const preferences = readNotificationPreferences();
-            const unreadMessages = preferences.messages
-              ? threads.filter((thread) => !thread.requestReceived).reduce((count, thread) => count + (thread.unreadCount ?? 0), 0)
-              : 0;
-            const messageRequests = preferences.messageRequests
-              ? threads.filter((thread) => thread.requestReceived && !thread.accepted).length
-              : 0;
-            const connectionRequests = preferences.connectionRequests ? requests.length : 0;
-            const newlyAcceptedConnections = countNewAcceptedConnections(connections, user.email);
-            const acceptedConnections = preferences.connectionAccepted ? newlyAcceptedConnections : 0;
-            setAttentionCount(unreadMessages + messageRequests + connectionRequests + acceptedConnections);
+            const unreadThreads = threads.filter((thread) => !thread.requestReceived && thread.unreadCount > 0);
+            const pendingMessageRequests = threads.filter((thread) => thread.requestReceived && !thread.accepted);
+            const newlyAcceptedConnections = findNewAcceptedConnections(connections, user.email);
+            const cachedAcceptedConnectionNotifications = readAcceptedConnectionNotifications(user).map((notification) => {
+              const connectionId = notification.id.replace('connection-accepted-', '');
+              const connection = connections.find((item) => String(item.id) === connectionId);
+              if (!connection) {
+                return notification;
+              }
+              return {
+                ...notification,
+                title: `${otherConnectionName(connection, user) ?? 'A developer'} accepted your connection`,
+                detail: 'View their profile or clear this update when you are ready.',
+                href: `/profiles/${otherConnectionProfileId(connection, user)}`,
+              };
+            });
+            const acceptedConnectionNotifications = [
+              ...cachedAcceptedConnectionNotifications,
+              ...newlyAcceptedConnections.map((connection) => ({
+                id: `connection-accepted-${connection.id}`,
+                type: 'connection-accepted',
+                count: 1,
+                title: `${otherConnectionName(connection, user) ?? 'A developer'} accepted your connection`,
+                detail: 'View their profile or clear this update when you are ready.',
+                href: `/profiles/${otherConnectionProfileId(connection, user)}`,
+              })),
+            ].filter((notification, index, collection) => (
+              collection.findIndex((candidate) => candidate.id === notification.id) === index
+            )).filter((notification) => !dismissedNotificationIdsRef.current.includes(notification.id));
+            cacheAcceptedConnectionNotifications(user, acceptedConnectionNotifications);
+            const allNotifications = [
+              ...(preferences.messages ? unreadThreads.map((thread) => ({
+                id: `message-${thread.id}-${thread.updatedAt ?? thread.unreadCount}`,
+                type: 'message',
+                threadId: thread.id,
+                count: thread.unreadCount,
+                title: `${thread.partner?.name ?? 'Someone'} sent ${thread.unreadCount} new message${thread.unreadCount === 1 ? '' : 's'}`,
+                detail: notificationPreview(thread.preview),
+                href: messageDashboardHref(user, thread.id),
+              })) : []),
+              ...(preferences.messageRequests ? pendingMessageRequests.map((thread) => ({
+                id: `message-request-${thread.id}`,
+                type: 'message-request',
+                count: 1,
+                title: `${thread.partner?.name ?? 'Someone'} sent you a message request`,
+                detail: notificationPreview(thread.preview),
+                href: messageDashboardHref(user, thread.id),
+              })) : []),
+              ...(preferences.connectionRequests ? requests.map((connection) => ({
+                id: `connection-request-${connection.id}`,
+                type: 'connection-request',
+                count: 1,
+                title: `${connection.requesterName ?? 'Someone'} wants to connect`,
+                detail: 'Review their connection request.',
+                href: '/dashboard?section=connections',
+              })) : []),
+              ...(preferences.connectionAccepted ? acceptedConnectionNotifications : []),
+            ];
+            const visibleNotifications = allNotifications.filter((notification) => !dismissedNotificationIdsRef.current.includes(notification.id));
+            const nextAttentionCount = visibleNotifications.reduce((count, notification) => count + notification.count, 0);
+            cacheAttentionCount(user, nextAttentionCount);
+            cacheNotifications(user, visibleNotifications);
+            setAttentionCount(nextAttentionCount);
+            setNotifications(visibleNotifications);
           }
         })
-        .catch(() => isCurrent && setAttentionCount(0))
+        .catch(() => {})
         .finally(() => {
           isRefreshingAttentionRef.current = false;
         });
@@ -206,25 +410,30 @@ export default function PublicHeader() {
   }, [attentionCount, selectedPresence]);
 
   useEffect(() => {
-    function closeAccountMenu(event) {
+    function closeMenus(event) {
       if (!accountMenuRef.current?.contains(event.target)) {
         setIsAccountMenuOpen(false);
         setIsPresenceMenuOpen(false);
       }
-    }
-
-    function closeAccountMenuOnEscape(event) {
-      if (event.key === 'Escape') {
-        setIsAccountMenuOpen(false);
-        setIsPresenceMenuOpen(false);
+      if (!notificationMenuRef.current?.contains(event.target)) {
+        setIsNotificationsOpen(false);
       }
     }
 
-    document.addEventListener('mousedown', closeAccountMenu);
-    document.addEventListener('keydown', closeAccountMenuOnEscape);
+    function closeMenusOnEscape(event) {
+      if (event.key === 'Escape') {
+        setIsAccountMenuOpen(false);
+        setIsPresenceMenuOpen(false);
+        setIsNotificationsOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', closeMenus);
+    document.addEventListener('keydown', closeMenusOnEscape);
     return () => {
-      document.removeEventListener('mousedown', closeAccountMenu);
-      document.removeEventListener('keydown', closeAccountMenuOnEscape);
+      window.clearTimeout(notificationCloseTimerRef.current);
+      document.removeEventListener('mousedown', closeMenus);
+      document.removeEventListener('keydown', closeMenusOnEscape);
     };
   }, []);
 
@@ -245,6 +454,61 @@ export default function PublicHeader() {
     if (notificationAudioRef.current.state === 'suspended') {
       notificationAudioRef.current.resume().catch(() => {});
     }
+  }
+
+  function dismissNotifications(notificationIds) {
+    const nextDismissedIds = [...new Set([...dismissedNotificationIdsRef.current, ...notificationIds])].slice(-100);
+    dismissedNotificationIdsRef.current = nextDismissedIds;
+    cacheDismissedNotificationIds(user, nextDismissedIds);
+    cacheAcceptedConnectionNotifications(
+      user,
+      readAcceptedConnectionNotifications(user).filter((notification) => !notificationIds.includes(notification.id))
+    );
+    const nextNotifications = notifications.filter((notification) => !notificationIds.includes(notification.id));
+    cacheNotifications(user, nextNotifications);
+    setNotifications(nextNotifications);
+    const removedCount = notifications
+      .filter((notification) => notificationIds.includes(notification.id))
+      .reduce((count, notification) => count + notification.count, 0);
+    const nextAttentionCount = Math.max(0, attentionCount - removedCount);
+    cacheAttentionCount(user, nextAttentionCount);
+    setAttentionCount(nextAttentionCount);
+  }
+
+  async function openNotification(event, notification) {
+    event.preventDefault();
+    if (isUpdatingNotifications) {
+      return;
+    }
+    setIsUpdatingNotifications(true);
+    try {
+      if (notification.type === 'message') {
+        const messageEndpoint = user.role === 'EMPLOYER' ? '/api/employer/messages' : '/api/developer/messages';
+        await apiRequest(`${messageEndpoint}/${notification.threadId}/read`, { token, method: 'PATCH' });
+      }
+      dismissNotifications([notification.id]);
+      window.dispatchEvent(new Event('skillsignal:message-state-changed'));
+      setIsNotificationsOpen(false);
+      navigate(notification.href);
+    } catch {
+      // Leave the notification in place if marking the underlying message as read fails.
+    } finally {
+      setIsUpdatingNotifications(false);
+    }
+  }
+
+  function clearAllNotifications() {
+    dismissNotifications(notifications.map((notification) => notification.id));
+  }
+
+  function keepNotificationsOpen() {
+    window.clearTimeout(notificationCloseTimerRef.current);
+    setIsNotificationsOpen(true);
+  }
+
+  function closeNotificationsAfterPointerLeaves() {
+    window.clearTimeout(notificationCloseTimerRef.current);
+    notificationCloseTimerRef.current = window.setTimeout(() => setIsNotificationsOpen(false), 180);
   }
 
   async function updatePresence(presence) {
@@ -273,7 +537,59 @@ export default function PublicHeader() {
         <Link to="/match">AI match</Link>
         <Link to="/profiles">Profiles</Link>
         {user ? (
-          <div className="account-cluster" ref={accountMenuRef}>
+          <>
+            <div
+              className="header-notifications"
+              ref={notificationMenuRef}
+              onMouseEnter={keepNotificationsOpen}
+              onMouseLeave={closeNotificationsAfterPointerLeaves}
+            >
+              <button
+                className="header-notifications-trigger"
+                type="button"
+                aria-label={`Open notifications${attentionCount > 0 ? `, ${attentionCount} unread` : ''}`}
+                aria-expanded={isNotificationsOpen}
+                aria-haspopup="dialog"
+                onClick={() => setIsNotificationsOpen((isOpen) => !isOpen)}
+              >
+                <Bell size={24} aria-hidden="true" />
+                {attentionCount > 0 ? <strong className="header-message-count">{attentionCount > 99 ? '99+' : attentionCount}</strong> : null}
+              </button>
+              {isNotificationsOpen ? (
+                <section className="header-notifications-panel" role="dialog" aria-label="Notifications">
+                  <div className="header-notifications-heading">
+                    <strong>Notifications</strong>
+                    {attentionCount > 0 ? <span>{attentionCount > 99 ? '99+' : attentionCount} new</span> : null}
+                  </div>
+                  {notifications.length > 0 ? (
+                    <div className="header-notifications-actions">
+                      <button type="button" onClick={clearAllNotifications} disabled={isUpdatingNotifications}>Clear all</button>
+                    </div>
+                  ) : null}
+                  {notifications.length > 0 ? (
+                    <div className="header-notifications-list">
+                      {notifications.slice(0, 6).map((notification) => (
+                        <article className="header-notification-item" key={notification.id}>
+                          <Link to={notification.href} onClick={(event) => openNotification(event, notification)}>
+                            <strong>{notification.title}</strong>
+                            <span>{notification.detail}</span>
+                          </Link>
+                          <button className="header-notification-dismiss" type="button" onClick={() => dismissNotifications([notification.id])} aria-label={`Clear notification: ${notification.title}`}>
+                            <X size={14} aria-hidden="true" />
+                          </button>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="header-notifications-empty">You are all caught up.</p>
+                  )}
+                  <Link className="header-notifications-all" to={user.role === 'EMPLOYER' ? '/dashboard?section=proof' : '/dashboard?section=inbox'} onClick={() => setIsNotificationsOpen(false)}>
+                    View all messages
+                  </Link>
+                </section>
+              ) : null}
+            </div>
+            <div className="account-cluster" ref={accountMenuRef}>
             <button
               className={`account-avatar-link presence-ring ${currentPresence.value.toLowerCase().replaceAll('_', '-')}`}
               type="button"
@@ -286,7 +602,6 @@ export default function PublicHeader() {
               }}
               >
                 {profileImage ? <img className="account-avatar" src={profileImage} alt="Your profile" decoding="sync" fetchPriority="high" /> : <span className="account-avatar account-avatar-fallback" aria-hidden="true">{profileInitial}</span>}
-                {attentionCount > 0 ? <strong className="account-notification-count">{attentionCount > 99 ? '99+' : attentionCount}</strong> : null}
               </button>
             {isAccountMenuOpen ? (
               <div className="account-menu" role="menu">
@@ -338,7 +653,8 @@ export default function PublicHeader() {
                 </button>
               </div>
             ) : null}
-          </div>
+            </div>
+          </>
         ) : (
           <Link className="dashboard-link" to="/login">
             <span>Log in</span>

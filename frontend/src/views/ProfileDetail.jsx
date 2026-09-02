@@ -192,17 +192,6 @@ function developerPreferenceChips(profile) {
   ].filter(Boolean);
 }
 
-function candidateSignalLabel(proofQuality) {
-  const score = proofQuality?.score ?? 0;
-  if (score >= 75) {
-    return 'Strong candidate';
-  }
-  if (score >= 45) {
-    return 'Promising candidate';
-  }
-  return 'Early-stage candidate';
-}
-
 export default function ProfileDetail() {
   const { id } = useParams();
   const { user, token } = useAuth();
@@ -583,11 +572,6 @@ export default function ProfileDetail() {
               <p className="eyebrow">{isEmployerProfile ? 'Employer profile' : 'Developer profile'}</p>
               <h1>{profile.name}</h1>
               <p>{profile.title}</p>
-              {isDeveloperProfile && (
-                <span className={`candidate-signal-badge ${candidateSignalLabel(profile.proofQuality).toLowerCase().replaceAll(' ', '-')}`}>
-                  {candidateSignalLabel(profile.proofQuality)}
-                </span>
-              )}
               <div className="skill-list">
                 {skills.map((skill) => (
                   <span key={skill}>{skill}</span>

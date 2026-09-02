@@ -136,7 +136,7 @@ function latestOwnMessageClusterStatus(messages, viewerUserId) {
 
 const CONNECTION_LABEL_OPTIONS = ['New', 'Friend', 'Mentor', 'Mentee', 'Classmate', 'Collaborator'];
 
-export default function DeveloperDashboard({ user, token, selectedSection }) {
+export default function DeveloperDashboard({ user, token, selectedSection, selectedThreadId }) {
   const navigate = useNavigate();
   const chatListRef = React.useRef(null);
   const storageKey = `skillsignal.developer-profile.${user.email}`;
@@ -213,8 +213,8 @@ export default function DeveloperDashboard({ user, token, selectedSection }) {
   }, [storageKey, token]);
 
   useEffect(() => {
-    if (selectedSection === 'profile') {
-      setActiveSection('profile');
+    if (['profile', 'projects', 'inbox', 'connections', 'feed'].includes(selectedSection)) {
+      setActiveSection(selectedSection);
     }
   }, [selectedSection]);
 
@@ -294,6 +294,13 @@ export default function DeveloperDashboard({ user, token, selectedSection }) {
       setError(err.message);
     }
   }
+
+  useEffect(() => {
+    const selectedThread = chatThreads.find((thread) => String(thread.id) === String(selectedThreadId));
+    if (selectedThread) {
+      previewThread(selectedThread);
+    }
+  }, [chatThreads, selectedThreadId]);
 
   async function toggleFavorite(thread) {
     setError('');

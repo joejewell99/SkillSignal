@@ -9,13 +9,14 @@ export default function Dashboard() {
   const { user, token } = useAuth();
   const [searchParams] = useSearchParams();
   const selectedSection = searchParams.get('section');
+  const selectedThreadId = searchParams.get('thread');
 
   if (user.role === 'DEVELOPER') {
-    return <DeveloperDashboard user={user} token={token} selectedSection={selectedSection} />;
+    return <DeveloperDashboard user={user} token={token} selectedSection={selectedSection} selectedThreadId={selectedThreadId} />;
   }
 
   if (user.role === 'EMPLOYER') {
-    return <EmployerDashboard user={user} token={token} selectedSection={selectedSection} />;
+    return <EmployerDashboard user={user} token={token} selectedSection={selectedSection} selectedThreadId={selectedThreadId} />;
   }
 
   return <RoleDashboard user={user} token={token} />;

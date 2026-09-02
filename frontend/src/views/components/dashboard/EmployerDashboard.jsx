@@ -89,7 +89,7 @@ function sortThreads(threads) {
 
 const CANDIDATE_STAGE_OPTIONS = ['New', 'Considering', 'Strong fit'];
 
-export default function EmployerDashboard({ user, token, selectedSection }) {
+export default function EmployerDashboard({ user, token, selectedSection, selectedThreadId }) {
   const navigate = useNavigate();
   const chatListRef = React.useRef(null);
   const storageKey = `skillsignal.employer-profile.${user.email}`;
@@ -115,8 +115,8 @@ export default function EmployerDashboard({ user, token, selectedSection }) {
   const [activeSection, setActiveSection] = useState('profile');
 
   useEffect(() => {
-    if (selectedSection === 'profile') {
-      setActiveSection('profile');
+    if (['profile', 'needs', 'proof', 'saved', 'feed'].includes(selectedSection)) {
+      setActiveSection(selectedSection);
     }
   }, [selectedSection]);
   const [profile, setProfile] = useState(() => readStoredEmployerProfile(storageKey, user));
@@ -281,6 +281,13 @@ export default function EmployerDashboard({ user, token, selectedSection }) {
       setError(err.message);
     }
   }
+
+  useEffect(() => {
+    const selectedThread = chatThreads.find((thread) => String(thread.id) === String(selectedThreadId));
+    if (selectedThread) {
+      previewThread(selectedThread);
+    }
+  }, [chatThreads, selectedThreadId]);
 
   async function toggleFavorite(thread) {
     setError('');

@@ -25,7 +25,7 @@
   width: 100%;
 }
 
-.profile-detail-avatar-wrap { flex: 0 0 auto; height: 132px; width: 132px; }
+.profile-detail-avatar-wrap { aspect-ratio: 1; flex: 0 0 auto; height: auto; width: min(100%, 220px); }
 .profile-detail-avatar-wrap > img,
 .profile-detail-avatar-wrap > .profile-placeholder { height: 100%; width: 100%; }
 .profile-detail-avatar-wrap .profile-presence { bottom: 5px; right: 5px; }
@@ -44,30 +44,6 @@
 
 .profile-detail-header .skill-list {
   margin-top: 4px;
-}
-
-.candidate-signal-badge {
-  background: color-mix(in srgb, var(--signal) 12%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--signal) 34%, var(--line));
-  border-radius: 999px;
-  color: var(--signal);
-  font-size: 0.78rem;
-  font-weight: 900;
-  justify-self: start;
-  padding: 6px 10px;
-  text-transform: uppercase;
-}
-
-.candidate-signal-badge.promising-candidate {
-  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
-  border-color: color-mix(in srgb, var(--primary) 30%, var(--line));
-  color: var(--primary);
-}
-
-.candidate-signal-badge.early-stage-candidate {
-  background: var(--surface-strong);
-  border-color: var(--line-strong);
-  color: var(--muted);
 }
 
 .profile-detail-contact-links {
