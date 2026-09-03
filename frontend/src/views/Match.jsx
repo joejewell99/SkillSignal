@@ -8,6 +8,12 @@ import { useAuth } from '../state/AuthContext.jsx';
 
 const developerPlaceholder = 'Example: I am looking for developers with React, Spring Boot, PostgreSQL, and dashboard experience. I would like to see GitHub projects, deployed work, screenshots, or proof they have handled auth, APIs, data cleanup, or production fixes.';
 const employerPlaceholder = 'Example: I am strongest with React, Python, SQL, APIs, and dashboard work. I am looking for employers hiring junior developers for data cleanup, admin screens, reporting tools, or full-stack projects where my GitHub work would be useful.';
+const aiMatchMessages = [
+  'Work in. Proof out.',
+  'Proof-led matching.',
+  'Build a relevant network.',
+  'Strong, well-reasoned responses.',
+];
 const exampleBriefs = {
   DEVELOPER: [
     {
@@ -237,6 +243,8 @@ export default function Match() {
   const [connectingProfileId, setConnectingProfileId] = useState(null);
   const [connectionMessage, setConnectionMessage] = useState('');
   const [resultView, setResultView] = useState('detail');
+  const [aiMatchMessageIndex, setAiMatchMessageIndex] = useState(0);
+  const [isSearchButtonPressed, setIsSearchButtonPressed] = useState(false);
 
   useEffect(() => {
     const storedState = readStoredMatchState(matchStorageKey);
@@ -250,6 +258,27 @@ export default function Match() {
   useEffect(() => {
     sessionStorage.setItem(matchStorageKey, JSON.stringify({ brief: aiBrief, mode: matchMode, results: aiResults }));
   }, [aiBrief, aiResults, matchMode, matchStorageKey]);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setAiMatchMessageIndex((current) => (current + 1) % aiMatchMessages.length);
+    }, 3200);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    if (!isSearchButtonPressed) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => setIsSearchButtonPressed(false), 700);
+    return () => window.clearTimeout(timeoutId);
+  }, [isSearchButtonPressed]);
 
   useEffect(() => {
     if (user?.role !== 'DEVELOPER' || !token) {
@@ -304,6 +333,7 @@ export default function Match() {
 
   const handleAiSearch = (event) => {
     event.preventDefault();
+    setIsSearchButtonPressed(true);
     if (!aiBrief.trim()) {
       setAiError('Add a skill, stack, project type, or hiring need to search.');
       return;
@@ -365,13 +395,13 @@ export default function Match() {
 
   const isEmployerMode = matchMode === 'EMPLOYER';
   const formLabel = 'Describe the work';
-  const heroHeading = isEmployerMode ? 'Find employers with work for your stack.' : 'Find devs by skill and project proof.';
+  const heroHeading = isEmployerMode ? 'Find employers with work for your stack.' : 'Find quality developers, matched by AI.';
   const heroCopy = isEmployerMode
-    ? 'Search by stack, work type, or problem area. SkillSignal will find employer profiles with related hiring needs.'
-    : 'Search by stack, project type, learning goal, or collaboration idea. SkillSignal will find developers with related proof.';
+    ? 'Describe your stack, the work you have done, and the problems you want to solve next. SkillSignal will find employers with relevant hiring needs.'
+    : 'Describe the software problem, stack, expected work, and proof you want to see. SkillSignal will find developers whose project evidence fits.';
   const panelCopy = isEmployerMode
-    ? 'Name the stack, the hiring problem, and the proof you want to see.'
-    : 'Name the stack, the work you want to do, and the proof that matters to you.';
+    ? 'Include your strongest work, stack, ideal problems, and the proof you can share.'
+    : 'Include the problem, stack, key responsibilities, and evidence that would build trust.';
   const submitLabel = isEmployerMode ? 'Find employers' : 'Find devs';
   const loadingLabel = isEmployerMode ? 'Finding employers...' : 'Finding devs...';
   const placeholder = isEmployerMode ? employerPlaceholder : developerPlaceholder;
@@ -398,16 +428,16 @@ export default function Match() {
 
   return (
     <main className="public-page match-discovery">
+      <div className="match-discovery-stage">
       <PublicHeader />
 
       <section className="tool-hero match-discovery-hero">
         <div className="hero-copy">
-          <p className="eyebrow">AI match <span>Proof-led matching</span></p>
           <div className="ai-mode-toggle" aria-label="AI match mode">
-            <button className={matchMode === 'DEVELOPER' ? 'active' : ''} type="button" onClick={() => updateMatchMode('DEVELOPER')}>
+            <button className={`match-mode-developer ${matchMode === 'DEVELOPER' ? 'active' : ''}`} type="button" onClick={() => updateMatchMode('DEVELOPER')}>
               Find Developers
             </button>
-            <button className={matchMode === 'EMPLOYER' ? 'active' : ''} type="button" onClick={() => updateMatchMode('EMPLOYER')}>
+            <button className={`match-mode-employer ${matchMode === 'EMPLOYER' ? 'active' : ''}`} type="button" onClick={() => updateMatchMode('EMPLOYER')}>
               Find Employers
             </button>
           </div>
@@ -432,7 +462,9 @@ export default function Match() {
         <form className="ai-search-panel" onSubmit={handleAiSearch}>
           <div className="ai-brief-meta" aria-hidden="true">
             <span>Your match brief</span>
-            <span>Work in. Proof out.</span>
+            <span className="ai-brief-message" key={aiMatchMessageIndex}>
+              {aiMatchMessages[aiMatchMessageIndex]}
+            </span>
           </div>
           <div className="ai-panel-heading">
             <BrainCircuit size={24} />
@@ -445,21 +477,22 @@ export default function Match() {
                 <Info size={18} />
               </button>
               <div className="score-tooltip" role="tooltip">
-                <strong>For best search results:</strong>
-                <p>
-                  SkillSignal works best when your brief gives a clear picture of the work, the stack,
-                  and the proof you would trust.
-                </p>
+                <strong>{isEmployerMode ? 'For better employer matches, include:' : 'For better developer matches, include:'}</strong>
                 <ul>
-                  <li>Discuss the software problem: slow pages, auth bugs, messy imports, fragile deployments.</li>
-                  <li>Describe the evidence you want: GitHub projects, live demos, screenshots, tests, similar work.</li>
-                  <li>List the stack you are looking for: React, Spring Boot, PostgreSQL, Docker, Rails, Python.</li>
-                  <li>Name the work type: dashboard, API, permissions, reporting, data cleanup, deployment.</li>
-                  <li>Describe the ideal person: careful, junior-friendly, communicative, production-minded.</li>
+                  {isEmployerMode ? (
+                    <>
+                      <li>Your strongest stack and project experience.</li>
+                      <li>The work or problems you want to solve next.</li>
+                      <li>The proof you can share, such as projects or demos.</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>The software problem or outcome you need.</li>
+                      <li>The stack and responsibilities involved.</li>
+                      <li>The evidence that would build your confidence.</li>
+                    </>
+                  )}
                 </ul>
-                <p className="tooltip-example">
-                  Short examples: slow React dashboard, Spring Security auth, PostgreSQL reporting, Docker deployment.
-                </p>
               </div>
             </div>
           </div>
@@ -494,7 +527,7 @@ export default function Match() {
               </div>
             ))}
           </div>
-          <button className="primary-button ai-submit" disabled={isAiLoading} type="submit">
+          <button className={`primary-button ai-submit ${isSearchButtonPressed ? 'just-pressed' : ''}`} disabled={isAiLoading} type="submit">
             <Sparkles size={18} />
             <span>{isAiLoading ? loadingLabel : submitLabel}</span>
           </button>
@@ -620,8 +653,11 @@ export default function Match() {
           {connectionMessage && <p className={connectionMessage.includes('sent') ? 'info-message' : 'error'}>{connectionMessage}</p>}
         </section>
       )}
+      </div>
 
-      <PublicFooter />
+      <div className="match-discovery-footer">
+        <PublicFooter />
+      </div>
     </main>
   );
 }

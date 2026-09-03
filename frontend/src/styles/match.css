@@ -922,18 +922,29 @@
 }
 
 /* The matcher is the preview: a calm brief workspace with proof-first guidance. */
-.match-discovery .match-discovery-hero {
-  align-items: stretch;
+.match-discovery-stage {
   background:
+    linear-gradient(to bottom, transparent calc(100% - 150px), var(--bg)),
     radial-gradient(circle at 8% 95%, color-mix(in srgb, var(--signal) 10%, transparent), transparent 22rem),
     linear-gradient(135deg, color-mix(in srgb, var(--surface) 96%, var(--primary)) 0%, var(--surface) 52%, color-mix(in srgb, var(--surface) 96%, var(--signal)) 100%);
-  border: 1px solid color-mix(in srgb, var(--line-strong) 76%, var(--primary));
+  padding-bottom: 96px;
+}
+
+.match-discovery-footer {
+  background: var(--bg);
+  padding-top: 1px;
+}
+
+.match-discovery .match-discovery-hero {
+  align-items: stretch;
+  background: transparent;
+  border-color: transparent;
   border-radius: 30px;
-  box-shadow: 0 20px 48px rgba(24, 54, 68, 0.08);
+  box-shadow: none;
   gap: clamp(20px, 2.5vw, 40px);
   grid-template-columns: minmax(330px, 0.78fr) minmax(500px, 1.22fr);
   max-width: 1480px;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
   padding-bottom: 34px;
   padding-top: 28px;
@@ -956,7 +967,7 @@
 .match-discovery .hero-copy {
   align-content: start;
   display: grid;
-  transform: translateY(-20px);
+  transform: translateY(0);
 }
 
 .match-discovery .tool-hero h1 {
@@ -984,10 +995,21 @@
 }
 
 .match-discovery .ai-mode-toggle button {
+  cursor: pointer;
   min-width: 0;
   padding-left: 10px;
   padding-right: 10px;
+  transition: background-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 180ms ease;
 }
+
+.match-discovery .ai-mode-toggle .match-mode-developer { color: var(--primary); }
+.match-discovery .ai-mode-toggle .match-mode-employer { color: var(--signal); }
+.match-discovery .ai-mode-toggle .match-mode-developer.active { background: var(--primary); color: #ffffff; }
+.match-discovery .ai-mode-toggle .match-mode-employer.active { background: var(--signal); color: #ffffff; }
+.match-discovery .ai-mode-toggle button:hover { box-shadow: 0 5px 10px rgba(22, 61, 75, 0.16); transform: translateY(-2px); }
+.match-discovery .ai-mode-toggle .match-mode-developer:hover:not(.active) { background: color-mix(in srgb, var(--primary) 9%, var(--surface)); }
+.match-discovery .ai-mode-toggle .match-mode-employer:hover:not(.active) { background: color-mix(in srgb, var(--signal) 11%, var(--surface)); }
+.match-discovery .ai-mode-toggle button:active { box-shadow: none; transform: translateY(1px) scale(0.98); }
 
 .match-discovery .hero-copy > p:not(.eyebrow) { max-width: 56ch; min-height: 4.65em; }
 
@@ -1039,16 +1061,27 @@
   font-weight: 850;
   justify-content: space-between;
   letter-spacing: 0.09em;
-  margin-bottom: 15px;
+  margin-bottom: 6px;
   padding-bottom: 12px;
   text-transform: uppercase;
 }
 
 .match-discovery .ai-brief-meta span:last-child { color: var(--muted); font-size: 0.62rem; }
-.match-discovery .ai-panel-heading { align-items: start; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
-.match-discovery .ai-panel-heading > div p { min-height: 2.9em; }
+.match-discovery .ai-brief-message { animation: gettingStartedEnter 720ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.match-discovery .ai-panel-heading { align-items: start; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.match-discovery .ai-panel-heading > div p { min-height: 2.25em; }
 .match-discovery .ai-panel-heading > svg { background: var(--primary); border-radius: 10px; color: #ffffff; padding: 7px; }
-.match-discovery .ai-search-panel textarea { min-height: 196px; }
+.match-discovery .score-tooltip { left: calc(100% + 10px); max-width: min(280px, calc(100vw - 32px)); right: auto; top: 0; width: 280px; z-index: 20; }
+.match-discovery .ai-search-panel textarea {
+  min-height: 220px;
+  scrollbar-color: var(--signal) color-mix(in srgb, var(--signal) 10%, var(--surface));
+  scrollbar-width: thin;
+}
+
+.match-discovery .ai-search-panel textarea::-webkit-scrollbar { width: 10px; }
+.match-discovery .ai-search-panel textarea::-webkit-scrollbar-track { background: color-mix(in srgb, var(--signal) 10%, var(--surface)); border-radius: 999px; }
+.match-discovery .ai-search-panel textarea::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--primary), var(--signal)); border: 2px solid color-mix(in srgb, var(--signal) 10%, var(--surface)); border-radius: 999px; }
+.match-discovery .ai-search-panel textarea::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, var(--primary-strong), var(--signal)); }
 
 .ai-example-prompts {
   border-top: 1px solid var(--line);
@@ -1098,7 +1131,16 @@
   color: var(--primary);
   outline: none;
 }
-.match-discovery .ai-submit { box-shadow: 0 8px 16px color-mix(in srgb, var(--primary) 20%, transparent); height: 48px; justify-content: center; width: 100%; }
+.match-discovery .ai-submit { box-shadow: 0 8px 16px color-mix(in srgb, var(--primary) 20%, transparent); height: 48px; justify-content: center; transition: box-shadow 180ms ease, transform 180ms ease; width: 100%; }
+.match-discovery .ai-submit:hover:not(:disabled) { box-shadow: 0 12px 22px color-mix(in srgb, var(--primary) 34%, transparent); transform: translateY(-3px); }
+.match-discovery .ai-submit:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
+.match-discovery .ai-submit.just-pressed { animation: ai-submit-pressed 700ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+@keyframes ai-submit-pressed {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 46%, transparent); transform: translateY(1px) scale(0.97); }
+  48% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--primary) 0%, transparent), 0 12px 22px color-mix(in srgb, var(--primary) 34%, transparent); transform: translateY(-3px) scale(1.015); }
+  100% { box-shadow: 0 8px 16px color-mix(in srgb, var(--primary) 20%, transparent); transform: translateY(0) scale(1); }
+}
 .match-discovery .ai-results-section { padding-top: 34px; }
 .match-discovery .match-card { border-radius: 16px; }
 
@@ -1123,4 +1165,15 @@
 @media (max-width: 560px) {
   .match-discovery .eyebrow span { display: block; margin: 5px 0 0; }
   .match-discovery .ai-brief-meta { align-items: start; flex-direction: column; gap: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .match-discovery .ai-brief-message { animation: none; }
+  .match-discovery .ai-mode-toggle button,
+  .match-discovery .ai-mode-toggle button:hover,
+  .match-discovery .ai-mode-toggle button:active,
+  .match-discovery .ai-submit,
+  .match-discovery .ai-submit:hover:not(:disabled),
+  .match-discovery .ai-submit:active:not(:disabled) { transform: none; transition: none; }
+  .match-discovery .ai-submit.just-pressed { animation: none; outline: 2px solid var(--primary); outline-offset: 2px; }
 }
