@@ -597,18 +597,364 @@
   .profiles-workspace .profiles-hero::before { animation: none; }
 }
 
-/* Directory discovery follows the light, proof-first card language used on the home page. */
+/* Search-first profile discovery: manual browsing should feel as intentional as AI Match. */
 .profiles-discovery .profiles-discovery-hero {
   align-items: stretch;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
-  padding-bottom: 20px;
-  padding-top: 46px;
+  grid-template-columns: minmax(0, 0.82fr) minmax(360px, 0.98fr);
+  padding-bottom: clamp(34px, 4.5vw, 56px);
+}
+
+.profiles-discovery .directory-search-studio {
+  align-content: start;
+  background: rgba(247, 255, 253, 0.98);
+  border: 1px solid rgba(150, 232, 218, 0.38);
+  border-radius: 16px;
+  box-shadow: 0 18px 34px rgba(1, 16, 24, 0.2);
+  color: var(--ink);
+  display: grid;
+  gap: 16px;
+  padding: clamp(20px, 2.5vw, 28px);
+}
+
+.directory-search-heading {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.directory-search-heading .eyebrow {
+  color: var(--signal);
+  margin-bottom: 6px;
+}
+
+.directory-search-heading h2 {
+  color: var(--ink);
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  letter-spacing: -0.045em;
+  line-height: 1;
+  margin: 0;
+}
+
+.directory-search-hint {
+  background: #e7f5f1;
+  border-radius: 999px;
+  color: #176960;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.25;
+  max-width: 16ch;
+  padding: 7px 9px;
+  text-align: right;
+}
+
+.profiles-discovery .directory-primary-search {
+  background: #ffffff;
+  border: 1px solid #a8d8cf;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 2px rgba(15, 60, 61, 0.05);
+  min-height: 62px;
+  padding: 0 16px;
+}
+
+.profiles-discovery .directory-primary-search:focus-within {
+  border-color: var(--signal);
+  box-shadow: 0 0 0 4px rgba(44, 164, 148, 0.16);
+}
+
+.profiles-discovery .directory-primary-search svg { color: var(--signal); flex: 0 0 auto; }
+.profiles-discovery .directory-primary-search input { color: var(--ink); font-size: 1rem; font-weight: 650; }
+.profiles-discovery .directory-primary-search input::placeholder { color: #71858a; font-weight: 500; }
+
+.directory-search-refinements {
+  border-top: 1px solid #d8e9e5;
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.directory-refinement-row { display: grid; gap: 8px; }
+.directory-refinement-row > span { color: var(--muted); font-size: 0.75rem; font-weight: 800; }
+.profiles-discovery .directory-refinement-row .skill-chips { gap: 6px; }
+.profiles-discovery .directory-refinement-row .directory-skill-chip { font-size: 0.74rem; min-height: 30px; padding: 5px 9px; }
+
+.directory-name-suggestions { display: flex; flex-wrap: wrap; gap: 7px; }
+.directory-name-suggestions a {
+  align-items: center;
+  background: #f2f8f7;
+  border: 1px solid #d6e7e3;
+  border-radius: 999px;
+  color: var(--ink);
+  display: inline-flex;
+  font-size: 0.77rem;
+  font-weight: 800;
+  gap: 7px;
+  padding: 6px 10px;
+  text-decoration: none;
+}
+.directory-name-suggestions a:hover { border-color: var(--signal); color: var(--signal); }
+.directory-name-suggestions small { color: var(--muted); font-size: 0.67rem; }
+
+.directory-ai-nudge { color: var(--muted); font-size: 0.78rem; line-height: 1.4; margin: 0; }
+.directory-ai-nudge a { color: var(--primary); font-weight: 900; }
+
+.profiles-discovery .directory-results-shell {
+  margin: 0 auto;
+  max-width: 1260px;
+  padding: 0 clamp(20px, 4vw, 48px) 58px;
+}
+
+.profiles-discovery .directory-community-note {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.73rem;
+  font-weight: 750;
+  gap: 10px 18px;
+  padding: 18px 0;
+}
+
+.directory-community-note > span:first-child {
+  color: var(--signal);
+  font-size: 0.68rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.directory-community-note strong { color: var(--ink); font-size: 0.85rem; }
+
+.profiles-discovery .directory-results-shell .results-section {
+  max-width: none;
+  padding: 30px 0 0;
+}
+
+@media (max-width: 800px) {
+  .profiles-discovery .profiles-discovery-hero { grid-template-columns: 1fr; }
+  .profiles-discovery .directory-results-shell { padding-left: 22px; padding-right: 22px; }
+}
+
+@media (max-width: 480px) {
+  .directory-search-heading { display: grid; }
+  .directory-search-hint { max-width: none; text-align: left; width: fit-content; }
+  .profiles-discovery .directory-community-note { gap: 8px 14px; }
+}
+
+/* Bring manual exploration into the same dark, guided workspace as AI Match. */
+.profiles-discovery .profiles-discovery-hero {
+  background:
+    radial-gradient(circle at 86% 18%, rgba(82, 193, 181, 0.28), transparent 18rem),
+    radial-gradient(circle at 64% 90%, rgba(56, 117, 225, 0.18), transparent 24rem),
+    linear-gradient(118deg, #071018, #0b2029 58%, #0b3a3b);
+  border-color: rgba(190, 231, 233, 0.18);
+  box-shadow: 0 22px 50px rgba(8, 20, 29, 0.18);
+}
+
+.profiles-discovery .profiles-discovery-hero > div:first-child {
+  border-left-color: #80dfd0;
+}
+
+.profiles-discovery .directory-search-studio {
+  background:
+    linear-gradient(145deg, rgba(18, 53, 62, 0.92), rgba(7, 29, 38, 0.92));
+  border-color: rgba(156, 229, 216, 0.38);
+  box-shadow: 0 20px 38px rgba(1, 10, 16, 0.28);
+}
+
+.profiles-discovery .directory-search-heading .eyebrow { color: #9ce5d8; }
+.profiles-discovery .directory-search-heading h2 { color: #f4fbfb; }
+.directory-search-hint { background: rgba(198, 250, 239, 0.1); color: #bff3e9; }
+
+.profiles-discovery .directory-primary-search {
+  background: rgba(4, 22, 30, 0.72);
+  border-color: rgba(174, 237, 224, 0.42);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.04);
+}
+
+.profiles-discovery .directory-primary-search:focus-within {
+  border-color: #8de8d8;
+  box-shadow: 0 0 0 4px rgba(112, 226, 208, 0.15);
+}
+
+.profiles-discovery .directory-primary-search svg { color: #94ebdc; }
+.profiles-discovery .directory-primary-search input { color: #f4fbfb; }
+.profiles-discovery .directory-primary-search input::placeholder { color: rgba(220, 242, 243, 0.54); }
+.directory-search-refinements { border-top-color: rgba(195, 235, 232, 0.16); }
+.directory-refinement-row > span { color: rgba(223, 243, 243, 0.7); }
+.directory-name-suggestions a { background: rgba(219, 252, 247, 0.09); border-color: rgba(193, 239, 232, 0.2); color: #e6f9f5; }
+.directory-name-suggestions a:hover { border-color: #8de8d8; color: #bff3e9; }
+.directory-name-suggestions small { color: rgba(218, 244, 241, 0.58); }
+.directory-ai-nudge { color: rgba(225, 244, 246, 0.65); }
+.directory-ai-nudge a { color: #a8eadc; }
+
+.directory-hero-metrics {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 28px;
+  max-width: 500px;
+}
+
+.directory-hero-metrics div {
+  background: rgba(225, 250, 247, 0.06);
+  border: 1px solid rgba(202, 239, 238, 0.14);
+  display: grid;
+  gap: 4px;
+  padding: 13px 15px;
+}
+
+.directory-hero-metrics div:first-child { border-radius: 10px 0 0 0; }
+.directory-hero-metrics div:nth-child(2) { border-radius: 0 10px 0 0; }
+.directory-hero-metrics div:nth-child(3) { border-radius: 0 0 0 10px; }
+.directory-hero-metrics div:last-child { border-radius: 0 0 10px 0; }
+.directory-hero-metrics strong { color: #b8f3e6; font-size: clamp(1.2rem, 2.4vw, 1.7rem); line-height: 1; }
+.directory-hero-metrics span { color: rgba(224, 245, 246, 0.68); font-size: 0.66rem; font-weight: 850; letter-spacing: 0.07em; text-transform: uppercase; }
+
+.profiles-discovery .directory-results-shell { padding-top: 8px; }
+.profiles-discovery .directory-results-shell .results-section { padding-top: 22px; }
+
+.directory-pagination {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.directory-pagination span { color: var(--muted); font-size: 0.8rem; font-weight: 800; min-width: 100px; text-align: center; }
+.directory-page-arrow {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--primary);
+  display: inline-flex;
+  height: 42px;
+  justify-content: center;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+  width: 42px;
+}
+.directory-page-arrow:hover:not(:disabled) { background: var(--primary); border-color: var(--primary); color: #ffffff; transform: translateY(-2px); }
+.directory-page-arrow:disabled { cursor: not-allowed; opacity: 0.35; }
+
+@media (max-width: 560px) {
+  .directory-hero-metrics { max-width: none; }
+}
+
+/* Keep the hero concise; searching belongs with the people being browsed. */
+.profiles-discovery .profiles-discovery-hero {
+  grid-template-columns: minmax(0, 1fr);
+  padding-bottom: clamp(32px, 4vw, 48px);
+  padding-top: clamp(42px, 5vw, 60px);
+}
+
+.profiles-discovery .profiles-discovery-hero h1 { max-width: 13ch; }
+
+.profiles-discovery .directory-inline-search {
+  background:
+    radial-gradient(circle at 88% 20%, rgba(99, 213, 196, 0.18), transparent 17rem),
+    linear-gradient(118deg, #0a202b, #0c3440);
+  border: 1px solid rgba(84, 160, 160, 0.34);
+  border-radius: 15px;
+  box-shadow: 0 13px 28px rgba(12, 41, 49, 0.12);
+  display: grid;
+  gap: 12px;
+  margin: 20px 0 24px;
+  padding: 14px;
+}
+
+.profiles-discovery .directory-inline-search .directory-primary-search {
+  background: rgba(3, 17, 24, 0.72);
+  border-color: rgba(177, 240, 228, 0.38);
+  min-height: 58px;
+}
+
+.profiles-discovery .directory-inline-search .directory-primary-search input { color: #f4fbfb; }
+.profiles-discovery .directory-inline-search .directory-primary-search input::placeholder { color: rgba(225, 246, 245, 0.62); }
+.profiles-discovery .directory-inline-search .directory-search-refinements { border-top-color: rgba(199, 238, 234, 0.16); padding: 0; }
+.profiles-discovery .directory-inline-search .directory-skill-chip { background: rgba(230, 255, 251, 0.09); border-color: rgba(192, 238, 231, 0.22); color: #d8f7f1; }
+.profiles-discovery .directory-inline-search .directory-skill-chip:hover { background: rgba(183, 246, 233, 0.16); border-color: #9fe9da; color: #ffffff; }
+
+.profiles-discovery .directory-inline-search .directory-name-suggestions a {
+  background: rgba(228, 255, 251, 0.08);
+  border-color: rgba(192, 238, 231, 0.2);
+  color: #edfdfa;
+}
+
+.profiles-discovery .directory-inline-search .directory-name-suggestions a:hover { border-color: #9fe9da; color: #ffffff; }
+
+/* Compact directory header with the network scale visible at a glance. */
+.profiles-discovery .profiles-discovery-hero {
+  align-items: center;
+  gap: clamp(34px, 5vw, 76px);
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 0.7fr);
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 1320px;
+  padding: clamp(30px, 3.5vw, 42px) clamp(30px, 4vw, 56px);
+}
+
+.profiles-discovery .profiles-discovery-hero > .directory-hero-copy {
+  align-content: center;
+  display: grid;
+}
+
+.profiles-discovery .profiles-discovery-hero h1 {
+  font-size: clamp(2rem, 3.4vw, 3.25rem);
+  margin: 7px 0 10px;
+  max-width: none;
+}
+
+.profiles-discovery .profiles-discovery-hero p { margin: 0; }
+
+.profiles-discovery .directory-hero-metrics {
+  align-self: center;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  max-width: none;
+}
+
+.directory-hero-metrics div { min-height: 82px; padding: 12px; }
+.directory-hero-metrics div:first-child { border-radius: 10px 0 0 10px; }
+.directory-hero-metrics div:nth-child(2),
+.directory-hero-metrics div:nth-child(3) { border-radius: 0; }
+.directory-hero-metrics div:nth-child(3) { border-left: 0; }
+.directory-hero-metrics div:last-child { border-radius: 0 10px 10px 0; border-left: 0; }
+.directory-hero-metrics strong { font-size: clamp(1rem, 1.75vw, 1.35rem); }
+.directory-hero-metrics span { font-size: 0.58rem; }
+
+.profiles-discovery .directory-results-shell { max-width: 1320px; padding-left: clamp(24px, 3vw, 40px); padding-right: clamp(24px, 3vw, 40px); }
+.profiles-discovery .profile-grid { gap: 20px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.profiles-discovery .profile-card { padding: 20px; }
+
+@media (max-width: 980px) {
+  .profiles-discovery .profiles-discovery-hero { grid-template-columns: 1fr; }
+  .profiles-discovery .directory-hero-metrics { max-width: 660px; }
+}
+
+@media (max-width: 620px) {
+  .profiles-discovery .profiles-discovery-hero { padding: 28px 24px; }
+  .profiles-discovery .directory-hero-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .directory-hero-metrics div:first-child { border-radius: 10px 0 0 0; }
+  .directory-hero-metrics div:nth-child(2) { border-radius: 0 10px 0 0; }
+  .directory-hero-metrics div:nth-child(3) { border-left: 1px solid rgba(202, 239, 238, 0.14); border-radius: 0 0 0 10px; }
+  .directory-hero-metrics div:last-child { border-radius: 0 0 10px 0; }
+}
+
+/* Profiles are an editorial directory, distinct from the AI Matcher workspace. */
+.profiles-discovery .profiles-discovery-hero {
+  align-items: center;
+  gap: clamp(32px, 5vw, 76px);
+  grid-template-columns: minmax(0, 1fr) minmax(290px, 0.56fr);
+  padding-bottom: 34px;
+  padding-top: 64px;
 }
 
 .profiles-discovery .profiles-discovery-hero > div:first-child {
   align-content: center;
+  border-left: 3px solid var(--primary);
   display: grid;
+  padding-left: 22px;
 }
 
 .profiles-discovery .profiles-discovery-hero h1 {
@@ -619,12 +965,15 @@
 }
 
 .directory-guide {
-  align-content: end;
-  background: linear-gradient(180deg, rgba(5, 12, 18, 0.06), rgba(5, 12, 18, 0.015));
-  border: 1px solid color-mix(in srgb, var(--line-strong) 74%, rgba(255, 255, 255, 0.1));
-  border-radius: 22px;
+  align-content: start;
+  background:
+    radial-gradient(circle at 100% 0, rgba(89, 206, 187, 0.2), transparent 12rem),
+    linear-gradient(145deg, #0a2630, #0b4548);
+  border: 0;
+  border-radius: 18px;
+  box-shadow: 0 16px 30px rgba(17, 58, 63, 0.16);
   display: grid;
-  gap: 12px;
+  gap: 14px;
   padding: clamp(20px, 2.2vw, 28px);
 }
 
@@ -636,11 +985,14 @@
 }
 
 .directory-guide > p:not(.eyebrow) {
-  color: var(--muted);
+  color: rgba(232, 247, 247, 0.76);
   font-size: 0.92rem;
   line-height: 1.55;
   margin: 0;
 }
+
+.directory-guide .eyebrow { color: #9ce5d8; }
+.directory-guide h2 { color: #f4fbfb; }
 
 .directory-guide-signals {
   display: flex;
@@ -649,10 +1001,10 @@
 }
 
 .directory-guide-signals span {
-  background: color-mix(in srgb, var(--surface-strong) 88%, var(--signal));
-  border: 1px solid color-mix(in srgb, var(--line) 72%, var(--signal));
+  background: rgba(226, 255, 250, 0.1);
+  border: 1px solid rgba(193, 239, 232, 0.24);
   border-radius: 999px;
-  color: var(--ink);
+  color: #d9f6ef;
   font-size: 0.72rem;
   font-weight: 760;
   padding: 6px 9px;
@@ -680,12 +1032,39 @@
 .profiles-discovery .directory-metrics-bar div:first-child { padding-left: 0; }
 .profiles-discovery .directory-metrics-bar strong { color: var(--primary); font-size: 1.22rem; }
 .profiles-discovery .directory-metrics-bar span { font-size: 0.7rem; letter-spacing: 0.06em; }
-.profiles-discovery .directory-search-strip { padding-top: 24px; }
-.profiles-discovery .directory-search-strip .search-panel { border-radius: 18px; box-shadow: none; }
+.profiles-discovery .directory-search-strip { padding-top: 14px; }
+.profiles-discovery .directory-search-strip .search-panel { border-color: var(--line); border-radius: 14px; box-shadow: 0 10px 24px rgba(30, 66, 83, 0.05); }
 .profiles-discovery .results-section { padding-top: 34px; }
 .profiles-discovery .profile-grid { gap: 18px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.profiles-discovery .profile-card { border-radius: 16px; }
-.profiles-discovery .profile-card:hover { border-color: color-mix(in srgb, var(--primary) 42%, var(--line)); }
+.profiles-discovery .profile-card { border-radius: 14px; gap: 16px; padding: 18px; position: relative; }
+.profiles-discovery .profile-card-top { align-items: center; display: grid; gap: 13px; grid-template-columns: 64px minmax(0, 1fr); }
+.profiles-discovery .profile-card .profile-avatar-wrap { height: 64px; width: 64px; }
+.profiles-discovery .profile-card .profile-avatar-wrap img,
+.profiles-discovery .profile-card .profile-avatar-wrap .profile-placeholder { border-radius: 14px; height: 64px; width: 64px; }
+.profiles-discovery .profile-card .profile-placeholder { font-size: 1.35rem; }
+.profiles-discovery .profile-card .profile-presence { bottom: 2px; right: 2px; }
+.profiles-discovery .profile-card .profile-card-heading { gap: 2px; }
+.profiles-discovery .profile-card .profile-card-heading h3 { font-size: 1.14rem; }
+.profiles-discovery .profile-card .profile-card-heading p { font-size: 0.84rem; line-height: 1.35; }
+.profiles-discovery .profile-card:hover { border-color: color-mix(in srgb, var(--primary) 42%, var(--line)); box-shadow: 0 14px 30px rgba(30, 66, 83, 0.1); transform: translateY(-3px); }
+.profiles-discovery .profile-card-employer:hover { border-color: color-mix(in srgb, var(--signal) 48%, var(--line)); }
+.profiles-discovery .profile-card .profile-view-link { justify-content: center; transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; width: 100%; }
+.profiles-discovery .profile-card .profile-view-link:hover { box-shadow: 0 6px 12px color-mix(in srgb, var(--primary) 18%, transparent); transform: translateY(-2px); }
+.profiles-discovery .profile-card-employer .profile-view-link:hover { border-color: var(--signal); color: var(--signal); }
+
+.profiles-discovery .segmented-control button { cursor: pointer; transition: background-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 180ms ease; }
+.profiles-discovery .segmented-control button:hover { box-shadow: 0 4px 9px rgba(22, 61, 75, 0.14); transform: translateY(-2px); }
+.profiles-discovery .segmented-control button:active { box-shadow: none; transform: translateY(1px) scale(0.98); }
+.profiles-discovery .segmented-control .directory-filter-developer { color: var(--primary); }
+.profiles-discovery .segmented-control .directory-filter-employer { color: var(--signal); }
+.profiles-discovery .segmented-control .directory-filter-all.active,
+.profiles-discovery .segmented-control .directory-filter-developer.active { background: var(--primary); color: #ffffff; }
+.profiles-discovery .segmented-control .directory-filter-employer.active { background: var(--signal); color: #ffffff; }
+
+.profiles-discovery .directory-skill-chip { transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 180ms ease; }
+.profiles-discovery .directory-skill-chip:hover { background: color-mix(in srgb, var(--primary) 8%, var(--surface)); border-color: color-mix(in srgb, var(--primary) 42%, var(--line)); box-shadow: 0 4px 10px rgba(30, 66, 83, 0.1); color: var(--primary); transform: translateY(-2px); }
+.profiles-discovery .name-suggestions button { transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
+.profiles-discovery .name-suggestions button:hover { border-color: color-mix(in srgb, var(--signal) 48%, var(--line)); box-shadow: 0 5px 12px rgba(20, 88, 83, 0.1); transform: translateY(-2px); }
 
 @media (max-width: 800px) {
   .profiles-discovery .profiles-discovery-hero { grid-template-columns: 1fr; }
@@ -697,5 +1076,793 @@
 @media (max-width: 560px) {
   .profiles-discovery .directory-metrics-bar { padding-left: 22px; padding-right: 22px; }
   .profiles-discovery .profile-grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profiles-discovery .segmented-control button,
+  .profiles-discovery .segmented-control button:hover,
+  .profiles-discovery .segmented-control button:active,
+  .profiles-discovery .directory-skill-chip,
+  .profiles-discovery .directory-skill-chip:hover,
+  .profiles-discovery .name-suggestions button,
+  .profiles-discovery .name-suggestions button:hover,
+  .profiles-discovery .profile-card:hover,
+  .profiles-discovery .profile-card .profile-view-link:hover { transform: none; transition: none; }
+}
+
+/* Carry the light coloured discovery canvas through the entire page. */
+.profiles-discovery {
+  background:
+    radial-gradient(circle at 86% 10%, rgba(62, 190, 172, 0.2), transparent 24rem),
+    radial-gradient(circle at 8% 64%, rgba(70, 131, 226, 0.14), transparent 30rem),
+    linear-gradient(135deg, #f5fbfa, #edf6f7 58%, #f6fbfa);
+}
+
+.profiles-discovery .profiles-discovery-hero { background: transparent; }
+.profiles-discovery .directory-results-shell { background: transparent; }
+.profiles-discovery .profiles-discovery-hero h1 { color: var(--ink); }
+.profiles-discovery .profiles-discovery-hero p { color: var(--muted); }
+.profiles-discovery .results-section .section-heading h2 { color: var(--ink); }
+.profiles-discovery .results-section .section-heading .eyebrow { color: var(--signal); }
+.profiles-discovery .directory-pagination span { color: var(--muted); }
+
+/* Show all qualifications; the fullest card sets the shared row height. */
+.profiles-discovery .profile-grid {
+  grid-auto-rows: 1fr;
+}
+
+.profiles-discovery .profile-card {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 400px;
+  overflow: visible;
+}
+
+.profiles-discovery .profile-card .skill-list {
+  display: flex;
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  width: auto;
+}
+
+.profiles-discovery .profile-card .skill-list span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Qualifications stay scannable: two rows only, with overflow kept out of the card. */
+.profiles-discovery .profile-card .skill-list {
+  height: 64px;
+  max-height: 64px;
+  min-height: 64px;
+  overflow: hidden;
+}
+
+/* Fixed content lanes keep every six-card page at a stable height. */
+.profiles-discovery .profile-grid {
+  grid-auto-rows: 410px;
+}
+
+.profiles-discovery .profile-card {
+  height: 410px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.profiles-discovery .profile-card .profile-card-top {
+  min-height: 64px;
+}
+
+.profiles-discovery .profile-card .profile-card-heading h3 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profiles-discovery .profile-card .profile-card-heading p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.profiles-discovery .profile-card .skill-list {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  height: 60px;
+  min-height: 60px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.profiles-discovery .profile-card .skill-list span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .profiles-discovery .profile-grid { grid-auto-rows: 400px; }
+  .profiles-discovery .profile-card { height: 400px; }
+}
+.profiles-discovery .directory-hero-metrics div { background: rgba(255, 255, 255, 0.48); border-color: rgba(36, 91, 95, 0.14); }
+.profiles-discovery .directory-hero-metrics strong { color: var(--primary); }
+.profiles-discovery .directory-hero-metrics span { color: var(--muted); }
+
+/* Stable directory cards prevent a page change from shifting the action baseline. */
+.profiles-discovery .profile-grid {
+  align-items: stretch;
+  grid-auto-rows: 1fr;
+}
+
+.profiles-discovery .profile-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 400px;
+}
+
+.profiles-discovery .profile-card .skill-list {
+  min-height: 56px;
+}
+
+.profiles-discovery .profile-card .proof-text {
+  flex: 1;
+  min-height: 0;
+}
+
+.profiles-discovery .profile-card .proof-text p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+.profiles-discovery .profile-card .profile-view-link {
+  margin-top: auto;
+}
+
+
+.profiles-discovery .public-footer {
+  background: linear-gradient(to bottom, transparent, rgba(221, 240, 239, 0.78) 140px);
+  border-top-color: rgba(36, 91, 95, 0.12);
+}
+
+.profiles-discovery .public-footer-brand p,
+.profiles-discovery .public-footer-column a,
+.profiles-discovery .public-footer-bottom { color: var(--muted); }
+.profiles-discovery .public-footer-column h2 { color: var(--ink); }
+.profiles-discovery .public-footer-column a:hover,
+.profiles-discovery .public-footer-bottom a:hover { color: var(--primary); }
+
+/* Match the AI Match page structure: one coloured workspace, then its own footer surface. */
+.profiles-discovery { background: var(--bg); }
+
+.profiles-discovery-stage {
+  background:
+    radial-gradient(circle at 88% 20%, rgba(99, 213, 196, 0.18), transparent 17rem),
+    linear-gradient(118deg, #0a202b, #0c3440);
+  min-height: 100%;
+  padding-bottom: 96px;
+}
+
+.profiles-discovery .profiles-discovery-hero { background: transparent; }
+.profiles-discovery .profiles-discovery-hero h1 { color: #f3fbfc; }
+.profiles-discovery .profiles-discovery-hero p { color: rgba(226, 242, 244, 0.78); }
+.profiles-discovery .profiles-discovery-hero .eyebrow { color: #a8eadc; }
+.profiles-discovery .directory-results-shell { background: transparent; }
+.profiles-discovery .results-section .section-heading h2 { color: #f3fbfc; }
+.profiles-discovery .results-section .section-heading .eyebrow { color: #a8eadc; }
+.profiles-discovery .directory-pagination span { color: rgba(225, 244, 246, 0.72); }
+
+.profiles-discovery-footer {
+  background: var(--bg);
+  padding-top: 1px;
+}
+
+.profiles-discovery .profiles-discovery-footer .public-footer {
+  background: transparent;
+  border-top-color: var(--line);
+  margin: 42px auto 0;
+  max-width: 1480px;
+  padding: 28px clamp(18px, 5vw, 56px) 34px;
+}
+
+.profiles-discovery .profiles-discovery-footer .public-footer-brand p,
+.profiles-discovery .profiles-discovery-footer .public-footer-column a,
+.profiles-discovery .profiles-discovery-footer .public-footer-bottom { color: var(--muted); }
+.profiles-discovery .profiles-discovery-footer .public-footer-column h2 { color: var(--ink); }
+.profiles-discovery .profiles-discovery-footer .public-footer-column a:hover,
+.profiles-discovery .profiles-discovery-footer .public-footer-bottom a:hover { color: var(--primary); }
+
+/* Use the same layered canvas and footer handoff as the AI Match discovery page. */
+.profiles-discovery-stage {
+  background:
+    linear-gradient(to bottom, transparent calc(100% - 150px), var(--bg)),
+    radial-gradient(circle at 8% 95%, color-mix(in srgb, var(--signal) 10%, transparent), transparent 22rem),
+    linear-gradient(135deg, color-mix(in srgb, var(--surface) 96%, var(--primary)) 0%, var(--surface) 52%, color-mix(in srgb, var(--surface) 96%, var(--signal)) 100%);
+}
+
+.profiles-discovery .profiles-discovery-hero h1 { color: var(--ink); }
+.profiles-discovery .profiles-discovery-hero p { color: var(--muted); }
+.profiles-discovery .profiles-discovery-hero .eyebrow { color: var(--signal); }
+.profiles-discovery .results-section .section-heading h2 { color: var(--ink); }
+.profiles-discovery .results-section .section-heading .eyebrow { color: var(--signal); }
+.profiles-discovery .directory-pagination span { color: var(--muted); }
+
+/* Final directory card geometry: every skill stays visible and every card shares one height. */
+.profiles-discovery .profile-grid {
+  align-items: stretch;
+  grid-auto-rows: 1fr;
+}
+
+.profiles-discovery .profile-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: visible;
+}
+
+.profiles-discovery .profile-card .skill-list {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  width: 100%;
+}
+
+.profiles-discovery .profile-card .skill-list span {
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.profiles-discovery .profile-card .proof-text {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.profiles-discovery .profile-card .profile-view-link {
+  flex: 0 0 auto;
+  margin-top: auto;
+}
+
+/* One consistent profile action treatment, based on the employer card interaction. */
+.profiles-discovery .profile-card .profile-view-link {
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.profiles-discovery .profile-card .profile-view-link:hover {
+  border-color: var(--signal);
+  box-shadow: 0 6px 12px color-mix(in srgb, var(--signal) 18%, transparent);
+  color: var(--signal);
+  transform: translateY(-2px);
+}
+
+/* Keep long names and job titles from changing a card's layout. */
+.profiles-discovery .profile-card .profile-card-top {
+  height: 64px;
+  min-height: 64px;
+  overflow: hidden;
+}
+
+.profiles-discovery .profile-card .profile-card-heading {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.profiles-discovery .profile-card .profile-card-heading h3,
+.profiles-discovery .profile-card .profile-card-heading p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Let the most detailed profile set a shared height for the current card grid. */
+.profiles-discovery .profile-grid {
+  align-items: stretch;
+  grid-auto-rows: 1fr;
+}
+
+.profiles-discovery .profile-card {
+  height: 100%;
+  min-height: 400px;
+  overflow: visible;
+}
+
+.profiles-discovery .profile-card .skill-list {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+  height: 76px;
+  max-height: 76px;
+  min-height: 76px;
+  overflow: hidden;
+  align-content: flex-start;
+}
+
+.profiles-discovery .profile-card .skill-list span {
+  box-sizing: border-box;
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tinted directory totals that sit naturally on the AI Match-style canvas. */
+.profiles-discovery .directory-hero-metrics {
+  background:
+    radial-gradient(circle at 100% 0, rgba(88, 204, 187, 0.2), transparent 10rem),
+    linear-gradient(145deg, #092c38, #0b474b);
+  border: 1px solid rgba(138, 222, 211, 0.26);
+  border-radius: 14px;
+  gap: 1px;
+  overflow: hidden;
+  padding: 1px;
+}
+
+.profiles-discovery .directory-hero-metrics div {
+  background: rgba(5, 28, 36, 0.36);
+  border: 0;
+  border-radius: 0;
+  min-height: 82px;
+  padding: 14px;
+}
+
+.profiles-discovery .directory-hero-metrics div:first-child,
+.profiles-discovery .directory-hero-metrics div:nth-child(2),
+.profiles-discovery .directory-hero-metrics div:nth-child(3),
+.profiles-discovery .directory-hero-metrics div:last-child { border-radius: 0; }
+
+.profiles-discovery .directory-hero-metrics strong { color: #baf3e7; }
+.profiles-discovery .directory-hero-metrics div:nth-child(2) strong,
+.profiles-discovery .directory-hero-metrics div:nth-child(4) strong { color: #a8d9ff; }
+.profiles-discovery .directory-hero-metrics span { color: rgba(223, 244, 244, 0.68); }
+
+/* The page header is part of the canvas, not a separate card. */
+.profiles-discovery .profiles-discovery-hero {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.profiles-discovery .profiles-discovery-hero::before,
+.profiles-discovery .profiles-discovery-hero::after {
+  display: none;
+}
+
+.profiles-discovery .profiles-discovery-hero > .directory-hero-copy {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.profiles-discovery .profiles-discovery-hero > div:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+/* Repository-style stack labels: restrained, technical, and free of green accents. */
+.profiles-discovery .profile-card .skill-list span {
+  align-items: center;
+  background: #eef1f5;
+  border: 1px solid #d4dbe4;
+  border-radius: 4px;
+  box-shadow: none;
+  color: #34404f;
+  display: inline-flex;
+  font-family: ui-monospace, "Cascadia Code", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.71rem;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: -0.015em;
+  min-height: 29px;
+  padding: 5px 8px;
+  text-transform: none;
+}
+
+.profiles-discovery .profile-card .skill-list span::before {
+  color: #75869a;
+  content: '#';
+  flex: 0 0 auto;
+  font-weight: 850;
+}
+
+/* GitHub-style issue labels: strong ink surfaces with compact category signals. */
+.profiles-discovery .profile-card .skill-list span {
+  --skill-dot: #db6a5b;
+  background: #28333d;
+  border: 1px solid #202a33;
+  border-radius: 4px;
+  box-shadow: none;
+  color: #f4f7f8;
+  font-family: inherit;
+  font-size: 0.73rem;
+  font-weight: 750;
+  letter-spacing: 0;
+  line-height: 1.2;
+  padding: 5px 8px;
+  text-transform: none;
+}
+
+.profiles-discovery .profile-card .skill-list span::before {
+  background: var(--skill-dot);
+  border-radius: 999px;
+  content: '';
+  display: block;
+  flex: 0 0 auto;
+  height: 6px;
+  width: 6px;
+}
+
+.profiles-discovery .profile-card .skill-list span:nth-child(4n + 2) { --skill-dot: #9467dd; }
+.profiles-discovery .profile-card .skill-list span:nth-child(4n + 3) { --skill-dot: #d59a38; }
+.profiles-discovery .profile-card .skill-list span:nth-child(4n) { --skill-dot: #cf5f8f; }
+
+/* Search refinements sit directly beneath the input, without a redundant divider. */
+.profiles-discovery .directory-inline-search .directory-search-refinements {
+  border-top: 0;
+  padding-top: 0;
+}
+
+/* New search results arrive in sequence, moving from right to their final position. */
+.profiles-discovery .profile-grid .profile-card {
+  animation: profile-card-enter 680ms cubic-bezier(0.2, 0.78, 0.2, 1) backwards;
+}
+
+.profiles-discovery .profile-grid .profile-card:nth-child(2) { animation-delay: 80ms; }
+.profiles-discovery .profile-grid .profile-card:nth-child(3) { animation-delay: 160ms; }
+.profiles-discovery .profile-grid .profile-card:nth-child(4) { animation-delay: 240ms; }
+.profiles-discovery .profile-grid .profile-card:nth-child(5) { animation-delay: 320ms; }
+.profiles-discovery .profile-grid .profile-card:nth-child(6) { animation-delay: 400ms; }
+
+@keyframes profile-card-enter {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profiles-discovery .profile-grid .profile-card {
+    animation: none;
+  }
+}
+
+/* Directory scope switcher: clearer roles and stronger active-state hierarchy. */
+.profiles-discovery .segmented-control {
+  background: #dbe7ec;
+  border: 1px solid #bfced7;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  gap: 3px;
+  padding: 3px;
+}
+
+.profiles-discovery .segmented-control button {
+  align-items: center;
+  border-radius: 7px;
+  display: inline-flex;
+  font-size: 0.78rem;
+  gap: 6px;
+  justify-content: center;
+  min-height: 36px;
+  padding: 7px 10px;
+  position: relative;
+}
+
+.profiles-discovery .segmented-control button + button {
+  border-left: 0;
+}
+
+.profiles-discovery .segmented-control button + button::before {
+  background: #718794;
+  content: '';
+  height: calc(100% - 12px);
+  left: -2px;
+  position: absolute;
+  top: 6px;
+  width: 1px;
+}
+
+/* A clean two-by-two stat square, without a surrounding coloured panel. */
+.profiles-discovery .directory-hero-metrics {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: visible;
+  padding: 0;
+}
+
+.profiles-discovery .directory-hero-metrics div {
+  background: transparent;
+  border: 1px solid rgba(55, 98, 122, 0.25);
+  border-radius: 8px;
+  min-height: 76px;
+  padding: 12px 14px;
+}
+
+.profiles-discovery .directory-hero-metrics div:first-child,
+.profiles-discovery .directory-hero-metrics div:nth-child(2),
+.profiles-discovery .directory-hero-metrics div:nth-child(3),
+.profiles-discovery .directory-hero-metrics div:last-child { border-radius: 8px; }
+
+.profiles-discovery .directory-inline-search .directory-primary-search {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.profiles-discovery .directory-inline-search .directory-primary-search input {
+  min-width: 0;
+  order: 1;
+  width: 100%;
+}
+
+.profiles-discovery .directory-inline-search .directory-primary-search svg {
+  margin-left: 0;
+  order: 2;
+}
+
+/* A quiet profile spotlight on hover. */
+.profiles-discovery .profile-card {
+  background-color: var(--surface);
+  box-shadow: inset 0 0 0 transparent;
+  transition: background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+}
+
+.profiles-discovery .profile-card:hover {
+  background-color: #f7fafc;
+  border-color: #7593b8;
+  box-shadow: inset 0 3px 0 #4d719e, 0 14px 28px rgba(28, 55, 78, 0.16);
+  transform: translateY(-5px);
+}
+
+.profiles-discovery .profile-card-employer:hover {
+  border-color: #9475a5;
+  box-shadow: inset 0 3px 0 #79568d, 0 14px 28px rgba(65, 43, 78, 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profiles-discovery .profile-card {
+    transition: none;
+  }
+}
+
+.profiles-discovery .segmented-control .directory-filter-all { color: #40515f; }
+.profiles-discovery .segmented-control .directory-filter-developer { color: #3b6494; }
+.profiles-discovery .segmented-control .directory-filter-employer { color: #72537f; }
+
+.profiles-discovery .segmented-control .directory-filter-all.active {
+  background: #344b5c;
+  box-shadow: 0 3px 8px rgba(24, 48, 65, 0.18);
+  color: #ffffff;
+}
+
+.profiles-discovery .segmented-control .directory-filter-developer.active {
+  background: #466d9d;
+  box-shadow: 0 3px 8px rgba(43, 83, 130, 0.2);
+  color: #ffffff;
+}
+
+.profiles-discovery .segmented-control .directory-filter-employer.active {
+  background: #79568d;
+  box-shadow: 0 3px 8px rgba(87, 52, 102, 0.2);
+  color: #ffffff;
+}
+
+.profiles-discovery .segmented-control button:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.42);
+  box-shadow: none;
+  transform: none;
+}
+
+/* Final, full-card hover state for the public profile directory. */
+.profiles-discovery .profile-grid .profile-card {
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, outline-color 180ms ease, transform 180ms ease;
+}
+
+.profiles-discovery .profile-grid .profile-card:hover {
+  background: var(--surface);
+  border-color: color-mix(in srgb, var(--signal) 58%, var(--line));
+  box-shadow: 0 8px 15px rgba(25, 56, 82, 0.1), 0 0 14px color-mix(in srgb, var(--signal) 10%, transparent);
+  outline: 0;
+  outline-offset: 0;
+  transform: translateY(-5px);
+}
+
+.profiles-discovery .profile-grid .profile-card-employer:hover {
+  border-color: color-mix(in srgb, var(--signal) 58%, var(--line));
+  box-shadow: 0 8px 15px rgba(25, 56, 82, 0.1), 0 0 14px color-mix(in srgb, var(--signal) 10%, transparent);
+}
+
+/* The search field belongs to the page canvas, not a contrasting container. */
+.profiles-discovery .directory-inline-search {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.profiles-discovery .directory-results-shell {
+  margin-top: -12px;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 620px) {
+  .profiles-discovery .directory-results-shell { margin-top: -6px; }
+}
+
+/* Distinct directory totals with individual colour cues, without restoring an outer panel. */
+.profiles-discovery .directory-hero-metrics div {
+  animation: directory-metric-pop 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  background: linear-gradient(135deg, rgba(85, 123, 168, 0.16), rgba(85, 123, 168, 0.035));
+  border-color: rgba(62, 104, 148, 0.3);
+  box-shadow: inset 0 3px 0 #557ba8;
+  min-height: 82px;
+}
+
+.profiles-discovery .directory-hero-metrics div:nth-child(2) {
+  animation-delay: 80ms;
+  background: linear-gradient(135deg, rgba(129, 102, 162, 0.16), rgba(129, 102, 162, 0.035));
+  border-color: rgba(105, 78, 139, 0.3);
+  box-shadow: inset 0 3px 0 #8166a2;
+}
+
+.profiles-discovery .directory-hero-metrics div:nth-child(3) {
+  animation-delay: 160ms;
+  background: linear-gradient(135deg, rgba(65, 111, 169, 0.16), rgba(65, 111, 169, 0.035));
+  border-color: rgba(46, 92, 150, 0.3);
+  box-shadow: inset 0 3px 0 #416fa9;
+}
+
+.profiles-discovery .directory-hero-metrics div:nth-child(4) {
+  animation-delay: 240ms;
+  background: linear-gradient(135deg, rgba(166, 101, 120, 0.16), rgba(166, 101, 120, 0.035));
+  border-color: rgba(145, 79, 99, 0.3);
+  box-shadow: inset 0 3px 0 #a66578;
+}
+
+.profiles-discovery .directory-hero-metrics strong {
+  color: #294e78;
+  font-size: clamp(1.2rem, 2vw, 1.65rem);
+}
+
+.profiles-discovery .directory-hero-metrics div:nth-child(2) strong { color: #654a83; }
+.profiles-discovery .directory-hero-metrics div:nth-child(3) strong { color: #2f5e96; }
+.profiles-discovery .directory-hero-metrics div:nth-child(4) strong { color: #85495d; }
+.profiles-discovery .directory-hero-metrics span { color: #5a6975; }
+
+@keyframes directory-metric-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profiles-discovery .directory-hero-metrics div { animation: none; }
+}
+
+/* Four consistent stat sectors, divided by a single horizontal and vertical rule. */
+.profiles-discovery .directory-hero-metrics {
+  background: transparent;
+  border: 0;
+  gap: 0;
+  overflow: visible;
+  padding: 0;
+  position: relative;
+}
+
+.profiles-discovery .directory-hero-metrics::before,
+.profiles-discovery .directory-hero-metrics::after {
+  background: rgba(58, 101, 145, 0.46);
+  content: '';
+  pointer-events: none;
+  position: absolute;
+}
+
+.profiles-discovery .directory-hero-metrics::before {
+  bottom: -22px;
+  left: 50%;
+  top: -22px;
+  width: 1px;
+}
+
+.profiles-discovery .directory-hero-metrics::after {
+  height: 1px;
+  left: -22px;
+  right: -22px;
+  top: 50%;
+}
+
+.profiles-discovery .directory-hero-metrics div,
+.profiles-discovery .directory-hero-metrics div:nth-child(2),
+.profiles-discovery .directory-hero-metrics div:nth-child(3),
+.profiles-discovery .directory-hero-metrics div:nth-child(4) {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  justify-items: center;
+  min-height: 88px;
+  padding: 16px 18px;
+  text-align: center;
+}
+
+.profiles-discovery .directory-hero-metrics strong,
+.profiles-discovery .directory-hero-metrics div:nth-child(2) strong,
+.profiles-discovery .directory-hero-metrics div:nth-child(3) strong,
+.profiles-discovery .directory-hero-metrics div:nth-child(4) strong {
+  color: var(--primary);
+  font-size: clamp(1.4rem, 2.35vw, 1.9rem);
+}
+.profiles-discovery .directory-hero-metrics span { color: var(--muted); }
+
+.profiles-discovery .directory-hero-metrics strong {
+  animation: directory-number-settle 620ms cubic-bezier(0.16, 0.9, 0.24, 1) both;
+  transform-origin: center;
+}
+
+.profiles-discovery .directory-hero-metrics div:nth-child(2) strong { animation-delay: 80ms; }
+.profiles-discovery .directory-hero-metrics div:nth-child(3) strong { animation-delay: 160ms; }
+.profiles-discovery .directory-hero-metrics div:nth-child(4) strong { animation-delay: 240ms; }
+
+.profiles-discovery .directory-metric-value {
+  display: inline-block;
+  transition: filter 180ms ease, transform 180ms ease;
+}
+
+.profiles-discovery .directory-hero-metrics div:hover .directory-metric-value {
+  filter: brightness(1.12);
+  transform: translateY(-5px) scale(1.06);
+}
+
+@keyframes directory-number-settle {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.72);
+  }
+
+  68% {
+    opacity: 1;
+    transform: translateY(0) scale(1.08);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profiles-discovery .directory-hero-metrics strong,
+  .profiles-discovery .directory-metric-value { animation: none; transition: none; }
 }
 

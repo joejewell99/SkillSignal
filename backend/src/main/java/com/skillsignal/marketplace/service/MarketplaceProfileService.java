@@ -7,6 +7,7 @@ import com.skillsignal.marketplace.dto.DeveloperPreferencesResponse;
 import com.skillsignal.marketplace.dto.EmployerNeedResponse;
 import com.skillsignal.marketplace.dto.ProfileContactLinksResponse;
 import com.skillsignal.marketplace.dto.ProfileMetricsResponse;
+import com.skillsignal.marketplace.dto.ProfilePageResponse;
 import com.skillsignal.marketplace.dto.ProfilePostResponse;
 import com.skillsignal.marketplace.dto.ProfileProjectResponse;
 import com.skillsignal.marketplace.dto.ProfileResponse;
@@ -20,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -62,6 +65,49 @@ public class MarketplaceProfileService {
                 .sorted(Comparator.comparing(MarketplaceProfile::getDisplayOrder))
                 .map(profile -> toResponse(profile))
                 .toList();
+    }
+
+    public ProfilePageResponse browse(String query, ProfileType type, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 24);
+        String normalizedQuery = normalize(query);
+
+        if (normalizedQuery.isBlank()) {
+            Page<MarketplaceProfile> profiles = type == null
+                    ? profileRepository.findByDisplayedTrueOrderByDisplayOrderAsc(PageRequest.of(safePage, safeSize))
+                    : profileRepository.findByDisplayedTrueAndTypeOrderByDisplayOrderAsc(type, PageRequest.of(safePage, safeSize));
+            return pageResponse(profiles, safeSize);
+        }
+
+        List<MarketplaceProfile> matches = profileRepository.findAllByOrderByDisplayOrderAsc().stream()
+                .filter(MarketplaceProfile::isDisplayed)
+                .filter(profile -> type == null || profile.getType() == type)
+                .filter(profile -> matchesQuery(profile, normalizedQuery))
+                .toList();
+        int fromIndex = Math.min(safePage * safeSize, matches.size());
+        int toIndex = Math.min(fromIndex + safeSize, matches.size());
+        int totalPages = matches.isEmpty() ? 0 : (int) Math.ceil((double) matches.size() / safeSize);
+        return new ProfilePageResponse(
+                matches.subList(fromIndex, toIndex).stream().map(this::toResponse).toList(),
+                safePage,
+                safeSize,
+                matches.size(),
+                totalPages,
+                toIndex < matches.size(),
+                safePage > 0
+        );
+    }
+
+    private ProfilePageResponse pageResponse(Page<MarketplaceProfile> profiles, int pageSize) {
+        return new ProfilePageResponse(
+                profiles.getContent().stream().map(this::toResponse).toList(),
+                profiles.getNumber(),
+                pageSize,
+                profiles.getTotalElements(),
+                profiles.getTotalPages(),
+                profiles.hasNext(),
+                profiles.hasPrevious()
+        );
     }
 
     public ProfileResponse findPublicProfile(Long id) {
