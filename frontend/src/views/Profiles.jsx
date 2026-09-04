@@ -13,6 +13,12 @@ const profileFilters = [
 ];
 const summaryCharacterLimit = 180;
 const profilesPerPage = 6;
+const directorySearchMessages = [
+  'Search people and project proof.',
+  'Look up names, skills, and stacks.',
+  'Find work worth exploring.',
+  'Search developers and employer needs.',
+];
 
 function summaryPreview(summary = '') {
   const trimmedSummary = summary.trim();
@@ -70,6 +76,7 @@ export default function Profiles() {
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
   const [profileError, setProfileError] = useState('');
+  const [directorySearchMessageIndex, setDirectorySearchMessageIndex] = useState(0);
 
   useEffect(() => {
     setIsLoadingMetrics(true);
@@ -77,6 +84,18 @@ export default function Profiles() {
       .then(setMetrics)
       .catch(() => setMetrics(null))
       .finally(() => setIsLoadingMetrics(false));
+  }, []);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setDirectorySearchMessageIndex((current) => (current + 1) % directorySearchMessages.length);
+    }, 3200);
+
+    return () => window.clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
@@ -123,23 +142,28 @@ export default function Profiles() {
               Search developers and employers by name, technical stack, or project proof.
             </p>
         </div>
-        <div className="directory-hero-metrics" aria-label="Profile directory metrics">
-          <div>
-            <strong>{formatMetric(metrics?.totalAccounts, isLoadingMetrics)}</strong>
-            <span>accounts</span>
+        <div className="directory-hero-aside">
+          <div className="directory-hero-metrics" aria-label="Profile directory metrics">
+            <div>
+              <strong>{formatMetric(metrics?.totalAccounts, isLoadingMetrics)}</strong>
+              <span>accounts</span>
+            </div>
+            <div>
+              <strong>{formatMetric(metrics?.publicProfiles, isLoadingMetrics)}</strong>
+              <span>public profiles</span>
+            </div>
+            <div>
+              <strong>{formatMetric(metrics?.developerProfiles, isLoadingMetrics)}</strong>
+              <span>developers</span>
+            </div>
+            <div>
+              <strong>{formatMetric(metrics?.employerProfiles, isLoadingMetrics)}</strong>
+              <span>employers</span>
+            </div>
           </div>
-          <div>
-            <strong>{formatMetric(metrics?.publicProfiles, isLoadingMetrics)}</strong>
-            <span>public profiles</span>
-          </div>
-          <div>
-            <strong>{formatMetric(metrics?.developerProfiles, isLoadingMetrics)}</strong>
-            <span>developers</span>
-          </div>
-          <div>
-            <strong>{formatMetric(metrics?.employerProfiles, isLoadingMetrics)}</strong>
-            <span>employers</span>
-          </div>
+          <p className="directory-hero-search-message" key={directorySearchMessageIndex} aria-live="polite">
+            {directorySearchMessages[directorySearchMessageIndex]}
+          </p>
         </div>
       </section>
 
@@ -170,7 +194,6 @@ export default function Profiles() {
         </div>
 
         <div className="directory-inline-search">
-          <label className="sr-only" htmlFor="marketplace-search">Search people and project proof</label>
           <div className="search-box directory-primary-search">
             <Search size={21} />
             <input

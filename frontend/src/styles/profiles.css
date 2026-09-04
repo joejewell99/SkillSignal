@@ -1866,3 +1866,85 @@
   .profiles-discovery .directory-metric-value { animation: none; transition: none; }
 }
 
+/* The rotating directory prompt supports the network totals rather than the input. */
+.profiles-discovery .directory-hero-aside {
+  display: grid;
+  gap: 30px;
+  justify-self: end;
+  width: min(100%, 420px);
+}
+
+.profiles-discovery .directory-hero-search-message {
+  animation: directory-hero-search-message-enter 720ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.015em;
+  margin: 0;
+  text-align: center;
+}
+
+@keyframes directory-hero-search-message-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 800px) {
+  .profiles-discovery .directory-hero-aside {
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profiles-discovery .directory-hero-search-message { animation: none; }
+}
+
+/* Keep manual search in the directory's primary reading line. */
+.profiles-discovery .results-section > .section-heading {
+  align-items: end;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.profiles-discovery .results-section > .section-heading .segmented-control {
+  justify-self: end;
+}
+
+.profiles-discovery .directory-inline-search {
+  margin: 4px 0 22px;
+}
+
+@media (max-width: 760px) {
+  .profiles-discovery .results-section > .section-heading {
+    align-items: start;
+    grid-template-columns: 1fr auto;
+  }
+
+}
+
+/* Tighten the directory rhythm without changing card or footer geometry. */
+.profiles-discovery .directory-results-shell {
+  margin-top: -18px;
+}
+
+.profiles-discovery .directory-inline-search {
+  margin-bottom: 16px;
+}
+
+.profiles-discovery .directory-pagination {
+  margin-top: 24px;
+}
+
+@media (max-width: 620px) {
+  .profiles-discovery .directory-results-shell { margin-top: -10px; }
+}
+
