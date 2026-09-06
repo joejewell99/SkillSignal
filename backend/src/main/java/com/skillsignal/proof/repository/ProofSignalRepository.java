@@ -8,4 +8,8 @@ public interface ProofSignalRepository extends JpaRepository<ProofSignal, Long> 
     List<ProofSignal> findByDeveloperUserIdOrderByCreatedAtDesc(Long developerUserId);
 
     List<ProofSignal> findByEmployerProfileUserIdOrderByCreatedAtDesc(Long employerUserId);
+
+    List<ProofSignal> findByDeveloperUserId(Long developerUserId);
+
+    List<ProofSignal> findByEmployerProfileUserId(Long employerUserId);
 }

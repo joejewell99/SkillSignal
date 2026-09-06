@@ -212,6 +212,12 @@ public class DeveloperMatchingService {
         return search.response();
     }
 
+    public void deleteSearchesForUser(Long userId) {
+        if (userId != null) {
+            asyncSearches.entrySet().removeIf(entry -> entry.getValue().ownerKey().equals("user:" + userId));
+        }
+    }
+
     private boolean canProfileSearchWithPartialSignals(BriefAnalysis analysis) {
         return !analysis.requiredSkills().isEmpty() || !analysis.problemTypes().isEmpty();
     }

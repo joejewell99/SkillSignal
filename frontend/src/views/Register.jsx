@@ -29,6 +29,7 @@ export default function Register() {
     email: '',
     password: '',
     role: initialRole || 'DEVELOPER',
+    acceptedTerms: false,
   });
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
@@ -110,6 +111,10 @@ export default function Register() {
               <label>
                 Password
                 <input value={form.password} onChange={(event) => updateField('password', event.target.value)} type="password" minLength="8" required />
+              </label>
+              <label className="register-terms-checkbox">
+                <input type="checkbox" checked={form.acceptedTerms} onChange={(event) => updateField('acceptedTerms', event.target.checked)} required />
+                <span>I agree to the <Link to="/terms" target="_blank" rel="noreferrer">Terms and Conditions</Link> and acknowledge the <Link to="/privacy" target="_blank" rel="noreferrer">Privacy Policy</Link>.</span>
               </label>
               {status && <p className="success">{status}</p>}
               {error && <p className="error">{error}</p>}

@@ -74,6 +74,10 @@
 .settings-delete-button { align-items: center; background: transparent; border: 1px solid #b42318; color: #b42318; display: inline-flex; gap: 8px; justify-self: start; padding: 11px 14px; }
 .settings-delete-button:hover { background: #b42318; color: #ffffff; }
 .settings-delete-notice { background: var(--warning-soft); border-left: 3px solid #d38a14; padding: 12px 14px; }
+.settings-delete-confirmation { display: grid; gap: 12px; }
+.settings-delete-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
+.settings-delete-support { color: var(--muted); font-size: 0.84rem; line-height: 1.5; margin: 0; }
+.settings-delete-support a { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
 .settings-save-toast { background: var(--ink); bottom: 24px; color: var(--surface); font-size: 0.88rem; font-weight: 800; left: 50%; margin: 0; padding: 11px 16px; position: fixed; transform: translateX(-50%); z-index: 30; }
 :root[data-reduce-motion="true"] *, :root[data-reduce-motion="true"] *::before, :root[data-reduce-motion="true"] *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
 @media (max-width: 800px) { .settings-section-nav { display: none; } }

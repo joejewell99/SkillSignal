@@ -36,6 +36,12 @@ public class AppUser {
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
 
+    @Column
+    private Instant termsAcceptedAt;
+
+    @Column(length = 40)
+    private String termsVersion;
+
     protected AppUser() {
     }
 
@@ -88,5 +94,21 @@ public class AppUser {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getTermsAcceptedAt() {
+        return termsAcceptedAt;
+    }
+
+    public void setTermsAcceptedAt(Instant termsAcceptedAt) {
+        this.termsAcceptedAt = termsAcceptedAt;
+    }
+
+    public String getTermsVersion() {
+        return termsVersion;
+    }
+
+    public void setTermsVersion(String termsVersion) {
+        this.termsVersion = termsVersion;
     }
 }

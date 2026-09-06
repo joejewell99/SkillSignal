@@ -36,6 +36,13 @@ export default function PublicFooter() {
             <Link to="/profiles">Browse talent</Link>
             <Link to="/match">Find matches</Link>
           </nav>
+
+          <nav className="public-footer-column public-footer-legal" aria-label="Legal links">
+            <h2>Legal</h2>
+            <Link to="/privacy">Privacy policy</Link>
+            <Link to="/terms">Terms and conditions</Link>
+            <a href="mailto:joejewell99@hotmail.com">Contact support</a>
+          </nav>
         </div>
       </div>
 

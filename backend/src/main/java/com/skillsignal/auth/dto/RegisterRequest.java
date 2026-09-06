@@ -5,11 +5,13 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.AssertTrue;
 
 public record RegisterRequest(
         @NotBlank String name,
         @Email @NotBlank String email,
         @Size(min = 8, message = "Password must be at least 8 characters") String password,
-        @NotNull Role role
+        @NotNull Role role,
+        @AssertTrue(message = "You must accept the Terms and Conditions and Privacy Policy") boolean acceptedTerms
 ) {
 }

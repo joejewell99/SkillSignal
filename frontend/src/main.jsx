@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './state/AuthContext.jsx';
 import { ThemeProvider } from './state/ThemeContext.jsx';
 import AppShell from './ui/AppShell.jsx';
 import Home from './views/Home.jsx';
+import LegalPage from './views/LegalPage.jsx';
 import Login from './views/Login.jsx';
 import Match from './views/Match.jsx';
 import ProfileDetail from './views/ProfileDetail.jsx';
@@ -33,6 +34,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/privacy" element={<LegalPage />} />
+            <Route path="/terms" element={<LegalPage />} />
             <Route path="/match" element={<Match />} />
             <Route path="/profiles" element={<Profiles />} />
             <Route path="/profiles/:id" element={<ProfileDetail />} />

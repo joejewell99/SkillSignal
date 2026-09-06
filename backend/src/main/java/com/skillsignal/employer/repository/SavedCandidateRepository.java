@@ -8,5 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface SavedCandidateRepository extends JpaRepository<SavedCandidate, Long> {
     List<SavedCandidate> findByEmployerUserIdOrderByCreatedAtDesc(Long employerUserId);
 
+    List<SavedCandidate> findByDeveloperProfileId(Long developerProfileId);
+
     Optional<SavedCandidate> findByEmployerUserIdAndDeveloperProfileId(Long employerUserId, Long developerProfileId);
 }

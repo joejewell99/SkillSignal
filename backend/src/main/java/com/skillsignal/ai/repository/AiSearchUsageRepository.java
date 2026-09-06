@@ -11,4 +11,6 @@ public interface AiSearchUsageRepository extends JpaRepository<AiSearchUsage, Lo
             String subjectKey,
             LocalDate usageDate
     );
+
+    void deleteBySubjectTypeAndSubjectKey(String subjectType, String subjectKey);
 }

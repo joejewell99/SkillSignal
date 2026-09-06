@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, BellRing, CircleUserRound, Image, MessageSquareText, Monitor, Moon, ShieldAlert, Sparkles, Sun, Trash2 } from 'lucide-react';
 import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
@@ -68,7 +69,8 @@ function PreferenceToggle({ label, description, checked, onChange }) {
 }
 
 export default function Settings() {
-  const { user, token, updateAuth } = useAuth();
+  const { user, token, updateAuth, logout } = useAuth();
+  const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const [preferences, setPreferences] = useState(readPreferences);
   const [appearance, setAppearance] = useState(readAppearance);
@@ -78,6 +80,7 @@ export default function Settings() {
   const [accountStatus, setAccountStatus] = useState('');
   const [isSavingName, setIsSavingName] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
 
   useEffect(() => {
@@ -170,6 +173,22 @@ export default function Settings() {
       setAccountError(error.message);
     } finally {
       setIsSavingName(false);
+    }
+  }
+
+  async function deleteAccount() {
+    setAccountError('');
+    setIsDeletingAccount(true);
+    try {
+      await apiRequest('/api/auth/account', { token, method: 'DELETE' });
+      Object.keys(localStorage)
+        .filter((key) => key.startsWith('skillsignal.'))
+        .forEach((key) => localStorage.removeItem(key));
+      logout();
+      navigate('/', { replace: true });
+    } catch (error) {
+      setAccountError(error.message);
+      setIsDeletingAccount(false);
     }
   }
 
@@ -310,10 +329,21 @@ export default function Settings() {
             <div><p className="eyebrow">Danger zone</p><h2>Delete your account</h2></div>
           </div>
           <p>This will permanently remove your account data, profile, projects, messages, and connections; and you will no longer be able to access your SkillSignal history or network. This cannot be undone.</p>
-          <button className="settings-delete-button" type="button" onClick={() => setShowDeleteNotice((visible) => !visible)}>
+          <button className="settings-delete-button" type="button" onClick={() => setShowDeleteNotice((visible) => !visible)} disabled={isDeletingAccount}>
             <Trash2 size={17} />Delete account
           </button>
-          {showDeleteNotice ? <p className="settings-delete-notice">Before deletion is confirmed, you will review what will be removed and confirm the decision. You will then be signed out. This protected flow is not active yet.</p> : null}
+          {showDeleteNotice ? (
+            <div className="settings-delete-confirmation">
+              <p className="settings-delete-notice">This permanently deletes your account, profile, projects, posts, messages, connections, saved candidates, proof signals, and AI usage history. This cannot be undone.</p>
+              <div className="settings-delete-actions">
+                <button className="settings-delete-button" type="button" onClick={deleteAccount} disabled={isDeletingAccount}>
+                  <Trash2 size={17} />{isDeletingAccount ? 'Deleting...' : 'Confirm permanent deletion'}
+                </button>
+                <button className="secondary-button" type="button" onClick={() => setShowDeleteNotice(false)} disabled={isDeletingAccount}>Cancel</button>
+              </div>
+              <p className="settings-delete-support">Having trouble? Contact <a href="mailto:joejewell99@hotmail.com">SkillSignal support</a> about your personal information.</p>
+            </div>
+          ) : null}
         </article>
       </section>
       <PublicFooter />
