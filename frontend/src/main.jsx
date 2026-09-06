@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './state/AuthContext.jsx';
 import { ThemeProvider } from './state/ThemeContext.jsx';
 import AppShell from './ui/AppShell.jsx';
@@ -21,7 +21,9 @@ function ProtectedRoute({ children }) {
 
 function GuestRoute({ children }) {
   const { user } = useAuth();
-  return user ? <Navigate to="/dashboard" replace /> : children;
+  const { state } = useLocation();
+  const destination = state?.returnTo === '/match' ? '/match' : '/dashboard';
+  return user ? <Navigate to={destination} replace /> : children;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(

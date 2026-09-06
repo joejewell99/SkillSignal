@@ -1143,6 +1143,18 @@
 }
 .match-discovery .ai-results-section { padding-top: 34px; }
 .match-discovery .match-card { border-radius: 16px; }
+.match-discovery .match-card-heading { display: flex; flex-direction: row-reverse; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.match-discovery .match-card-heading .match-score { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; text-align: right; max-width: 110px; }
+.match-discovery .match-card-heading .match-score span { font-size: .7rem; }
+.match-discovery .match-card-heading .match-profile { flex: 1; min-width: 0; }
+.match-discovery .match-card-heading .match-profile > div { min-width: 0; }
+.match-discovery .match-card-heading .match-profile h3,
+.match-discovery .match-card-heading .match-profile p { overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  .match-discovery .match-card-heading { gap: 10px; }
+  .match-discovery .match-card-heading .match-score strong { font-size: 1.65rem; }
+  .match-discovery .match-card-heading .match-profile { gap: 10px; }
+}
 
 @media (max-width: 900px) {
   .match-discovery .match-discovery-hero { border-radius: 22px; grid-template-columns: 1fr; }

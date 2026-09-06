@@ -27,7 +27,16 @@ export async function apiRequest(path, { token, timeoutMs = 10000, ...options } 
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(data?.message ?? 'Request failed');
+    const statusMessages = {
+      401: 'Your sign-in session has expired or is no longer valid. Please sign in again.',
+      403: 'You do not have permission to perform this action.',
+      429: 'Your AI allowance has been used. Please try again when it resets.',
+      500: 'Something went wrong on the server. Please try again shortly.',
+      503: 'This service is temporarily unavailable. Please try again shortly.',
+    };
+    const error = new Error(data?.message || statusMessages[response.status] || `The request could not be completed (${response.status}). Please try again.`);
+    error.status = response.status;
+    throw error;
   }
 
   return data;

@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BrainCircuit, CheckCircle2, ChevronDown, ExternalLink, Info, LayoutGrid, List, Sparkles, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import { apiRequest } from '../api/client.js';
 import { useAuth } from '../state/AuthContext.jsx';
+import CandidateRundown from './components/CandidateRundown.jsx';
 
 const developerPlaceholder = 'Example: I am looking for developers with React, Spring Boot, PostgreSQL, and dashboard experience. I would like to see GitHub projects, deployed work, screenshots, or proof they have handled auth, APIs, data cleanup, or production fixes.';
 const employerPlaceholder = 'Example: I am strongest with React, Python, SQL, APIs, and dashboard work. I am looking for employers hiring junior developers for data cleanup, admin screens, reporting tools, or full-stack projects where my GitHub work would be useful.';
@@ -43,7 +44,8 @@ function readStoredMatchState(storageKey) {
     return {
       brief: storedState?.brief || '',
       mode: storedState?.mode || '',
-      results: storedState?.results || null,
+      results: storedState?.scoringVersion ? null : storedState?.results || null,
+      resultsBrief: storedState?.resultsBrief ?? storedState?.brief ?? '',
     };
   } catch {
     sessionStorage.removeItem(storageKey);
@@ -59,6 +61,9 @@ function MatchResultCard({
   connectionForProfile,
   connectingProfileId,
   connectWithDeveloper,
+  openRundown,
+  isSelected,
+  canOpenRundown,
 }) {
   const [openPanelKey, setOpenPanelKey] = useState('');
   const cardKey = `${match.profile.id ?? match.profile.name}-${matchIndex}`;
@@ -67,7 +72,8 @@ function MatchResultCard({
   };
 
   return (
-    <article className="match-card">
+    <article className={`match-card ${isSelected ? 'rundown-selected' : ''}`}>
+      <div className="match-card-heading">
       <div className="match-score">
         <strong>{isEmployerMode ? match.readinessScore ?? match.matchScore : match.matchScore}%</strong>
         <span>{isEmployerMode ? match.readinessLabel ?? 'readiness' : 'match'}</span>
@@ -84,6 +90,7 @@ function MatchResultCard({
           </div>
           <p>{match.profile.title}</p>
         </div>
+      </div>
       </div>
       <p className="proof-text">{match.reason}</p>
       {isEmployerMode && (
@@ -123,7 +130,7 @@ function MatchResultCard({
       )}
       <div className={`match-columns ${isEmployerMode && (match.readinessScore ?? match.matchScore) < 75 ? 'needs-improvement' : ''}`}>
         <div>
-          <h4>{isEmployerMode ? 'Skill overlap' : 'Proof signals'}</h4>
+          <h4>{isEmployerMode ? 'Skill overlap' : 'Matching skills'}</h4>
           <div className="skill-list">
             {match.strengths.map((strength) => <span key={strength}>{strength}</span>)}
           </div>
@@ -144,9 +151,9 @@ function MatchResultCard({
           <div className={isEmployerMode ? 'ready-summary' : ''}>
             {isEmployerMode && <CheckCircle2 size={18} />}
             <div>
-              <h4>{isEmployerMode ? 'Ready signals' : 'Risk to check'}</h4>
+              <h4>{isEmployerMode ? 'Ready signals' : 'Uncertainties'}</h4>
               <ul>
-                {(isEmployerMode ? ['No major gaps in skill for this role'] : match.gaps.length ? match.gaps : ['No major gap from this search']).map((gap) => (
+                {(isEmployerMode ? ['No major gaps in skill for this role'] : match.gaps.length ? match.gaps : ['No specific uncertainties identified for this search.']).map((gap) => (
                   <li key={gap}>{gap}</li>
                 ))}
               </ul>
@@ -155,6 +162,12 @@ function MatchResultCard({
         )}
       </div>
       <div className="match-action-row">
+        {user ? <button className="secondary-button rundown-launch" type="button" onClick={() => openRundown(match)}
+          disabled={!canOpenRundown} aria-haspopup="dialog" aria-label={`AI rundown for ${match.profile.name}`}>
+          <Sparkles size={16} /><span>AI rundown</span>
+        </button> : <Link className="secondary-button rundown-launch" to="/login" state={{ returnTo: '/match' }}>
+          <Sparkles size={16} /><span>Sign in for AI rundown</span>
+        </Link>}
         <Link className="secondary-button match-view-profile" to={`/profiles/${match.profile.id}`}>
           <ExternalLink size={16} />
           <span>{isEmployerMode ? 'View employer' : 'View profile'}</span>
@@ -179,6 +192,7 @@ function MatchResultCard({
           </button>
         )}
       </div>
+      <p className="rundown-allowance">{user ? 'A focused explanation of this match. Uses 1 AI allowance credit when generated.' : 'AI rundowns are available with a developer or employer account.'}</p>
     </article>
   );
 }
@@ -236,6 +250,9 @@ export default function Match() {
   const [matchMode, setMatchMode] = useState(initialMatchState.mode || defaultMode);
   const [aiBrief, setAiBrief] = useState(initialMatchState.brief || '');
   const [aiResults, setAiResults] = useState(initialMatchState.results);
+  const [resultsBrief, setResultsBrief] = useState(initialMatchState.resultsBrief || '');
+  const [rundownSelection, setRundownSelection] = useState(null);
+  const closeRundown = useCallback(() => setRundownSelection(null), []);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isAiRefreshing, setIsAiRefreshing] = useState(false);
   const [aiError, setAiError] = useState('');
@@ -252,15 +269,17 @@ export default function Match() {
     setMatchMode(nextMode);
     setAiBrief(storedState.brief || '');
     setAiResults(storedState.results);
+    setResultsBrief(storedState.resultsBrief || '');
+    setRundownSelection(null);
     setAiError('');
   }, [defaultMode, matchStorageKey]);
 
   useEffect(() => {
-    sessionStorage.setItem(matchStorageKey, JSON.stringify({ brief: aiBrief, mode: matchMode, results: aiResults }));
-  }, [aiBrief, aiResults, matchMode, matchStorageKey]);
+    sessionStorage.setItem(matchStorageKey, JSON.stringify({ brief: aiBrief, mode: matchMode, results: aiResults, resultsBrief }));
+  }, [aiBrief, aiResults, matchMode, matchStorageKey, resultsBrief]);
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (rundownSelection || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return undefined;
     }
 
@@ -269,7 +288,7 @@ export default function Match() {
     }, 3200);
 
     return () => window.clearInterval(intervalId);
-  }, []);
+  }, [rundownSelection]);
 
   useEffect(() => {
     if (!isSearchButtonPressed) {
@@ -310,7 +329,12 @@ export default function Match() {
         if (cancelled) {
           return;
         }
-        setAiResults(updatedResults);
+        setAiResults((current) => {
+          // Poll responses carry the allowance from the original search. Keep credits used by a rundown.
+          if (current?.aiSearchId !== updatedResults.aiSearchId || updatedResults.dailySearchLimit < 0) return updatedResults;
+          const remaining = Math.min(current.dailySearchesRemaining, updatedResults.dailySearchesRemaining);
+          return { ...updatedResults, dailySearchesRemaining: remaining, dailySearchesUsed: updatedResults.dailySearchLimit - remaining };
+        });
         if (updatedResults.aiStatus === 'PENDING') {
           timeoutId = window.setTimeout(pollForUpgrade, 2000);
           return;
@@ -339,6 +363,7 @@ export default function Match() {
       return;
     }
     setIsAiLoading(true);
+    setRundownSelection(null);
     setAiError('');
 
     apiRequest('/api/ai/matches', {
@@ -349,7 +374,8 @@ export default function Match() {
     })
       .then((results) => {
         setAiResults(results);
-        sessionStorage.setItem(matchStorageKey, JSON.stringify({ brief: aiBrief, mode: matchMode, results }));
+        setResultsBrief(aiBrief);
+        sessionStorage.setItem(matchStorageKey, JSON.stringify({ brief: aiBrief, mode: matchMode, results, resultsBrief: aiBrief }));
       })
       .catch((err) => {
         setAiResults(null);
@@ -359,6 +385,8 @@ export default function Match() {
   };
 
   const updateMatchMode = (nextMode) => {
+    setRundownSelection(null);
+    setResultsBrief('');
     setMatchMode(nextMode);
     setAiBrief('');
     setAiResults(null);
@@ -427,7 +455,7 @@ export default function Match() {
           : 'Guests get 3 AI searches per day';
 
   return (
-    <main className="public-page match-discovery">
+    <main className={`public-page match-discovery ${rundownSelection ? 'rundown-open' : ''}`}>
       <div className="match-discovery-stage">
       <PublicHeader />
 
@@ -646,6 +674,9 @@ export default function Match() {
                 connectionForProfile={connectionForProfile}
                 connectingProfileId={connectingProfileId}
                 connectWithDeveloper={connectWithDeveloper}
+                openRundown={(selectedMatch) => setRundownSelection({ match: selectedMatch, brief: resultsBrief })}
+                isSelected={rundownSelection?.match.profile.id === match.profile.id}
+                canOpenRundown={Boolean(resultsBrief) && !isAiLoading}
               />
             ))}
             </div>
@@ -658,6 +689,7 @@ export default function Match() {
       <div className="match-discovery-footer">
         <PublicFooter />
       </div>
+      <CandidateRundown selection={rundownSelection} token={token} onClose={closeRundown} setAiResults={setAiResults} />
     </main>
   );
 }
