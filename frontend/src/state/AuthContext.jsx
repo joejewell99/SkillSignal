@@ -7,7 +7,7 @@ const STORAGE_KEY = 'skillsignal.auth';
 function readStoredAuth() {
   try {
     const storedAuth = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (!storedAuth?.token || !storedAuth?.role || !storedAuth?.email) {
+    if (!storedAuth?.role || !storedAuth?.email || storedAuth.token !== 'cookie') {
       localStorage.removeItem(STORAGE_KEY);
       return null;
     }
@@ -18,6 +18,14 @@ function readStoredAuth() {
   }
 }
 
+function asSessionAuth(auth) {
+  return auth ? { ...auth, token: 'cookie' } : null;
+}
+
+async function primeCsrfCookie() {
+  await apiRequest('/api/auth/csrf').catch(() => {});
+}
+
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(readStoredAuth);
 
@@ -26,8 +34,10 @@ export function AuthProvider({ children }) {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextAuth));
-    setAuth(nextAuth);
+    const sessionAuth = asSessionAuth(nextAuth);
+    await primeCsrfCookie();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionAuth));
+    setAuth(sessionAuth);
   }
 
   async function register(form) {
@@ -35,18 +45,22 @@ export function AuthProvider({ children }) {
       method: 'POST',
       body: JSON.stringify(form),
     });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextAuth));
-    setAuth(nextAuth);
+    const sessionAuth = asSessionAuth(nextAuth);
+    await primeCsrfCookie();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionAuth));
+    setAuth(sessionAuth);
   }
 
-  function logout() {
+  async function logout() {
+    await apiRequest('/api/auth/logout', { method: 'POST' }).catch(() => {});
     localStorage.removeItem(STORAGE_KEY);
     setAuth(null);
   }
 
   function updateAuth(nextAuth) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextAuth));
-    setAuth(nextAuth);
+    const sessionAuth = asSessionAuth(nextAuth);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionAuth));
+    setAuth(sessionAuth);
   }
 
   const value = useMemo(

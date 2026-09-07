@@ -9,10 +9,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import java.time.Instant;
 
 @Entity
-@Table(name = "developer_messages")
+@Table(name = "developer_messages", indexes = {
+        @Index(name = "idx_message_conversation_created", columnList = "conversation_id, created_at")
+})
 public class DeveloperMessage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

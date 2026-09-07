@@ -2,6 +2,7 @@ package com.skillsignal.employer.model;
 
 import com.skillsignal.marketplace.model.MarketplaceProfile;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Column;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -9,15 +10,20 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import java.time.Instant;
 
 @Entity
-@Table(name = "saved_candidates")
+@Table(name = "saved_candidates", indexes = {
+        @Index(name = "idx_saved_candidate_employer", columnList = "employer_user_id"),
+        @Index(name = "idx_saved_candidate_profile", columnList = "developer_profile_id")
+})
 public class SavedCandidate {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private Long employerUserId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

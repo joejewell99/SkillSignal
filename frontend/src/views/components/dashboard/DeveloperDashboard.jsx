@@ -420,7 +420,19 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
   }
 
   function handlePhotoChange(event) {
-    readImage(event.target.files?.[0], (result) => updateProfile('photo', result));
+    readImage(event.target.files?.[0], async (result) => {
+      const nextProfile = { ...profile, photo: result };
+      setProfile(nextProfile);
+      setError('');
+      try {
+        await saveDeveloperProfile(nextProfile);
+        setProfileSaveStatus('Photo saved');
+        window.setTimeout(() => setProfileSaveStatus(''), 1800);
+      } catch (err) {
+        setProfile(profile);
+        setError(err.message);
+      }
+    });
     event.target.value = '';
   }
 
@@ -541,6 +553,12 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
     setProfile((current) => ({
       ...current,
       isDisplayed: profileData.displayed,
+      title: profileData.title ?? current.title,
+      summary: profileData.summary ?? current.summary,
+      photo: profileData.image ?? current.photo,
+      skills: profileData.skills ?? current.skills,
+      contactLinks: profileData.contactLinks ?? current.contactLinks,
+      preferences: profileData.preferences ?? current.preferences,
       projects: normalizeProjects(profileData.projects),
       posts: profileData.posts ?? [],
     }));
@@ -619,7 +637,14 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
     const nextProfile = { ...profile, isDisplayed: displayed };
     setProfile(nextProfile);
     try {
-      await saveDeveloperProfile(nextProfile, displayed);
+      const profileData = await apiRequest('/api/developer/profile/visibility', {
+        token,
+        method: 'PATCH',
+        body: JSON.stringify({ displayed }),
+      });
+      setBackendData(profileData);
+      setProfile((current) => ({ ...current, isDisplayed: profileData.displayed }));
+      window.dispatchEvent(new CustomEvent('skillsignal:profile-updated', { detail: { email: user.email, profile: profileData } }));
     } catch (err) {
       setProfile(profile);
       setError(err.message);

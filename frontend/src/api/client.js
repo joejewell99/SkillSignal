@@ -1,5 +1,10 @@
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
 
+function csrfToken() {
+  const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export async function apiRequest(path, { token, timeoutMs = 10000, ...options } = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -9,9 +14,10 @@ export async function apiRequest(path, { token, timeoutMs = 10000, ...options } 
     response = await fetch(`${API_URL}${path}`, {
       ...options,
       signal: options.signal ?? controller.signal,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(csrfToken() ? { 'X-XSRF-TOKEN': csrfToken() } : {}),
         ...options.headers,
       },
     });

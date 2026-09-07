@@ -30,6 +30,9 @@ public class AdminSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        if (adminEmail == null || adminEmail.isBlank() || adminPassword == null || adminPassword.isBlank()) {
+            return;
+        }
         String canonicalAdminEmail = AccountEmailFormatter.canonicalEmail("SkillSignal Admin", Role.ADMIN);
         AppUser adminUser = userRepository.findByEmailIgnoreCase(canonicalAdminEmail)
                 .or(() -> userRepository.findByEmailIgnoreCase(adminEmail))

@@ -35,7 +35,7 @@ function PrivacyPolicy() {
           <li>Preferences and settings, including notification and display choices.</li>
         </ul>
         <h3>Information collected automatically</h3>
-        <p>The browser stores a sign-in token, cached profile information, notification state, theme, and preferences in local storage. The Service does not currently use advertising cookies or third-party cross-site tracking. For unauthenticated AI search limits, the server derives a one-way hash from the request IP address and user-agent; the application uses that hash to count daily searches. Hosting and web infrastructure may also create ordinary security and error logs.</p>
+        <p>The browser stores cached profile information, notification state, theme, and preferences in local storage. SkillSignal uses one strictly necessary, HttpOnly session cookie to keep signed-in users authenticated; it is not used for advertising or third-party cross-site tracking. For unauthenticated AI search limits, the server derives a one-way hash from the request IP address and user-agent; the application uses that hash to count daily searches. Hosting and web infrastructure may also create ordinary security and error logs.</p>
         <h3>Information from other sources</h3>
         <p>We may receive information from another user when they send a connection request or message. We do not currently import profiles from external social networks or connect to external employer systems.</p>
       </Section>

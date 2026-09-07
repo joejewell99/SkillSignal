@@ -1,5 +1,6 @@
 package com.skillsignal.security;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.skillsignal.user.model.AppUser;
 import java.util.Collection;
 import java.util.List;
@@ -42,6 +43,7 @@ public class UserPrincipal implements UserDetails {
     }
 
     @Override
+    @JsonIgnore
     public String getPassword() {
         return passwordHash;
     }

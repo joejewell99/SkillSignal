@@ -12,10 +12,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import java.time.Instant;
 
 @Entity
-@Table(name = "developer_conversations")
+@Table(name = "developer_conversations", indexes = {
+        @Index(name = "idx_conversation_requester", columnList = "requester_user_id"),
+        @Index(name = "idx_conversation_receiver", columnList = "receiver_user_id"),
+        @Index(name = "idx_conversation_updated", columnList = "updated_at")
+})
 public class DeveloperConversation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

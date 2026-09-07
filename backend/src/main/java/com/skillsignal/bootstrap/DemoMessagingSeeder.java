@@ -15,8 +15,10 @@ import java.util.Optional;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 @Component
+@ConditionalOnProperty(name = "app.demo-data.enabled", havingValue = "true")
 @Order(25)
 public class DemoMessagingSeeder implements CommandLineRunner {
     private final UserRepository userRepository;

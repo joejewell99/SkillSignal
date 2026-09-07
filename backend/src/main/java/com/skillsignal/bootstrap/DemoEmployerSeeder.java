@@ -19,8 +19,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 @Component
+@ConditionalOnProperty(name = "app.demo-data.enabled", havingValue = "true")
 @Order(30)
 public class DemoEmployerSeeder implements CommandLineRunner {
     private static final String PASSWORD = "Password123!";

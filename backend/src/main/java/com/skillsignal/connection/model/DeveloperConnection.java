@@ -12,10 +12,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import java.time.Instant;
 
 @Entity
-@Table(name = "developer_connections")
+@Table(name = "developer_connections", indexes = {
+        @Index(name = "idx_connection_requester", columnList = "requester_user_id"),
+        @Index(name = "idx_connection_receiver_status", columnList = "receiver_user_id, status")
+})
 public class DeveloperConnection {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

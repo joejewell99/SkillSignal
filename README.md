@@ -19,6 +19,16 @@ frontend/  React client
 
 ### 1. Start PostgreSQL
 
+Create a local environment file first:
+
+```bash
+copy .env.example .env
+```
+
+Set `POSTGRES_USER`, `POSTGRES_PASSWORD`, `DB_USERNAME`, `DB_PASSWORD`, and a random `JWT_SECRET` of at least 32 characters in `.env`. Add `OPENAI_API_KEY` if you want to use the AI features. Keep `.env` local; it is ignored by Git.
+
+Then start PostgreSQL:
+
 ```bash
 docker compose up -d
 ```
@@ -42,22 +52,20 @@ npm run dev
 
 The app runs on `http://localhost:5173`.
 
-## Default Admin
+## Optional admin and demo data
 
-On first backend startup, an admin user is created:
-
-- Email: `admin@skillsignal.dev`
-- Password: `Admin123!`
-
-Change these with environment variables:
+No admin account is created unless both admin variables are supplied. Set these in `.env` before the first backend startup if you need an admin:
 
 - `SKILLSIGNAL_ADMIN_EMAIL`
 - `SKILLSIGNAL_ADMIN_PASSWORD`
+
+Demo profiles and sample messages are disabled by default. For local demonstrations only, set `DEMO_DATA_ENABLED=true`; do not enable it for production data.
 
 ## Starter Auth Flow
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- Authentication uses an HttpOnly session cookie; state-changing requests use the CSRF cookie issued by `GET /api/auth/csrf`.
 - `GET /api/developer/profile` requires `DEVELOPER` or `ADMIN`
 - `GET /api/employer/search` requires `EMPLOYER` or `ADMIN`
 - `GET /api/admin/moderation` requires `ADMIN`

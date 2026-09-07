@@ -104,6 +104,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
   const [threadReplyDraft, setThreadReplyDraft] = useState('');
   const [threadReplyImageDraft, setThreadReplyImageDraft] = useState('');
   const [messageStatus, setMessageStatus] = useState('');
+  const [profileSaveStatus, setProfileSaveStatus] = useState('');
   const [messageFilter, setMessageFilter] = useState('all');
   const [focusInput, setFocusInput] = useState('');
   const [postInput, setPostInput] = useState('');
@@ -345,6 +346,10 @@ export default function EmployerDashboard({ user, token, selectedSection, select
     setProfile((current) => ({
       ...current,
       isDisplayed: profileData.displayed,
+      title: profileData.title ?? current.title,
+      summary: profileData.summary ?? current.summary,
+      photo: profileData.image ?? current.photo,
+      skills: profileData.skills ?? current.skills,
       projects: normalizeProjects(profileData.projects ?? current.projects ?? []),
       posts: profileData.posts ?? [],
     }));
@@ -355,7 +360,14 @@ export default function EmployerDashboard({ user, token, selectedSection, select
     const nextProfile = { ...profile, isDisplayed: displayed };
     setProfile(nextProfile);
     try {
-      await saveEmployerProfile(nextProfile, displayed);
+      const profileData = await apiRequest('/api/employer/profile/visibility', {
+        token,
+        method: 'PATCH',
+        body: JSON.stringify({ displayed }),
+      });
+      setBackendData(profileData);
+      setProfile((current) => ({ ...current, isDisplayed: profileData.displayed }));
+      window.dispatchEvent(new CustomEvent('skillsignal:profile-updated', { detail: { email: user.email, profile: profileData } }));
     } catch (err) {
       setProfile(profile);
       setError(err.message);
@@ -405,7 +417,19 @@ export default function EmployerDashboard({ user, token, selectedSection, select
   }
 
   function handleEmployerPhotoChange(event) {
-    readImage(event.target.files?.[0], (result) => updateEmployerProfile('photo', result));
+    readImage(event.target.files?.[0], async (result) => {
+      const nextProfile = { ...profile, photo: result };
+      setProfile(nextProfile);
+      setError('');
+      try {
+        await saveEmployerProfile(nextProfile);
+        setProfileSaveStatus('Photo saved');
+        window.setTimeout(() => setProfileSaveStatus(''), 1800);
+      } catch (err) {
+        setProfile(profile);
+        setError(err.message);
+      }
+    });
     event.target.value = '';
   }
 
