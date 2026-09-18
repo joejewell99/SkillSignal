@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BriefcaseBusiness, Code2 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext.jsx';
+import ImageWithFallback from '../ui/ImageWithFallback.jsx';
 
 const roleOptions = {
   DEVELOPER: {
@@ -81,7 +82,10 @@ export default function Register() {
                 type="button"
                 onClick={() => chooseRole(role)}
               >
-                <img src={option.image} alt="" />
+                <span className="role-choice-media" aria-hidden="true">
+                  <Icon size={52} />
+                  <ImageWithFallback className="role-choice-image" src={option.image} alt="" fallback={null} />
+                </span>
                 <span className="role-choice-content">
                   <Icon size={24} />
                   <strong>{option.title}</strong>

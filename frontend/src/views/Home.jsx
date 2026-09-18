@@ -4,7 +4,7 @@ import { BrainCircuit, CheckCircle2, Search, ShieldCheck } from 'lucide-react';
 import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import { apiRequest } from '../api/client.js';
-import heroBackdrop from '../assets/home-hero-soft-studio.png';
+import heroBackdrop from '../assets/home-hero-soft-studio.jpg';
 
 const proofPoints = [
   {

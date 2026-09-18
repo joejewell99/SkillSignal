@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Building2, ChevronLeft, ChevronRight, Code2, ExternalLink, Search, UsersRound } from 'lucide-react';
+import { Building2, ChevronLeft, ChevronRight, Code2, ExternalLink, Search, SearchX, UsersRound } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
+import ImageWithFallback from '../ui/ImageWithFallback.jsx';
 import { apiRequest } from '../api/client.js';
 
 const popularSkills = ['Python', 'Ruby', 'SQL', 'Spring Boot', 'React', 'APIs'];
@@ -241,7 +242,11 @@ export default function Profiles() {
               >
                 <div className="profile-card-top">
                   <div className="profile-avatar-wrap">
-                    {profile.image ? <img src={profile.image} alt={profile.name} /> : <div className="profile-placeholder">{profile.name.slice(0, 2).toUpperCase()}</div>}
+                    <ImageWithFallback
+                      src={profile.image}
+                      alt={profile.name}
+                      fallback={<div className="profile-placeholder" aria-label={`${profile.name} image unavailable`}>{profile.name.slice(0, 2).toUpperCase()}</div>}
+                    />
                     <span className={`presence-dot profile-presence ${profile.presence?.toLowerCase().replaceAll('_', '-') ?? 'offline'}`} title={profile.presence?.replaceAll('_', ' ') ?? 'Offline'} />
                   </div>
                   <div className="profile-card-heading">
@@ -270,6 +275,16 @@ export default function Profiles() {
             );
           })}
         </div>
+        {!isLoadingProfiles && !profileError && profiles.length === 0 && (
+          <div className="empty-state directory-empty-state" role="status">
+            <SearchX size={30} aria-hidden="true" />
+            <h3>No profiles match that search</h3>
+            <p>Try a broader skill, name, or project term.</p>
+            <button className="secondary-button" type="button" onClick={() => { setQuery(''); setFilter('ALL'); setPage(0); }}>
+              Clear search
+            </button>
+          </div>
+        )}
         <DirectoryPagination isLoadingProfiles={isLoadingProfiles} pageData={pageData} setPage={setPage} />
         </section>
       </section>

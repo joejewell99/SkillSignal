@@ -284,6 +284,25 @@
   min-height: 280px;
 }
 
+.project-image-fallback {
+  align-items: center;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 8%, var(--surface-strong)), color-mix(in srgb, var(--signal) 8%, var(--surface-strong)));
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  font-size: 0.78rem;
+  font-weight: 800;
+  gap: 8px;
+  justify-content: center;
+  min-height: 280px;
+  text-align: center;
+}
+
+.project-images .project-image-fallback:not(:first-child) {
+  display: none;
+}
+
 .public-project-card .project-card-body {
   align-content: start;
   padding: 22px;

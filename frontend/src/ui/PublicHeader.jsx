@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bell, ChevronRight, LayoutDashboard, LogOut, Settings, X } from 'lucide-react';
 import { useAuth } from '../state/AuthContext.jsx';
 import { apiRequest } from '../api/client.js';
+import ImageWithFallback from './ImageWithFallback.jsx';
 
 const PRESENCE_OPTIONS = [
   { value: 'ONLINE', label: 'Online' },
@@ -601,7 +602,14 @@ export default function PublicHeader() {
                 setIsAccountMenuOpen((isOpen) => !isOpen);
               }}
               >
-                {profileImage ? <img className="account-avatar" src={profileImage} alt="Your profile" decoding="sync" fetchPriority="high" /> : <span className="account-avatar account-avatar-fallback" aria-hidden="true">{profileInitial}</span>}
+                <ImageWithFallback
+                  className="account-avatar"
+                  src={profileImage}
+                  alt="Your profile"
+                  decoding="sync"
+                  fetchPriority="high"
+                  fallback={<span className="account-avatar account-avatar-fallback" aria-hidden="true">{profileInitial}</span>}
+                />
               </button>
             {isAccountMenuOpen ? (
               <div className="account-menu" role="menu">

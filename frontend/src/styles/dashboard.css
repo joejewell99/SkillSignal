@@ -213,6 +213,11 @@
   gap: 8px;
   overflow-x: auto;
   padding: 8px;
+  scrollbar-width: none;
+}
+
+.employer-dashboard-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .employer-dashboard-tabs button {

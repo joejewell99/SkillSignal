@@ -243,6 +243,31 @@ html {
   width: 5px;
 }
 
+@media (min-width: 1200px) {
+  .public-page-home .hero-copy-thoughts {
+    padding-left: clamp(170px, 13vw, 200px);
+  }
+}
+
+@media (min-width: 801px) and (max-width: 1199px) {
+  .home-section-nav {
+    grid-template-columns: 18px;
+    padding-right: 0;
+  }
+
+  .home-section-nav-links {
+    grid-column: 1;
+  }
+
+  .home-section-nav a {
+    justify-content: center;
+  }
+
+  .home-section-nav-label {
+    display: none;
+  }
+}
+
 .home-hero,
 .search-hero,
 .tool-hero {
@@ -1265,6 +1290,14 @@ html {
   padding: 0;
   position: relative;
   width: 100%;
+}
+
+.try-it-out-shell,
+.try-it-out-shell > *,
+.try-card-grid,
+.try-match-preview {
+  max-width: 100%;
+  min-width: 0;
 }
 
 .try-it-out-shell::before {

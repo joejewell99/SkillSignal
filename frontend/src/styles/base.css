@@ -75,6 +75,11 @@ a {
   text-decoration: none;
 }
 
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 65%, var(--signal));
+  outline-offset: 3px;
+}
+
 .public-page {
   background:
     linear-gradient(90deg, rgba(17, 87, 217, 0.05) 1px, transparent 1px),
@@ -205,6 +210,68 @@ a {
   display: grid;
   gap: 42px;
   grid-template-columns: minmax(280px, 1fr) minmax(520px, 1fr);
+}
+
+.route-loading {
+  align-items: center;
+  background: var(--bg);
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.route-loading-mark {
+  align-items: center;
+  background: linear-gradient(135deg, var(--primary), var(--signal));
+  border-radius: 6px;
+  color: #ffffff;
+  display: flex;
+  font-weight: 900;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.route-loading p {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.not-found-content {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: center;
+  margin: 0 auto;
+  min-height: min(560px, 68vh);
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.not-found-content > svg {
+  color: var(--signal);
+}
+
+.not-found-content h1,
+.not-found-content p {
+  margin: 0;
+}
+
+.not-found-content h1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+  max-width: 680px;
+}
+
+.not-found-content > p:not(.eyebrow) {
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 520px;
 }
 
 .public-footer-brand {

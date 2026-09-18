@@ -39,7 +39,7 @@
 
 .profile-avatar-wrap { position: relative; }
 .profile-avatar-wrap > img,
-.profile-avatar-wrap > .profile-placeholder { display: block; }
+.profile-avatar-wrap > .profile-placeholder { display: grid; }
 .profile-presence { bottom: 8px; position: absolute; right: 8px; }
 
 .developer-card img,
@@ -1926,9 +1926,20 @@
 @media (max-width: 760px) {
   .profiles-discovery .results-section > .section-heading {
     align-items: start;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr);
   }
 
+  .profiles-discovery .results-section > .section-heading .segmented-control {
+    justify-self: stretch;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .profiles-discovery .results-section > .section-heading .segmented-control button {
+    min-width: 0;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
 }
 
 /* Tighten the directory rhythm without changing card or footer geometry. */

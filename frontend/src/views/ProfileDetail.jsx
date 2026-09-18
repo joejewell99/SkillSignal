@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Bookmark, ExternalLink, Github, MessageSquareText, Send, Star, UserPlus } from 'lucide-react';
+import { Bookmark, ExternalLink, Github, ImageOff, MessageSquareText, Send, Star, UserPlus } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { apiRequest } from '../api/client.js';
 import { useAuth } from '../state/AuthContext.jsx';
 import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
+import ImageWithFallback from '../ui/ImageWithFallback.jsx';
 import ContactLinks from './components/profile/ContactLinks.jsx';
 import EmployerNeedsList from './components/profile/EmployerNeedsList.jsx';
 
@@ -565,7 +566,11 @@ export default function ProfileDetail() {
         <section className="profile-detail-shell">
           <header className="profile-detail-header">
             <div className="profile-avatar-wrap profile-detail-avatar-wrap">
-              {profile.image ? <img src={profile.image} alt={profile.name} /> : <div className="profile-placeholder">{profile.name.slice(0, 2).toUpperCase()}</div>}
+              <ImageWithFallback
+                src={profile.image}
+                alt={profile.name}
+                fallback={<div className="profile-placeholder" aria-label={`${profile.name} image unavailable`}>{profile.name.slice(0, 2).toUpperCase()}</div>}
+              />
               <span className={`presence-dot profile-presence ${profile.presence?.toLowerCase().replaceAll('_', '-') ?? 'offline'}`} title={profile.presence?.replaceAll('_', ' ') ?? 'Offline'} />
             </div>
             <div className="profile-detail-copy">
@@ -709,7 +714,17 @@ export default function ProfileDetail() {
                           {(project.images ?? []).length > 0 && (
                             <div className="project-images">
                               {(project.images ?? []).slice(0, 3).map((image, index) => (
-                                <img key={`${project.name}-${projectIndex}-${index}`} src={image} alt={`${project.name} screenshot ${index + 1}`} />
+                                <ImageWithFallback
+                                  key={`${project.name}-${projectIndex}-${index}`}
+                                  src={image}
+                                  alt={`${project.name} screenshot ${index + 1}`}
+                                  fallback={(
+                                    <div className="project-image-fallback" aria-label={`${project.name} screenshot unavailable`}>
+                                      <ImageOff size={28} aria-hidden="true" />
+                                      <span>Preview unavailable</span>
+                                    </div>
+                                  )}
+                                />
                               ))}
                             </div>
                           )}
@@ -835,7 +850,11 @@ export default function ProfileDetail() {
                   {posts.map((post) => (
                     <article className="public-feed-post" key={post.id ?? post.createdAt}>
                       <div className="feed-author">
-                        {profile.image ? <img src={profile.image} alt={`${profile.name} avatar`} /> : <div className="profile-placeholder">{profile.name?.[0] ?? 'D'}</div>}
+                        <ImageWithFallback
+                          src={profile.image}
+                          alt={`${profile.name} avatar`}
+                          fallback={<div className="profile-placeholder" aria-label={`${profile.name} image unavailable`}>{profile.name?.[0] ?? 'D'}</div>}
+                        />
                         <div>
                           <strong>{profile.name}</strong>
                           <span>{formatPostDate(post.createdAt)}</span>

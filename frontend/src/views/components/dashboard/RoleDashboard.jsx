@@ -40,6 +40,8 @@ const roleConfig = {
 export default function RoleDashboard({ user, token }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [requestVersion, setRequestVersion] = useState(0);
   const [search, setSearch] = useState('');
   const config = roleConfig[user.role] ?? roleConfig.DEVELOPER;
   const Icon = config.icon;
@@ -53,10 +55,12 @@ export default function RoleDashboard({ user, token }) {
 
   useEffect(() => {
     setError('');
+    setIsLoading(true);
     apiRequest(config.endpoint, { token })
       .then(setData)
-      .catch((err) => setError(err.message));
-  }, [config.endpoint, token]);
+      .catch((err) => setError(err.message))
+      .finally(() => setIsLoading(false));
+  }, [config.endpoint, requestVersion, token]);
 
   return (
     <section className="dashboard">
@@ -103,10 +107,10 @@ export default function RoleDashboard({ user, token }) {
           )}
           {user.role === 'DEVELOPER' && (
             <div className="action-stack">
-              <button className="primary-button" type="button">
+              <Link className="primary-button" to="/settings">
                 <Plus size={17} />
-                <span>Create profile</span>
-              </button>
+                <span>Build your profile</span>
+              </Link>
               <p className="subtle">Next build step: save projects, skills, screenshots, GitHub links, and deployment links.</p>
             </div>
           )}
@@ -124,8 +128,16 @@ export default function RoleDashboard({ user, token }) {
 
         <article className="workspace-panel wide-panel">
           <h2>Secure backend response</h2>
-          {error && <p className="error">{error}</p>}
-          <pre>{apiPreview}</pre>
+          {isLoading && <p className="info-message" role="status">Loading secure role data...</p>}
+          {error && (
+            <div className="error-state" role="alert">
+              <p className="error">{error}</p>
+              <button className="secondary-button" type="button" onClick={() => setRequestVersion((value) => value + 1)}>
+                Try again
+              </button>
+            </div>
+          )}
+          {!isLoading && !error && <pre>{apiPreview}</pre>}
         </article>
       </section>
     </section>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { apiRequest } from '../api/client.js';
 
 const AuthContext = createContext(null);
@@ -28,6 +28,38 @@ async function primeCsrfCookie() {
 
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(readStoredAuth);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    function clearSession() {
+      localStorage.removeItem(STORAGE_KEY);
+      if (isCurrent) {
+        setAuth(null);
+        setIsAuthReady(true);
+      }
+    }
+
+    window.addEventListener('skillsignal:session-expired', clearSession);
+    apiRequest('/api/auth/me')
+      .then(async (nextAuth) => {
+        if (!isCurrent) return;
+        const sessionAuth = asSessionAuth(nextAuth);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionAuth));
+        setAuth(sessionAuth);
+        await primeCsrfCookie();
+      })
+      .catch(clearSession)
+      .finally(() => {
+        if (isCurrent) setIsAuthReady(true);
+      });
+
+    return () => {
+      isCurrent = false;
+      window.removeEventListener('skillsignal:session-expired', clearSession);
+    };
+  }, []);
 
   async function login(email, password) {
     const nextAuth = await apiRequest('/api/auth/login', {
@@ -38,6 +70,7 @@ export function AuthProvider({ children }) {
     await primeCsrfCookie();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionAuth));
     setAuth(sessionAuth);
+    setIsAuthReady(true);
   }
 
   async function register(form) {
@@ -49,12 +82,14 @@ export function AuthProvider({ children }) {
     await primeCsrfCookie();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionAuth));
     setAuth(sessionAuth);
+    setIsAuthReady(true);
   }
 
   async function logout() {
     await apiRequest('/api/auth/logout', { method: 'POST' }).catch(() => {});
     localStorage.removeItem(STORAGE_KEY);
     setAuth(null);
+    setIsAuthReady(true);
   }
 
   function updateAuth(nextAuth) {
@@ -67,12 +102,13 @@ export function AuthProvider({ children }) {
     () => ({
       user: auth,
       token: auth?.token,
+      isAuthReady,
       login,
       register,
       logout,
       updateAuth,
     }),
-    [auth]
+    [auth, isAuthReady]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

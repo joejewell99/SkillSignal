@@ -2,6 +2,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Bookmark, BriefcaseBusiness, Camera, CheckCircle2, ExternalLink, ImagePlus, MessageSquareText, Pencil, Plus, Search, Send, Star, Trash2 } from 'lucide-react';
 import { apiRequest } from '../../../api/client.js';
+import ImageWithFallback from '../../../ui/ImageWithFallback.jsx';
 import {
   emptyProject,
   formatPostDate,
@@ -651,7 +652,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
       <header className="developer-header">
         <div className="developer-identity">
           <div className="photo-frame">
-            {profile.photo ? <img src={profile.photo} alt={`${user.name} profile`} /> : <BriefcaseBusiness size={56} />}
+            <ImageWithFallback src={profile.photo} alt={`${user.name} profile`} fallback={<BriefcaseBusiness size={56} aria-hidden="true" />} />
             <label className="photo-upload" htmlFor="employer-photo">
               <Camera size={17} />
               <span>Upload photo</span>
@@ -1230,11 +1231,11 @@ export default function EmployerDashboard({ user, token, selectedSection, select
 
             <aside className="employer-profile-preview-column">
               <section className="profile-card employer-dashboard-preview-card">
-                {profile.photo ? (
-                  <img src={profile.photo} alt={`${user.name} preview`} />
-                ) : (
-                  <div className="profile-placeholder">{user.name.slice(0, 2).toUpperCase()}</div>
-                )}
+                <ImageWithFallback
+                  src={profile.photo}
+                  alt={`${user.name} preview`}
+                  fallback={<div className="profile-placeholder" aria-label={`${user.name} image unavailable`}>{user.name.slice(0, 2).toUpperCase()}</div>}
+                />
                 <div className="profile-card-heading">
                   <span className="profile-type employer">Employer</span>
                   <h3>{user.name}</h3>
@@ -1327,7 +1328,11 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                     <article className="feed-post" key={post.id}>
                       <div className="feed-post-header">
                         <div className="feed-author">
-                          {profile.photo ? <img src={profile.photo} alt={`${user.name} avatar`} /> : <div className="profile-placeholder">{user.name?.[0] ?? 'E'}</div>}
+                          <ImageWithFallback
+                            src={profile.photo}
+                            alt={`${user.name} avatar`}
+                            fallback={<div className="profile-placeholder" aria-label={`${user.name} image unavailable`}>{user.name?.[0] ?? 'E'}</div>}
+                          />
                           <div>
                             <strong>{user.name}</strong>
                             <span>{formatPostDate(post.createdAt)}</span>

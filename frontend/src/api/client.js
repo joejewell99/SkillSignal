@@ -33,6 +33,9 @@ export async function apiRequest(path, { token, timeoutMs = 10000, ...options } 
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('skillsignal:session-expired'));
+    }
     const statusMessages = {
       401: 'Your sign-in session has expired or is no longer valid. Please sign in again.',
       403: 'You do not have permission to perform this action.',

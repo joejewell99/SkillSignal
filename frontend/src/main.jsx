@@ -1,30 +1,45 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './state/AuthContext.jsx';
 import { ThemeProvider } from './state/ThemeContext.jsx';
 import AppShell from './ui/AppShell.jsx';
-import Home from './views/Home.jsx';
-import LegalPage from './views/LegalPage.jsx';
-import Login from './views/Login.jsx';
-import Match from './views/Match.jsx';
-import ProfileDetail from './views/ProfileDetail.jsx';
-import Profiles from './views/Profiles.jsx';
-import Register from './views/Register.jsx';
-import Settings from './views/Settings.jsx';
-import Dashboard from './views/Dashboard.jsx';
+const Home = lazy(() => import('./views/Home.jsx'));
+const LegalPage = lazy(() => import('./views/LegalPage.jsx'));
+const Login = lazy(() => import('./views/Login.jsx'));
+const Match = lazy(() => import('./views/Match.jsx'));
+const NotFound = lazy(() => import('./views/NotFound.jsx'));
+const ProfileDetail = lazy(() => import('./views/ProfileDetail.jsx'));
+const Profiles = lazy(() => import('./views/Profiles.jsx'));
+const Register = lazy(() => import('./views/Register.jsx'));
+const Settings = lazy(() => import('./views/Settings.jsx'));
+const Dashboard = lazy(() => import('./views/Dashboard.jsx'));
 import './styles/index.css';
 
 function ProtectedRoute({ children }) {
-  const { user } = useAuth();
-  return user ? children : <Navigate to="/login" replace />;
+  const { isAuthReady, user } = useAuth();
+  const location = useLocation();
+  if (!isAuthReady) return <RouteLoading />;
+  return user ? children : <Navigate to="/login" replace state={{ returnTo: location.pathname + location.search }} />;
 }
 
 function GuestRoute({ children }) {
-  const { user } = useAuth();
+  const { isAuthReady, user } = useAuth();
   const { state } = useLocation();
-  const destination = state?.returnTo === '/match' ? '/match' : '/dashboard';
+  if (!isAuthReady) return <RouteLoading />;
+  const destination = typeof state?.returnTo === 'string' && state.returnTo.startsWith('/')
+    ? state.returnTo
+    : '/dashboard';
   return user ? <Navigate to={destination} replace /> : children;
+}
+
+function RouteLoading() {
+  return (
+    <main className="route-loading" aria-live="polite" aria-busy="true">
+      <span className="route-loading-mark" aria-hidden="true">SS</span>
+      <p>Restoring your workspace...</p>
+    </main>
+  );
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -32,49 +47,51 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/privacy" element={<LegalPage />} />
-            <Route path="/terms" element={<LegalPage />} />
-            <Route path="/match" element={<Match />} />
-            <Route path="/profiles" element={<Profiles />} />
-            <Route path="/profiles/:id" element={<ProfileDetail />} />
-            <Route
-              path="/login"
-              element={
-                <GuestRoute>
-                  <Login />
-                </GuestRoute>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <GuestRoute>
-                  <Register />
-                </GuestRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <Dashboard />
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <Suspense fallback={<RouteLoading />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/privacy" element={<LegalPage />} />
+              <Route path="/terms" element={<LegalPage />} />
+              <Route path="/match" element={<Match />} />
+              <Route path="/profiles" element={<Profiles />} />
+              <Route path="/profiles/:id" element={<ProfileDetail />} />
+              <Route
+                path="/login"
+                element={
+                  <GuestRoute>
+                    <Login />
+                  </GuestRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <GuestRoute>
+                    <Register />
+                  </GuestRoute>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <Dashboard />
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

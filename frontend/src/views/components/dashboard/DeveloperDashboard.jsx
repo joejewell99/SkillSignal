@@ -19,6 +19,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { apiRequest } from '../../../api/client.js';
+import ImageWithFallback from '../../../ui/ImageWithFallback.jsx';
 import ContactLinks from '../profile/ContactLinks.jsx';
 import {
   emptyProject,
@@ -858,7 +859,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
       <header className="developer-header">
         <div className="developer-identity">
           <div className="photo-frame">
-            {profile.photo ? <img src={profile.photo} alt={`${user.name} profile`} /> : <UserRound size={56} />}
+            <ImageWithFallback src={profile.photo} alt={`${user.name} profile`} fallback={<UserRound size={56} aria-hidden="true" />} />
             <label className="photo-upload" htmlFor="developer-photo">
               <Camera size={17} />
               <span>Upload photo</span>
@@ -1091,11 +1092,11 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
 
             <aside className="employer-profile-preview-column">
               <section className="profile-card employer-dashboard-preview-card">
-                {profile.photo ? (
-                  <img src={profile.photo} alt={`${user.name} preview`} />
-                ) : (
-                  <div className="profile-placeholder">{user.name.slice(0, 2).toUpperCase()}</div>
-                )}
+                <ImageWithFallback
+                  src={profile.photo}
+                  alt={`${user.name} preview`}
+                  fallback={<div className="profile-placeholder" aria-label={`${user.name} image unavailable`}>{user.name.slice(0, 2).toUpperCase()}</div>}
+                />
                 <div className="profile-card-heading">
                   <span className="profile-type developer">Developer</span>
                   <h3>{user.name}</h3>
@@ -1777,7 +1778,11 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                     <article className="feed-post" key={post.id}>
                       <div className="feed-post-header">
                         <div className="feed-author">
-                          {profile.photo ? <img src={profile.photo} alt={`${user.name} avatar`} /> : <div className="profile-placeholder">{user.name?.[0] ?? 'D'}</div>}
+                          <ImageWithFallback
+                            src={profile.photo}
+                            alt={`${user.name} avatar`}
+                            fallback={<div className="profile-placeholder" aria-label={`${user.name} image unavailable`}>{user.name?.[0] ?? 'D'}</div>}
+                          />
                           <div>
                             <strong>{user.name}</strong>
                             <span>{formatPostDate(post.createdAt)}</span>
