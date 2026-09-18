@@ -1,6 +1,7 @@
 package com.skillsignal.messaging.controller;
 
 import com.skillsignal.messaging.dto.DeveloperConversationResponse;
+import com.skillsignal.messaging.dto.ConversationRestrictionRequest;
 import com.skillsignal.messaging.dto.ReplyDeveloperMessageRequest;
 import com.skillsignal.messaging.dto.SendDeveloperMessageRequest;
 import com.skillsignal.messaging.service.UserMessagingService;
@@ -73,6 +74,34 @@ public class UserMessagingController {
     DeveloperConversationResponse markRead(@PathVariable Long id, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         return messagingService.markRead(principal.id(), id);
+    }
+
+    @PatchMapping("/{id}/block")
+    DeveloperConversationResponse block(@PathVariable Long id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return messagingService.setBlocked(principal.id(), id);
+    }
+
+    @DeleteMapping("/{id}/block")
+    DeveloperConversationResponse unblock(@PathVariable Long id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return messagingService.clearBlocked(principal.id(), id);
+    }
+
+    @PatchMapping("/{id}/mute")
+    DeveloperConversationResponse mute(
+            @PathVariable Long id,
+            @Valid @RequestBody ConversationRestrictionRequest request,
+            Authentication authentication
+    ) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return messagingService.setMuted(principal.id(), id, request.durationSeconds());
+    }
+
+    @DeleteMapping("/{id}/mute")
+    DeveloperConversationResponse unmute(@PathVariable Long id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return messagingService.clearMuted(principal.id(), id);
     }
 
     @DeleteMapping("/{id}")

@@ -14,6 +14,7 @@ import com.skillsignal.employer.repository.SavedCandidateRepository;
 import com.skillsignal.messaging.model.DeveloperConversation;
 import com.skillsignal.messaging.repository.DeveloperConversationRepository;
 import com.skillsignal.messaging.repository.DeveloperMessageRepository;
+import com.skillsignal.messaging.repository.UserSafetyRelationRepository;
 import com.skillsignal.marketplace.model.MarketplaceProfile;
 import com.skillsignal.marketplace.repository.MarketplaceProfileRepository;
 import com.skillsignal.proof.repository.ProofSignalRepository;
@@ -39,6 +40,7 @@ public class AuthService {
     private final MarketplaceProfileRepository marketplaceProfileRepository;
     private final DeveloperConversationRepository conversationRepository;
     private final DeveloperMessageRepository messageRepository;
+    private final UserSafetyRelationRepository safetyRelationRepository;
     private final DeveloperConnectionRepository connectionRepository;
     private final SavedCandidateRepository savedCandidateRepository;
     private final ProofSignalRepository proofSignalRepository;
@@ -54,6 +56,7 @@ public class AuthService {
             MarketplaceProfileRepository marketplaceProfileRepository,
             DeveloperConversationRepository conversationRepository,
             DeveloperMessageRepository messageRepository,
+            UserSafetyRelationRepository safetyRelationRepository,
             DeveloperConnectionRepository connectionRepository,
             SavedCandidateRepository savedCandidateRepository,
             ProofSignalRepository proofSignalRepository,
@@ -68,6 +71,7 @@ public class AuthService {
         this.marketplaceProfileRepository = marketplaceProfileRepository;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
+        this.safetyRelationRepository = safetyRelationRepository;
         this.connectionRepository = connectionRepository;
         this.savedCandidateRepository = savedCandidateRepository;
         this.proofSignalRepository = proofSignalRepository;
@@ -157,6 +161,7 @@ public class AuthService {
         for (DeveloperConnection connection : connectionRepository.findForUser(userId)) {
             connectionRepository.delete(connection);
         }
+        safetyRelationRepository.deleteByOwnerUserIdOrTargetUserId(userId, userId);
 
         aiSearchUsageRepository.deleteBySubjectTypeAndSubjectKey("USER", String.valueOf(userId));
         if (profile != null) {

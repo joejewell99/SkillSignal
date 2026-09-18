@@ -33,6 +33,14 @@ export async function apiRequest(path, { token, timeoutMs = 10000, ...options } 
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
+    if (response.status === 429 && ['MESSAGE_RATE_LIMITED', 'MESSAGE_RATE_WARNING'].includes(data?.code) && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(data.code === 'MESSAGE_RATE_WARNING' ? 'skillsignal:message-rate-warning' : 'skillsignal:message-rate-limited', {
+        detail: {
+          message: data.message,
+          retryAfterSeconds: data.retryAfterSeconds,
+        },
+      }));
+    }
     if (response.status === 401 && typeof window !== 'undefined') {
       window.dispatchEvent(new Event('skillsignal:session-expired'));
     }

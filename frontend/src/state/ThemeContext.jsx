@@ -1,9 +1,19 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 const ThemeContext = createContext(null);
+const THEME_MIGRATION_KEY = 'skillsignal-theme-default-dark-v1';
+
+function initialTheme() {
+  const storedTheme = localStorage.getItem('skillsignal-theme');
+  if (!localStorage.getItem(THEME_MIGRATION_KEY)) {
+    localStorage.setItem(THEME_MIGRATION_KEY, 'true');
+    return 'dark';
+  }
+  return storedTheme ?? 'dark';
+}
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => localStorage.getItem('skillsignal-theme') ?? 'light');
+  const [theme, setTheme] = useState(initialTheme);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;

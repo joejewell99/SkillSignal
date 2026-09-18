@@ -25,7 +25,7 @@ public class JwtService {
             throw new IllegalStateException("JWT_SECRET must be set to at least 32 characters.");
         }
         this.secret = secret;
-        this.expirationMs = expirationMs;
+        this.expirationMs = JwtSessionPolicy.effectiveExpirationMs(expirationMs);
     }
 
     public String generateToken(UserPrincipal principal) {

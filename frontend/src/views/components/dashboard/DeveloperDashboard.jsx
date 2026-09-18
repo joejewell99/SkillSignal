@@ -21,6 +21,9 @@ import {
 import { apiRequest } from '../../../api/client.js';
 import ImageWithFallback from '../../../ui/ImageWithFallback.jsx';
 import ContactLinks from '../profile/ContactLinks.jsx';
+import ConversationContextMenu from './ConversationContextMenu.jsx';
+import MessageRateLimitNotice from './MessageRateLimitNotice.jsx';
+import useMessageRateLimit from '../../../hooks/useMessageRateLimit.js';
 import {
   emptyProject,
   formatPostDate,
@@ -151,6 +154,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
   const [connectionFeed, setConnectionFeed] = useState([]);
   const [chatThreads, setChatThreads] = useState([]);
   const [activeThreadId, setActiveThreadId] = useState('');
+  const [conversationContextMenu, setConversationContextMenu] = useState(null);
   const [threadReplyDraft, setThreadReplyDraft] = useState('');
   const [threadReplyImageDraft, setThreadReplyImageDraft] = useState('');
   const [messageFilter, setMessageFilter] = useState('all');
@@ -164,6 +168,64 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
   const [activeSection, setActiveSection] = useState('profile');
   const [feedWindow, setFeedWindow] = useState('recent');
   const [profile, setProfile] = useState(() => readStoredDeveloperProfile(storageKey));
+  const { cooldownSeconds, warningVisible, dismissWarning } = useMessageRateLimit();
+
+  const openConversationContextMenu = React.useCallback((event, thread) => {
+    event.preventDefault();
+    setConversationContextMenu({ thread, x: event.clientX, y: event.clientY });
+  }, []);
+  const closeConversationContextMenu = React.useCallback(() => setConversationContextMenu(null), []);
+
+  const handleRealtimeConversation = React.useCallback((updatedThread) => {
+    const isActiveThread = String(updatedThread.id) === String(activeThreadId);
+    const nextThread = isActiveThread && updatedThread.unread
+      ? { ...updatedThread, unread: false, unreadCount: 0 }
+      : updatedThread;
+    setChatThreads((current) => {
+      const exists = current.some((thread) => String(thread.id) === String(nextThread.id));
+      const nextThreads = exists
+        ? current.map((thread) => (String(thread.id) === String(nextThread.id) ? nextThread : thread))
+        : [nextThread, ...current];
+      return sortThreads(nextThreads);
+    });
+    if (!isActiveThread && updatedThread.unread && !updatedThread.muted) {
+      setMessageStatus(`New message from ${getOtherParticipant(updatedThread)?.name ?? 'a contact'}.`);
+    }
+    if (isActiveThread && updatedThread.unread) {
+      window.dispatchEvent(new CustomEvent('skillsignal:conversation-read', {
+        detail: { conversationId: updatedThread.id },
+      }));
+      apiRequest(`/api/developer/messages/${updatedThread.id}/read`, { token, method: 'PATCH' })
+        .then((readThread) => {
+          setChatThreads((current) => current.map((thread) => (thread.id === readThread.id ? readThread : thread)));
+        })
+        .catch(() => {});
+    }
+    window.dispatchEvent(new Event('skillsignal:message-state-changed'));
+  }, [activeThreadId, token]);
+
+  const handleRealtimeDeleted = React.useCallback((conversationId) => {
+    setChatThreads((current) => current.filter((thread) => String(thread.id) !== String(conversationId)));
+    setActiveThreadId((current) => (String(current) === String(conversationId) ? '' : current));
+    window.dispatchEvent(new Event('skillsignal:message-state-changed'));
+  }, []);
+
+  useEffect(() => {
+    function receiveConversation(event) {
+      handleRealtimeConversation(event.detail);
+    }
+
+    function receiveDeletedConversation(event) {
+      handleRealtimeDeleted(event.detail?.conversationId);
+    }
+
+    window.addEventListener('skillsignal:realtime-conversation', receiveConversation);
+    window.addEventListener('skillsignal:realtime-conversation-deleted', receiveDeletedConversation);
+    return () => {
+      window.removeEventListener('skillsignal:realtime-conversation', receiveConversation);
+      window.removeEventListener('skillsignal:realtime-conversation-deleted', receiveDeletedConversation);
+    };
+  }, [handleRealtimeConversation, handleRealtimeDeleted]);
 
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify({ ...profile, name: user.name, email: user.email }));
@@ -281,7 +343,10 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
 
   async function previewThread(thread) {
     setActiveThreadId(String(thread.id));
-    if (!thread.unread) {
+    window.dispatchEvent(new CustomEvent('skillsignal:conversation-read', {
+      detail: { conversationId: thread.id },
+    }));
+    if (!thread.unread && thread.unreadCount <= 0) {
       return;
     }
     try {
@@ -843,7 +908,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
   const activeThread = filteredChatThreads.find((thread) => String(thread.id) === String(activeThreadId)) ?? null;
   const activeThreadPartner = activeThread ? getOtherParticipant(activeThread) : null;
   const canReplyToActiveThread = activeThread
-    ? isThreadAcceptedForUser(activeThread)
+    ? isThreadAcceptedForUser(activeThread) && !activeThread.blocked && !activeThread.blockedByPartner && cooldownSeconds <= 0
     : false;
   const activeOwnMessageClusterStatus = activeThread ? latestOwnMessageClusterStatus(activeThread.messages, user.userId) : null;
 
@@ -856,6 +921,15 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
 
   return (
     <section className="dashboard developer-dashboard">
+      <ConversationContextMenu
+        menu={conversationContextMenu}
+        endpoint="/api/developer/messages"
+        token={token}
+        onClose={closeConversationContextMenu}
+        onError={setError}
+        onThreadUpdated={(updatedThread) => setChatThreads((current) => current.map((item) => (item.id === updatedThread.id ? updatedThread : item)))}
+        onViewProfile={(profileId) => profileId && navigate(`/profiles/${profileId}`)}
+      />
       <header className="developer-header">
         <div className="developer-identity">
           <div className="photo-frame">
@@ -1392,7 +1466,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                       const lastMessage = thread.messages?.at(-1);
                       const isActive = String(activeThreadId) === String(thread.id);
                       return (
-                      <article className={`message-thread-card ${isActive ? 'active' : ''}`} key={thread.id}>
+                      <article className={`message-thread-card ${isActive ? 'active' : ''}`} key={thread.id} onContextMenu={(event) => openConversationContextMenu(event, thread)}>
                         <button
                           className="message-thread-card-main"
                           type="button"
@@ -1480,18 +1554,18 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                   <div className="message-thread-panel">
                     {activeThread && activeThreadPartner ? (
                       <>
-                        <div className="message-thread-panel-header">
+                        <div className="message-thread-panel-header" onContextMenu={(event) => openConversationContextMenu(event, activeThread)}>
                           <div className="message-thread-panel-title">
                             <h3>{activeThreadPartner.name}</h3>
                             <p className="subtle">{activeThreadPartner.title}</p>
                           </div>
                           <button
-                            className={`candidate-stage-button candidate-stage-control-inline ${connectionLabelForProfile(activeThreadPartner.profileId).toLowerCase()}`}
-                            type="button"
-                            onClick={() => cycleConnectionLabel(activeThreadPartner.profileId)}
-                            aria-label={`Connection label: ${connectionLabelForProfile(activeThreadPartner.profileId)}. Click to change.`}
-                          >
-                            {connectionLabelForProfile(activeThreadPartner.profileId)}
+                              className={`candidate-stage-button candidate-stage-control-inline ${connectionLabelForProfile(activeThreadPartner.profileId).toLowerCase()}`}
+                              type="button"
+                              onClick={() => cycleConnectionLabel(activeThreadPartner.profileId)}
+                              aria-label={`Connection label: ${connectionLabelForProfile(activeThreadPartner.profileId)}. Click to change.`}
+                            >
+                              {connectionLabelForProfile(activeThreadPartner.profileId)}
                           </button>
                         </div>
 
@@ -1533,6 +1607,12 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                           <p className="chat-panel-note">This is a message request. Accept it from the left to unlock replies.</p>
                         )}
 
+                        <MessageRateLimitNotice
+                          cooldownSeconds={cooldownSeconds}
+                          warningVisible={warningVisible}
+                          onDismiss={dismissWarning}
+                        />
+
                       <form
                         className="chat-reply-form"
                         onSubmit={(event) => {
@@ -1555,7 +1635,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                           type="text"
                           value={threadReplyDraft}
                           onChange={(event) => setThreadReplyDraft(event.target.value)}
-                          placeholder={canReplyToActiveThread ? `Message ${activeThreadPartner.name}...` : 'Accept this message request before replying.'}
+                          placeholder={cooldownSeconds > 0 ? 'Messaging paused while the spam protection timer runs.' : activeThread.blocked ? 'You blocked this conversation.' : activeThread.blockedByPartner ? 'Messaging is temporarily blocked.' : canReplyToActiveThread ? `Message ${activeThreadPartner.name}...` : 'Accept this message request before replying.'}
                           disabled={!canReplyToActiveThread}
                         />
                         <button className="primary-button chat-send-button" type="submit" disabled={!canReplyToActiveThread || (!threadReplyDraft.trim() && !threadReplyImageDraft)}>

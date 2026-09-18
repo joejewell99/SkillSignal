@@ -7,6 +7,7 @@ import com.skillsignal.auth.dto.LoginRequest;
 import com.skillsignal.auth.dto.RegisterRequest;
 import com.skillsignal.auth.service.AuthService;
 import com.skillsignal.security.UserPrincipal;
+import com.skillsignal.security.JwtSessionPolicy;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,7 +38,7 @@ public class AuthController {
             @Value("${app.auth.cookie-secure}") boolean secureCookie
     ) {
         this.authService = authService;
-        this.jwtExpirationMs = jwtExpirationMs;
+        this.jwtExpirationMs = JwtSessionPolicy.effectiveExpirationMs(jwtExpirationMs);
         this.secureCookie = secureCookie;
     }
 

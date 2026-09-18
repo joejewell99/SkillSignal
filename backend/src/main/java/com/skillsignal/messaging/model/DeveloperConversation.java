@@ -62,6 +62,18 @@ public class DeveloperConversation {
     @Column
     private Instant receiverReadAt;
 
+    @Column
+    private Instant requesterBlockedUntil;
+
+    @Column
+    private Instant receiverBlockedUntil;
+
+    @Column
+    private Instant requesterMutedUntil;
+
+    @Column
+    private Instant receiverMutedUntil;
+
     protected DeveloperConversation() {
     }
 
@@ -147,5 +159,37 @@ public class DeveloperConversation {
 
     public void setReceiverReadAt(Instant receiverReadAt) {
         this.receiverReadAt = receiverReadAt;
+    }
+
+    public Instant getRequesterBlockedUntil() {
+        return requesterBlockedUntil;
+    }
+
+    public void setRequesterBlockedUntil(Instant requesterBlockedUntil) {
+        this.requesterBlockedUntil = requesterBlockedUntil;
+    }
+
+    public Instant getReceiverBlockedUntil() {
+        return receiverBlockedUntil;
+    }
+
+    public void setReceiverBlockedUntil(Instant receiverBlockedUntil) {
+        this.receiverBlockedUntil = receiverBlockedUntil;
+    }
+
+    public Instant getRequesterMutedUntil() {
+        return requesterMutedUntil;
+    }
+
+    public void setRequesterMutedUntil(Instant requesterMutedUntil) {
+        this.requesterMutedUntil = requesterMutedUntil;
+    }
+
+    public Instant getReceiverMutedUntil() {
+        return receiverMutedUntil;
+    }
+
+    public void setReceiverMutedUntil(Instant receiverMutedUntil) {
+        this.receiverMutedUntil = receiverMutedUntil;
     }
 }

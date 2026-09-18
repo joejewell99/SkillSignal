@@ -7,7 +7,7 @@ export default function PublicFooter() {
       <div className="public-footer-main">
         <div className="public-footer-brand">
           <Link className="site-brand" to="/">
-            <span className="brand-mark">SS</span>
+            <img className="brand-mark" src="/favicon.svg?v=9" alt="" aria-hidden="true" />
             <strong>SkillSignal</strong>
           </Link>
           <p>

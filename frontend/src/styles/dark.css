@@ -178,7 +178,6 @@
   color: #7f909b;
 }
 
-:root[data-theme="dark"] .brand-mark,
 :root[data-theme="dark"] .profile-placeholder,
 :root[data-theme="dark"] pre {
   background: #05080a;

@@ -3,6 +3,11 @@ package com.skillsignal.security;
 import com.skillsignal.user.model.AppUser;
 import com.skillsignal.user.model.Role;
 import jakarta.servlet.FilterChain;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Date;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -33,8 +38,14 @@ class JwtAuthenticationFilterTest {
 
     @Test
     void expiredTokenReturnsActionableJsonWithoutCallingRundown() throws Exception {
-        var jwt = new JwtService(secret, -60000);
-        var response = request(jwt.generateToken(principal), jwt);
+        var jwt = new JwtService(secret, 60000);
+        var expiredToken = Jwts.builder()
+                .subject(principal.getUsername())
+                .issuedAt(Date.from(Instant.now().minusSeconds(120)))
+                .expiration(Date.from(Instant.now().minusSeconds(60)))
+                .signWith(Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+        var response = request(expiredToken, jwt);
         assertThat(response.getStatus()).isEqualTo(401);
         assertThat(response.getContentType()).startsWith("application/json");
         assertThat(response.getContentAsString()).contains("SESSION_EXPIRED", "Please sign in again");

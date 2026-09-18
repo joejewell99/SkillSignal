@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bookmark, BriefcaseBusiness, Camera, CheckCircle2, ExternalLink, ImagePlus, MessageSquareText, Pencil, Plus, Search, Send, Star, Trash2 } from 'lucide-react';
 import { apiRequest } from '../../../api/client.js';
 import ImageWithFallback from '../../../ui/ImageWithFallback.jsx';
+import ConversationContextMenu from './ConversationContextMenu.jsx';
+import MessageRateLimitNotice from './MessageRateLimitNotice.jsx';
+import useMessageRateLimit from '../../../hooks/useMessageRateLimit.js';
 import {
   emptyProject,
   formatPostDate,
@@ -102,6 +105,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
   const [candidateFeed, setCandidateFeed] = useState([]);
   const [chatThreads, setChatThreads] = useState([]);
   const [activeThreadId, setActiveThreadId] = useState('');
+  const [conversationContextMenu, setConversationContextMenu] = useState(null);
   const [threadReplyDraft, setThreadReplyDraft] = useState('');
   const [threadReplyImageDraft, setThreadReplyImageDraft] = useState('');
   const [messageStatus, setMessageStatus] = useState('');
@@ -115,6 +119,64 @@ export default function EmployerDashboard({ user, token, selectedSection, select
   const [editingNeedId, setEditingNeedId] = useState(null);
   const [feedWindow, setFeedWindow] = useState('recent');
   const [activeSection, setActiveSection] = useState('profile');
+  const { cooldownSeconds, warningVisible, dismissWarning } = useMessageRateLimit();
+
+  const openConversationContextMenu = React.useCallback((event, thread) => {
+    event.preventDefault();
+    setConversationContextMenu({ thread, x: event.clientX, y: event.clientY });
+  }, []);
+  const closeConversationContextMenu = React.useCallback(() => setConversationContextMenu(null), []);
+
+  const handleRealtimeConversation = React.useCallback((updatedThread) => {
+    const isActiveThread = String(updatedThread.id) === String(activeThreadId);
+    const nextThread = isActiveThread && updatedThread.unread
+      ? { ...updatedThread, unread: false, unreadCount: 0 }
+      : updatedThread;
+    setChatThreads((current) => {
+      const exists = current.some((thread) => String(thread.id) === String(nextThread.id));
+      const nextThreads = exists
+        ? current.map((thread) => (String(thread.id) === String(nextThread.id) ? nextThread : thread))
+        : [nextThread, ...current];
+      return sortThreads(nextThreads);
+    });
+    if (!isActiveThread && updatedThread.unread && !updatedThread.muted) {
+      setMessageStatus(`New message from ${getOtherParticipant(updatedThread)?.name ?? 'a contact'}.`);
+    }
+    if (isActiveThread && updatedThread.unread) {
+      window.dispatchEvent(new CustomEvent('skillsignal:conversation-read', {
+        detail: { conversationId: updatedThread.id },
+      }));
+      apiRequest(`/api/employer/messages/${updatedThread.id}/read`, { token, method: 'PATCH' })
+        .then((readThread) => {
+          setChatThreads((current) => current.map((thread) => (thread.id === readThread.id ? readThread : thread)));
+        })
+        .catch(() => {});
+    }
+    window.dispatchEvent(new Event('skillsignal:message-state-changed'));
+  }, [activeThreadId, token]);
+
+  const handleRealtimeDeleted = React.useCallback((conversationId) => {
+    setChatThreads((current) => current.filter((thread) => String(thread.id) !== String(conversationId)));
+    setActiveThreadId((current) => (String(current) === String(conversationId) ? '' : current));
+    window.dispatchEvent(new Event('skillsignal:message-state-changed'));
+  }, []);
+
+  useEffect(() => {
+    function receiveConversation(event) {
+      handleRealtimeConversation(event.detail);
+    }
+
+    function receiveDeletedConversation(event) {
+      handleRealtimeDeleted(event.detail?.conversationId);
+    }
+
+    window.addEventListener('skillsignal:realtime-conversation', receiveConversation);
+    window.addEventListener('skillsignal:realtime-conversation-deleted', receiveDeletedConversation);
+    return () => {
+      window.removeEventListener('skillsignal:realtime-conversation', receiveConversation);
+      window.removeEventListener('skillsignal:realtime-conversation-deleted', receiveDeletedConversation);
+    };
+  }, [handleRealtimeConversation, handleRealtimeDeleted]);
 
   useEffect(() => {
     if (['profile', 'needs', 'proof', 'saved', 'feed'].includes(selectedSection)) {
@@ -269,7 +331,10 @@ export default function EmployerDashboard({ user, token, selectedSection, select
 
   async function previewThread(thread) {
     setActiveThreadId(String(thread.id));
-    if (!thread.unread) {
+    window.dispatchEvent(new CustomEvent('skillsignal:conversation-read', {
+      detail: { conversationId: thread.id },
+    }));
+    if (!thread.unread && thread.unreadCount <= 0) {
       return;
     }
     try {
@@ -637,7 +702,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
   const activeThread = filteredChatThreads.find((thread) => String(thread.id) === String(activeThreadId)) ?? null;
   const activeThreadPartner = activeThread ? getOtherParticipant(activeThread) : null;
   const canReplyToActiveThread = activeThread
-    ? isThreadAcceptedForUser(activeThread)
+    ? isThreadAcceptedForUser(activeThread) && !activeThread.blocked && !activeThread.blockedByPartner && cooldownSeconds <= 0
     : false;
 
   useEffect(() => {
@@ -649,6 +714,15 @@ export default function EmployerDashboard({ user, token, selectedSection, select
 
   return (
     <section className="dashboard employer-dashboard">
+      <ConversationContextMenu
+        menu={conversationContextMenu}
+        endpoint="/api/employer/messages"
+        token={token}
+        onClose={closeConversationContextMenu}
+        onError={setError}
+        onThreadUpdated={(updatedThread) => setChatThreads((current) => current.map((item) => (item.id === updatedThread.id ? updatedThread : item)))}
+        onViewProfile={(profileId) => profileId && navigate(`/profiles/${profileId}`)}
+      />
       <header className="developer-header">
         <div className="developer-identity">
           <div className="photo-frame">
@@ -976,7 +1050,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                     const lastMessage = thread.messages?.at(-1);
                     const isActive = String(activeThreadId) === String(thread.id);
                     return (
-                      <article className={`message-thread-card ${isActive ? 'active' : ''}`} key={thread.id}>
+                      <article className={`message-thread-card ${isActive ? 'active' : ''}`} key={thread.id} onContextMenu={(event) => openConversationContextMenu(event, thread)}>
                         <button
                           className="message-thread-card-main"
                           type="button"
@@ -1064,18 +1138,18 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                 <div className="message-thread-panel">
                   {activeThread && activeThreadPartner ? (
                     <>
-                      <div className="message-thread-panel-header">
+                      <div className="message-thread-panel-header" onContextMenu={(event) => openConversationContextMenu(event, activeThread)}>
                         <div className="message-thread-panel-title">
                           <h3>{activeThreadPartner.name}</h3>
                           <p className="subtle">{activeThreadPartner.title}</p>
                         </div>
                         <button
-                          className={`candidate-stage-button candidate-stage-control-inline ${stageForProfile(activeThreadPartner.profileId).toLowerCase().replace(' ', '-')}`}
-                          type="button"
-                          onClick={() => cycleCandidateStage(activeThreadPartner.profileId)}
-                          aria-label={`Candidate label: ${stageForProfile(activeThreadPartner.profileId)}. Click to change.`}
-                        >
-                          {stageForProfile(activeThreadPartner.profileId)}
+                            className={`candidate-stage-button candidate-stage-control-inline ${stageForProfile(activeThreadPartner.profileId).toLowerCase().replace(' ', '-')}`}
+                            type="button"
+                            onClick={() => cycleCandidateStage(activeThreadPartner.profileId)}
+                            aria-label={`Candidate label: ${stageForProfile(activeThreadPartner.profileId)}. Click to change.`}
+                          >
+                            {stageForProfile(activeThreadPartner.profileId)}
                         </button>
                       </div>
 
@@ -1109,6 +1183,12 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                         <p className="chat-panel-note">This is a message request. Accept it from the left to unlock replies.</p>
                       )}
 
+                      <MessageRateLimitNotice
+                        cooldownSeconds={cooldownSeconds}
+                        warningVisible={warningVisible}
+                        onDismiss={dismissWarning}
+                      />
+
                       <form
                         className="chat-reply-form"
                         onSubmit={(event) => {
@@ -1131,7 +1211,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                           type="text"
                           value={threadReplyDraft}
                           onChange={(event) => setThreadReplyDraft(event.target.value)}
-                          placeholder={canReplyToActiveThread ? `Message ${activeThreadPartner.name}...` : 'Accept this message request before replying.'}
+                          placeholder={cooldownSeconds > 0 ? 'Messaging paused while the spam protection timer runs.' : activeThread.blocked ? 'You blocked this conversation.' : activeThread.blockedByPartner ? 'Messaging is temporarily blocked.' : canReplyToActiveThread ? `Message ${activeThreadPartner.name}...` : 'Accept this message request before replying.'}
                           disabled={!canReplyToActiveThread}
                         />
                         <button className="primary-button chat-send-button" type="submit" disabled={!canReplyToActiveThread || (!threadReplyDraft.trim() && !threadReplyImageDraft)}>

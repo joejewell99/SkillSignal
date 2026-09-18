@@ -8,10 +8,14 @@ import com.skillsignal.messaging.dto.MessageParticipantResponse;
 import com.skillsignal.messaging.model.ConversationStatus;
 import com.skillsignal.messaging.model.DeveloperConversation;
 import com.skillsignal.messaging.model.DeveloperMessage;
+import com.skillsignal.messaging.model.UserSafetyRelation;
 import com.skillsignal.messaging.repository.DeveloperConversationRepository;
 import com.skillsignal.messaging.repository.DeveloperMessageRepository;
+import com.skillsignal.messaging.repository.UserSafetyRelationRepository;
+import com.skillsignal.messaging.realtime.RealtimeMessagingEvent;
 import java.time.Instant;
 import java.util.List;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,15 +26,24 @@ public class UserMessagingService {
     private final DeveloperConversationRepository conversationRepository;
     private final DeveloperMessageRepository messageRepository;
     private final MarketplaceProfileRepository profileRepository;
+    private final ApplicationEventPublisher eventPublisher;
+    private final MessagingRateLimiter messagingRateLimiter;
+    private final UserSafetyRelationRepository safetyRelationRepository;
 
     public UserMessagingService(
             DeveloperConversationRepository conversationRepository,
             DeveloperMessageRepository messageRepository,
-            MarketplaceProfileRepository profileRepository
+            MarketplaceProfileRepository profileRepository,
+            ApplicationEventPublisher eventPublisher,
+            MessagingRateLimiter messagingRateLimiter,
+            UserSafetyRelationRepository safetyRelationRepository
     ) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.profileRepository = profileRepository;
+        this.eventPublisher = eventPublisher;
+        this.messagingRateLimiter = messagingRateLimiter;
+        this.safetyRelationRepository = safetyRelationRepository;
     }
 
     @Transactional(readOnly = true)
@@ -59,6 +72,7 @@ public class UserMessagingService {
         if (senderUserId.equals(receiverProfile.getUserId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot message yourself.");
         }
+        ensureUserPairMessagingAllowed(senderUserId, receiverProfile.getUserId());
 
         DeveloperConversation conversation = conversationRepository
                 .findBetweenUsers(senderUserId, receiverProfile.getUserId())
@@ -100,7 +114,9 @@ public class UserMessagingService {
         }
         conversation.setStatus(ConversationStatus.ACTIVE);
         conversation.setUpdatedAt(Instant.now());
-        return toConversationResponse(conversationRepository.save(conversation), userId);
+        DeveloperConversationResponse updated = toConversationResponse(conversationRepository.save(conversation), userId);
+        publishConversationUpdate(conversation);
+        return updated;
     }
 
     @Transactional
@@ -111,7 +127,9 @@ public class UserMessagingService {
         } else if (conversation.getReceiverUserId().equals(userId)) {
             conversation.setReceiverFavorited(!conversation.isReceiverFavorited());
         }
-        return toConversationResponse(conversationRepository.save(conversation), userId);
+        DeveloperConversationResponse updated = toConversationResponse(conversationRepository.save(conversation), userId);
+        publishConversationUpdate(conversation);
+        return updated;
     }
 
     @Transactional
@@ -122,7 +140,63 @@ public class UserMessagingService {
         } else {
             conversation.setReceiverReadAt(Instant.now());
         }
-        return toConversationResponse(conversationRepository.save(conversation), userId);
+        DeveloperConversationResponse updated = toConversationResponse(conversationRepository.save(conversation), userId);
+        eventPublisher.publishEvent(RealtimeMessagingEvent.conversationUpdated(conversation.getId(), userId));
+        return updated;
+    }
+
+    @Transactional
+    public DeveloperConversationResponse setBlocked(Long userId, Long conversationId) {
+        DeveloperConversation conversation = conversationForUser(userId, conversationId);
+        UserSafetyRelation relation = safetyRelationFor(conversation, userId);
+        relation.setBlocked(true);
+        safetyRelationRepository.save(relation);
+        DeveloperConversationResponse updated = toConversationResponse(conversationRepository.save(conversation), userId);
+        publishConversationUpdate(conversation);
+        return updated;
+    }
+
+    @Transactional
+    public DeveloperConversationResponse clearBlocked(Long userId, Long conversationId) {
+        DeveloperConversation conversation = conversationForUser(userId, conversationId);
+        UserSafetyRelation relation = safetyRelationFor(conversation, userId);
+        relation.setBlocked(false);
+        safetyRelationRepository.save(relation);
+        if (conversation.getRequesterUserId().equals(userId)) {
+            conversation.setRequesterBlockedUntil(null);
+        } else {
+            conversation.setReceiverBlockedUntil(null);
+        }
+        DeveloperConversationResponse updated = toConversationResponse(conversationRepository.save(conversation), userId);
+        publishConversationUpdate(conversation);
+        return updated;
+    }
+
+    @Transactional
+    public DeveloperConversationResponse setMuted(Long userId, Long conversationId, Long durationSeconds) {
+        DeveloperConversation conversation = conversationForUser(userId, conversationId);
+        Instant mutedUntil = Instant.now().plusSeconds(durationSeconds);
+        if (conversation.getRequesterUserId().equals(userId)) {
+            conversation.setRequesterMutedUntil(mutedUntil);
+        } else {
+            conversation.setReceiverMutedUntil(mutedUntil);
+        }
+        DeveloperConversationResponse updated = toConversationResponse(conversationRepository.save(conversation), userId);
+        publishConversationUpdate(conversation);
+        return updated;
+    }
+
+    @Transactional
+    public DeveloperConversationResponse clearMuted(Long userId, Long conversationId) {
+        DeveloperConversation conversation = conversationForUser(userId, conversationId);
+        if (conversation.getRequesterUserId().equals(userId)) {
+            conversation.setRequesterMutedUntil(null);
+        } else {
+            conversation.setReceiverMutedUntil(null);
+        }
+        DeveloperConversationResponse updated = toConversationResponse(conversationRepository.save(conversation), userId);
+        publishConversationUpdate(conversation);
+        return updated;
     }
 
     @Transactional
@@ -131,12 +205,19 @@ public class UserMessagingService {
         if (!conversation.getReceiverUserId().equals(userId) || conversation.getStatus() != ConversationStatus.REQUEST) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Message request not found.");
         }
+        if (isBlockedForViewer(conversation, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unblock this conversation before declining the request.");
+        }
+        eventPublisher.publishEvent(RealtimeMessagingEvent.conversationDeleted(conversation.getId(), conversation.getRequesterUserId()));
         messageRepository.deleteByConversationId(conversation.getId());
         conversationRepository.delete(conversation);
     }
 
     private void appendMessage(DeveloperConversation conversation, Long senderUserId, String body, String imageUrl) {
-        messageRepository.save(new DeveloperMessage(conversation, senderUserId, normalizeBody(body, imageUrl), normalizeImageUrl(imageUrl)));
+        String normalizedBody = normalizeBody(body, imageUrl);
+        ensureMessagingAllowed(conversation, senderUserId);
+        messagingRateLimiter.check(senderUserId);
+        messageRepository.save(new DeveloperMessage(conversation, senderUserId, normalizedBody, normalizeImageUrl(imageUrl)));
         if (conversation.getRequesterUserId().equals(senderUserId)) {
             conversation.setRequesterReadAt(Instant.now());
         } else {
@@ -144,6 +225,18 @@ public class UserMessagingService {
         }
         conversation.setUpdatedAt(Instant.now());
         conversationRepository.save(conversation);
+        publishConversationUpdate(conversation);
+    }
+
+    private void publishConversationUpdate(DeveloperConversation conversation) {
+        eventPublisher.publishEvent(RealtimeMessagingEvent.conversationUpdated(
+                conversation.getId(),
+                conversation.getRequesterUserId()
+        ));
+        eventPublisher.publishEvent(RealtimeMessagingEvent.conversationUpdated(
+                conversation.getId(),
+                conversation.getReceiverUserId()
+        ));
     }
 
     private DeveloperConversation conversationForUser(Long userId, Long conversationId) {
@@ -197,8 +290,88 @@ public class UserMessagingService {
                 preview,
                 messages,
                 unreadCount > 0,
-                unreadCount
+                unreadCount,
+                isBlockedForViewer(conversation, viewerUserId),
+                isMutedForViewer(conversation, viewerUserId),
+                isBlockedByPartner(conversation, viewerUserId),
+                isConversationMutedForViewer(conversation, viewerUserId)
             );
+    }
+
+    private void ensureMessagingAllowed(DeveloperConversation conversation, Long senderUserId) {
+        if (isBlockedForViewer(conversation, senderUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You have blocked this conversation.");
+        }
+        if (isBlockedByPartner(conversation, senderUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This person has blocked messages from you.");
+        }
+    }
+
+    private void ensureUserPairMessagingAllowed(Long senderUserId, Long receiverUserId) {
+        if (relationIsBlocked(senderUserId, receiverUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You have blocked this person.");
+        }
+        if (relationIsBlocked(receiverUserId, senderUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This person has blocked messages from you.");
+        }
+    }
+
+    private UserSafetyRelation safetyRelationFor(DeveloperConversation conversation, Long userId) {
+        Long partnerUserId = partnerUserId(conversation, userId);
+        return safetyRelationRepository.findByOwnerUserIdAndTargetUserId(userId, partnerUserId)
+                .orElseGet(() -> new UserSafetyRelation(userId, partnerUserId));
+    }
+
+    private boolean isBlockedForViewer(DeveloperConversation conversation, Long userId) {
+        Long partnerUserId = partnerUserId(conversation, userId);
+        return relationIsBlocked(userId, partnerUserId) || isActive(blockedUntilFor(conversation, userId));
+    }
+
+    private boolean isBlockedByPartner(DeveloperConversation conversation, Long userId) {
+        Long partnerUserId = partnerUserId(conversation, userId);
+        return relationIsBlocked(partnerUserId, userId) || isActive(blockedUntilForPartner(conversation, userId));
+    }
+
+    private boolean isMutedForViewer(DeveloperConversation conversation, Long userId) {
+        return isConversationMutedForViewer(conversation, userId);
+    }
+
+    private boolean isConversationMutedForViewer(DeveloperConversation conversation, Long userId) {
+        return isActive(mutedUntilFor(conversation, userId));
+    }
+
+    private Long partnerUserId(DeveloperConversation conversation, Long userId) {
+        return conversation.getRequesterUserId().equals(userId)
+                ? conversation.getReceiverUserId()
+                : conversation.getRequesterUserId();
+    }
+
+    private boolean relationIsBlocked(Long ownerUserId, Long targetUserId) {
+        return safetyRelationRepository.findByOwnerUserIdAndTargetUserId(ownerUserId, targetUserId)
+                .map(UserSafetyRelation::isBlocked)
+                .orElse(false);
+    }
+
+    private Instant blockedUntilFor(DeveloperConversation conversation, Long userId) {
+        return conversation.getRequesterUserId().equals(userId)
+                ? conversation.getRequesterBlockedUntil()
+                : conversation.getReceiverBlockedUntil();
+    }
+
+    private Instant blockedUntilForPartner(DeveloperConversation conversation, Long userId) {
+        return conversation.getRequesterUserId().equals(userId)
+                ? conversation.getReceiverBlockedUntil()
+                : conversation.getRequesterBlockedUntil();
+    }
+
+    private Instant mutedUntilFor(DeveloperConversation conversation, Long userId) {
+        return conversation.getRequesterUserId().equals(userId)
+                ? conversation.getRequesterMutedUntil()
+                : conversation.getReceiverMutedUntil();
+    }
+
+    private boolean isActive(Instant until) {
+        return until != null && until.isAfter(Instant.now());
     }
 
     private Instant readAtFor(DeveloperConversation conversation, Long viewerUserId) {

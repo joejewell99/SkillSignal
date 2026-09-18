@@ -4,6 +4,7 @@ import { Bell, ChevronRight, LayoutDashboard, LogOut, Settings, X } from 'lucide
 import { useAuth } from '../state/AuthContext.jsx';
 import { apiRequest } from '../api/client.js';
 import ImageWithFallback from './ImageWithFallback.jsx';
+import useMessagingRealtime from '../hooks/useMessagingRealtime.js';
 
 const PRESENCE_OPTIONS = [
   { value: 'ONLINE', label: 'Online' },
@@ -214,6 +215,12 @@ function notificationPreview(value) {
   return preview.length > 90 ? `${preview.slice(0, 87).trimEnd()}...` : preview;
 }
 
+function belongsToConversation(notification, conversationId) {
+  return String(notification?.threadId ?? '') === conversationId
+    || notification?.id === `message-request-${conversationId}`
+    || String(notification?.id ?? '').startsWith(`message-${conversationId}-`);
+}
+
 export default function PublicHeader() {
   const { user, token, logout, updateAuth } = useAuth();
   const navigate = useNavigate();
@@ -232,6 +239,28 @@ export default function PublicHeader() {
   const isRefreshingAttentionRef = useRef(false);
   const dismissedNotificationIdsRef = useRef(readDismissedNotificationIds(user));
   const notificationCloseTimerRef = useRef(null);
+  const notificationsRef = useRef(notifications);
+  const clearedConversationIdsRef = useRef(new Set());
+  notificationsRef.current = notifications;
+
+  const handleRealtimeConversation = React.useCallback((conversation) => {
+    if (conversation?.unread) {
+      clearedConversationIdsRef.current.delete(String(conversation.id));
+    }
+    window.dispatchEvent(new CustomEvent('skillsignal:realtime-conversation', { detail: conversation }));
+    window.dispatchEvent(new Event('skillsignal:message-state-changed'));
+  }, []);
+
+  const handleRealtimeDeleted = React.useCallback((conversationId) => {
+    window.dispatchEvent(new CustomEvent('skillsignal:realtime-conversation-deleted', { detail: { conversationId } }));
+    window.dispatchEvent(new Event('skillsignal:message-state-changed'));
+  }, []);
+
+  useMessagingRealtime({
+    token,
+    onConversationUpdated: handleRealtimeConversation,
+    onConversationDeleted: handleRealtimeDeleted,
+  });
 
   useEffect(() => {
     if (!user || !token) {
@@ -263,6 +292,10 @@ export default function PublicHeader() {
   }, [user?.presence]);
 
   useEffect(() => {
+    clearedConversationIdsRef.current.clear();
+  }, [user?.email]);
+
+  useEffect(() => {
     function updateCachedProfile(event) {
       if (event.detail?.email !== user?.email || !event.detail.profile) {
         return;
@@ -273,6 +306,28 @@ export default function PublicHeader() {
 
     window.addEventListener('skillsignal:profile-updated', updateCachedProfile);
     return () => window.removeEventListener('skillsignal:profile-updated', updateCachedProfile);
+  }, [user]);
+
+  useEffect(() => {
+    function clearConversationNotification(event) {
+      const conversationId = String(event.detail?.conversationId ?? '');
+      if (!conversationId || !user) {
+        return;
+      }
+
+      clearedConversationIdsRef.current.add(conversationId);
+      const nextNotifications = notificationsRef.current.filter(
+        (notification) => !belongsToConversation(notification, conversationId)
+      );
+      notificationsRef.current = nextNotifications;
+      cacheNotifications(user, nextNotifications);
+      cacheAttentionCount(user, nextNotifications.reduce((count, notification) => count + notification.count, 0));
+      setNotifications(nextNotifications);
+      setAttentionCount(nextNotifications.reduce((count, notification) => count + notification.count, 0));
+    }
+
+    window.addEventListener('skillsignal:conversation-read', clearConversationNotification);
+    return () => window.removeEventListener('skillsignal:conversation-read', clearConversationNotification);
   }, [user]);
 
   useEffect(() => {
@@ -306,8 +361,19 @@ export default function PublicHeader() {
         .then(([threads, requests, connections]) => {
           if (isCurrent) {
             const preferences = readNotificationPreferences();
-            const unreadThreads = threads.filter((thread) => !thread.requestReceived && thread.unreadCount > 0);
-            const pendingMessageRequests = threads.filter((thread) => thread.requestReceived && !thread.accepted);
+            const unreadThreads = threads.filter((thread) => (
+              !thread.requestReceived
+              && thread.unreadCount > 0
+              && !thread.muted
+              && !clearedConversationIdsRef.current.has(String(thread.id))
+            ));
+            const pendingMessageRequests = threads.filter((thread) => (
+              thread.requestReceived
+              && !thread.accepted
+              && thread.unreadCount > 0
+              && !thread.muted
+              && !clearedConversationIdsRef.current.has(String(thread.id))
+            ));
             const newlyAcceptedConnections = findNewAcceptedConnections(connections, user.email);
             const cachedAcceptedConnectionNotifications = readAcceptedConnectionNotifications(user).map((notification) => {
               const connectionId = notification.id.replace('connection-accepted-', '');
@@ -349,6 +415,7 @@ export default function PublicHeader() {
               ...(preferences.messageRequests ? pendingMessageRequests.map((thread) => ({
                 id: `message-request-${thread.id}`,
                 type: 'message-request',
+                threadId: thread.id,
                 count: 1,
                 title: `${thread.partner?.name ?? 'Someone'} sent you a message request`,
                 detail: notificationPreview(thread.preview),
@@ -529,7 +596,7 @@ export default function PublicHeader() {
   return (
     <header className="site-header">
       <Link className="site-brand" to="/">
-        <span className="brand-mark">SS</span>
+        <img className="brand-mark" src="/favicon.svg?v=9" alt="" aria-hidden="true" />
         <strong>SkillSignal</strong>
       </Link>
 

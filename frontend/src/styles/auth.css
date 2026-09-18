@@ -327,15 +327,11 @@ textarea:focus {
 }
 
 .brand-mark {
-  align-items: center;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--primary) 82%, #000000), color-mix(in srgb, var(--signal) 82%, #000000));
+  background: transparent;
   border-radius: 6px;
-  color: #ffffff;
-  display: grid;
-  font-weight: 900;
+  display: block;
   height: 42px;
-  justify-content: center;
+  object-fit: cover;
   width: 42px;
 }
 

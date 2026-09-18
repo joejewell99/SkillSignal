@@ -2,5 +2,11 @@
   <title id="title">SkillSignal</title>
   <desc id="desc">A signal mark for SkillSignal</desc>
   <rect width="64" height="64" rx="12" fill="#102a43" />
-  <path d="M18 18h28v8H26v6h14c5 0 8 3 8 8v2c0 5-3 8-8 8H18v-8h20v-4H24c-4 0-6-3-6-7v-5c0-5 3-8 8-8Z" fill="#f5c36a" />
+  <defs>
+    <linearGradient id="signalGold" x1="16" y1="18" x2="49" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffe08a" />
+      <stop offset="1" stop-color="#f2ae42" />
+    </linearGradient>
+  </defs>
+  <path d="M47 18H25c-5 0-9 4-9 9s4 9 9 9h14c1.1 0 2 .9 2 2s-.9 2-2 2H16v8h23c5.5 0 10-4.5 10-10s-4.5-10-10-10H25c-.6 0-1-.4-1-1s.4-1 1-1h22v-8Z" fill="url(#signalGold)" transform="translate(0 -2)" />
 </svg>

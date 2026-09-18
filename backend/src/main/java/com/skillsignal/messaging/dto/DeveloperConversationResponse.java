@@ -15,6 +15,10 @@ public record DeveloperConversationResponse(
         String preview,
         List<DeveloperMessageResponse> messages,
         boolean unread,
-        int unreadCount
+        int unreadCount,
+        boolean blocked,
+        boolean muted,
+        boolean blockedByPartner,
+        boolean conversationMuted
 ) {
 }

@@ -851,6 +851,104 @@
   position: relative;
 }
 
+.message-rate-limit-notice {
+  align-items: center;
+  background: color-mix(in srgb, #c24141 13%, var(--surface));
+  border: 1px solid color-mix(in srgb, #c24141 42%, var(--line));
+  border-radius: 7px;
+  color: var(--ink);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 11px 13px;
+}
+
+.message-rate-limit-notice strong {
+  display: block;
+  font-size: 0.82rem;
+}
+
+.message-rate-limit-notice p {
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.35;
+  margin: 3px 0 0;
+}
+
+.message-rate-limit-countdown {
+  color: #d96c6c;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.message-rate-limit-notice .secondary-button {
+  grid-column: 1 / -1;
+  justify-self: start;
+  min-height: 32px;
+  padding: 6px 10px;
+}
+
+.sr-only {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+}
+
+.conversation-context-menu {
+  background: var(--surface-strong);
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+  display: grid;
+  gap: 2px;
+  min-width: 232px;
+  padding: 6px;
+  position: fixed;
+  z-index: 90;
+}
+
+.conversation-context-menu button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  color: var(--ink);
+  display: flex;
+  font-size: 0.78rem;
+  gap: 9px;
+  min-height: 32px;
+  padding: 7px 9px;
+  text-align: left;
+  width: 100%;
+}
+
+.conversation-context-menu button:hover,
+.conversation-context-menu button:focus-visible {
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
+}
+
+.conversation-context-menu button.danger {
+  color: #d96c6c;
+}
+
+.conversation-context-menu p {
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  margin: 7px 9px 2px;
+  text-transform: uppercase;
+}
+
+.conversation-context-menu-divider {
+  background: var(--line);
+  height: 1px;
+  margin: 5px 2px;
+}
+
 .message-thread-panel-title {
   align-items: center;
   display: grid;
