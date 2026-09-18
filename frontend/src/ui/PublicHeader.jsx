@@ -596,7 +596,7 @@ export default function PublicHeader() {
   return (
     <header className="site-header">
       <Link className="site-brand" to="/">
-        <img className="brand-mark" src="/favicon.svg?v=9" alt="" aria-hidden="true" />
+        <img className="brand-mark" src="/favicon.svg?v=11" alt="" aria-hidden="true" />
         <strong>SkillSignal</strong>
       </Link>
 
