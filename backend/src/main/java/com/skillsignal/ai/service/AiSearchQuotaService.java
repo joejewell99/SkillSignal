@@ -13,6 +13,7 @@ import java.util.HexFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -29,6 +30,7 @@ public class AiSearchQuotaService {
         this.usageRepository = usageRepository;
     }
 
+    @Transactional
     public AiSearchQuota consumeSearch(Authentication authentication, HttpServletRequest request) {
         SearchSubject subject = resolveSubject(authentication, request);
         if (subject.dailyLimit() == UNLIMITED) {

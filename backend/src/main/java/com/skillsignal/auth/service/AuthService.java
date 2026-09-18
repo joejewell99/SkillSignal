@@ -113,6 +113,12 @@ public class AuthService {
         return toAuthResponse(user);
     }
 
+    public AuthResponse currentSession(Long userId) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Account not found."));
+        return sessionResponse(user);
+    }
+
     @Transactional
     public AuthResponse updateAccountName(Long userId, AccountNameUpdateRequest request) {
         AppUser user = userRepository.findById(userId)
@@ -163,5 +169,9 @@ public class AuthService {
         UserPrincipal principal = new UserPrincipal(user);
         String token = jwtService.generateToken(principal);
         return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole().name(), user.getPresence().name());
+    }
+
+    private AuthResponse sessionResponse(AppUser user) {
+        return new AuthResponse(null, user.getId(), user.getName(), user.getEmail(), user.getRole().name(), user.getPresence().name());
     }
 }

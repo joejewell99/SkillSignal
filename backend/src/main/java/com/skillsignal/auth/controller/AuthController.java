@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.http.ResponseCookie;
 import org.springframework.beans.factory.annotation.Value;
 import jakarta.servlet.http.HttpServletResponse;
@@ -51,6 +52,12 @@ public class AuthController {
         return authenticatedResponse(authService.login(request), response);
     }
 
+    @GetMapping("/me")
+    AuthResponse currentSession(Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return authService.currentSession(principal.id());
+    }
+
     @PatchMapping("/account")
     AuthResponse updateAccountName(@Valid @RequestBody AccountNameUpdateRequest request, Authentication authentication, HttpServletResponse response) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
@@ -69,7 +76,7 @@ public class AuthController {
         response.addHeader("Set-Cookie", sessionCookie("", 0).toString());
     }
 
-    @org.springframework.web.bind.annotation.GetMapping("/csrf")
+    @GetMapping("/csrf")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void csrf(CsrfToken token) {
         // Force token creation so Spring Security issues the XSRF-TOKEN cookie.

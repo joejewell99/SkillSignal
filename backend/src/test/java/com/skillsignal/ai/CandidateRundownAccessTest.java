@@ -35,7 +35,7 @@ class CandidateRundownAccessTest {
     void guestsCannotGenerateRundowns() throws Exception {
         mvc.perform(post("/api/ai/rundown").contentType("application/json")
                 .content("{\"profileId\":7,\"brief\":\"React dashboard\"}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
         verifyNoInteractions(rundowns);
     }
 

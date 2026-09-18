@@ -1,5 +1,6 @@
 package com.skillsignal.security;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -52,6 +53,12 @@ public class SecurityConfig {
                                 .includeSubDomains(true)
                                 .maxAgeInSeconds(31536000)))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint((request, response, exception) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+                    response.getWriter().write("{\"code\":\"AUTHENTICATION_REQUIRED\",\"message\":\"Please sign in to continue.\"}");
+                }))
                 // JWT authentication is fully stateless. Disabling session management
                 // prevents Spring's session-authentication strategy from rotating the
                 // CSRF cookie on every authenticated request.
@@ -60,6 +67,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/profiles/**", "/api/ai/matches/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/ai/matches").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/auth/account", "/api/auth/presence").authenticated()
