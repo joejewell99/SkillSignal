@@ -119,6 +119,7 @@ a {
 }
 
 .site-nav a {
+  font-weight: 600;
   color: var(--muted);
   display: inline-block;
   position: relative;

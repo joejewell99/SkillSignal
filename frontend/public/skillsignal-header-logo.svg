@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 84 64" role="img" aria-labelledby="title desc">
+  <title id="title">SkillSignal</title>
+  <desc id="desc">Skill with a large gold S and a Wi-Fi signal rising above the round dot of the i</desc>
+  <g fill="#f5c36a" font-family="Arial, Helvetica, sans-serif" font-weight="700" letter-spacing="0">
+    <text x="12" y="52" font-size="40">S</text>
+    <text x="36" y="52" font-size="30">k</text>
+    <rect x="52.75" y="36.375" width="4.25" height="15.625" />
+    <circle cx="54.875" cy="32.25" r="2.125" />
+    <text x="59.025" y="52" font-size="30">ll</text>
+  </g>
+  <g fill="none" stroke="#f5c36a" stroke-width="2.8" stroke-linecap="round">
+    <path d="M49.875 27Q54.875 22 59.875 27" />
+    <path d="M44.875 22Q54.875 12 64.875 22" />
+    <path d="M39.875 17Q54.875 2 69.875 17" />
+  </g>
+</svg>

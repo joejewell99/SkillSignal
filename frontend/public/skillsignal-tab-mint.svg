@@ -1,6 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
-  <title id="title">SkillSignal</title>
-  <desc id="desc">Compact Skill logo in white with a mint signal above the i</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>SkillSignal</title>
   <rect width="64" height="64" rx="12" fill="#0b1014" />
   <g fill="#e8eef2" font-family="Arial, Helvetica, sans-serif" font-weight="700" letter-spacing="0">
     <text x="2" y="52" font-size="36">S</text>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import BrandLogo from './BrandLogo.jsx';
 
 export default function PublicFooter() {
   return (
@@ -7,8 +8,7 @@ export default function PublicFooter() {
       <div className="public-footer-main">
         <div className="public-footer-brand">
           <Link className="site-brand" to="/">
-            <img className="brand-mark" src="/favicon.svg?v=11" alt="" aria-hidden="true" />
-            <strong>SkillSignal</strong>
+            <BrandLogo />
           </Link>
           <p>
             SkillSignal is the proof layer for junior developer hiring, helping developers show real work and employers find people matched to the problems they need solved.

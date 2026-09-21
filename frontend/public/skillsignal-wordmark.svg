@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 64" role="img" aria-labelledby="title desc">
+  <title id="title">SkillSignal</title>
+  <desc id="desc">Skill in gold ribbon lettering followed by Wi-Fi waves on blue</desc>
+  <rect width="144" height="64" rx="12" fill="#102a43" />
+  <g fill="#f5c36a">
+    <path d="M34 11L31 25L26 21C22 17 16 18 15 22C14 26 19 28 24 30C31 33 35 37 33 44C31 51 22 54 15 51L7 54L10 40L15 44C19 48 26 47 27 42C28 38 22 36 17 34C10 31 7 27 9 20C11 13 20 10 27 14Z" />
+    <path d="M41 15L48 12V35L57 26H66L54 38L67 51H57L48 41V51H41Z" />
+    <path d="M70 28L77 25V51H70Z" />
+    <path d="M70 15H78L76 22H68Z" />
+    <path d="M83 15L90 12V43Q90 45 92 45H94L92 51H90Q83 51 83 44Z" />
+    <path d="M98 15L105 12V43Q105 45 107 45H109L107 51H105Q98 51 98 44Z" />
+    <circle cx="114" cy="32" r="1.75" />
+  </g>
+  <path d="M12 30L28 36" fill="none" stroke="#102a43" stroke-width="1.5" />
+  <g fill="none" stroke="#f5c36a" stroke-width="3.25" stroke-linecap="round">
+    <path d="M118.95 27.05A7 7 0 0 1 118.95 36.95" />
+    <path d="M123.9 22.1A14 14 0 0 1 123.9 41.9" />
+    <path d="M128.85 17.15A21 21 0 0 1 128.85 46.85" />
+  </g>
+</svg>

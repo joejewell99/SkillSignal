@@ -330,9 +330,19 @@ textarea:focus {
   background: transparent;
   border-radius: 6px;
   display: block;
+  flex-shrink: 0;
   height: 42px;
   object-fit: cover;
   width: 42px;
+}
+
+.site-header .brand-mark,
+.public-footer .brand-mark {
+  height: 48px;
+  object-fit: contain;
+  transform: translateY(-3px) scale(1.2);
+  transform-origin: left center;
+  width: 144px;
 }
 
 .brand span,

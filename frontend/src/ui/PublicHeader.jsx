@@ -5,6 +5,7 @@ import { useAuth } from '../state/AuthContext.jsx';
 import { apiRequest } from '../api/client.js';
 import ImageWithFallback from './ImageWithFallback.jsx';
 import useMessagingRealtime from '../hooks/useMessagingRealtime.js';
+import BrandLogo from './BrandLogo.jsx';
 
 const PRESENCE_OPTIONS = [
   { value: 'ONLINE', label: 'Online' },
@@ -596,8 +597,7 @@ export default function PublicHeader() {
   return (
     <header className="site-header">
       <Link className="site-brand" to="/">
-        <img className="brand-mark" src="/favicon.svg?v=11" alt="" aria-hidden="true" />
-        <strong>SkillSignal</strong>
+        <BrandLogo />
       </Link>
 
       <nav className="site-nav" aria-label="Primary navigation">

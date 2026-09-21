@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BrainCircuit, CheckCircle2, Search, ShieldCheck } from 'lucide-react';
 import PublicFooter from '../ui/PublicFooter.jsx';
@@ -193,6 +193,7 @@ const homeSections = [
 ];
 
 export default function Home() {
+  const homePageRef = useRef(null);
   const processRef = useRef(null);
   const [activeHomeSection, setActiveHomeSection] = useState(0);
   const [briefProfiles, setBriefProfiles] = useState({});
@@ -203,6 +204,23 @@ export default function Home() {
   const [processProgress, setProcessProgress] = useState(0);
   const [runnerProgress, setRunnerProgress] = useState(0);
   const runnerProgressRef = useRef(0);
+
+  useLayoutEffect(() => {
+    const page = homePageRef.current;
+    const header = page?.querySelector('.site-header');
+    if (!header) {
+      return undefined;
+    }
+
+    const updateHeaderHeight = () => {
+      page.style.setProperty('--home-header-height', `${header.getBoundingClientRect().height}px`);
+    };
+
+    updateHeaderHeight();
+    const observer = new ResizeObserver(updateHeaderHeight);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let frameId = null;
@@ -259,12 +277,16 @@ export default function Home() {
 
     if (element) {
       const pageTop = element.getBoundingClientRect().top + window.scrollY;
+      if (sectionId === 'why-skillsignal') {
+        window.scrollTo({ top: pageTop, behavior: 'smooth' });
+        return;
+      }
       const sectionBottom = pageTop + element.getBoundingClientRect().height;
       const topAligned = pageTop - headerHeight;
       const bottomAligned = sectionBottom - window.innerHeight + 16;
 
       window.scrollTo({
-        top: Math.max(topAligned, bottomAligned),
+        top: Math.max(0, Math.max(topAligned, bottomAligned) - (sectionId === 'try-it-out' ? 48 : 0)),
         behavior: 'smooth',
       });
     }
@@ -406,7 +428,7 @@ export default function Home() {
   const activeSampleMatches = activeBrief.mode === 'employer' ? employerSampleMatches : developerSampleMatches;
 
   return (
-    <main className="public-page public-page-home">
+    <main className="public-page public-page-home" ref={homePageRef}>
       <nav
         className="home-section-nav"
         aria-label="Home page sections"

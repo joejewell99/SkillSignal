@@ -134,8 +134,15 @@ html {
   scroll-margin-top: 120px;
 }
 
+@media (min-width: 801px) {
+  .public-page-home .site-header {
+    /* The timeline sits in the centre of its 18px grid track. */
+    padding-left: calc(clamp(14px, 2.2vw, 28px) + 8px);
+  }
+}
+
 .home-section-nav {
-  --home-nav-gap: 52px;
+  --home-nav-gap: 62.4px;
   align-items: stretch;
   display: grid;
   gap: 0;
@@ -180,7 +187,7 @@ html {
 
 .home-section-nav-links {
   display: grid;
-  gap: 18px;
+  gap: calc(var(--home-nav-gap) - 34px);
   grid-column: 2;
   grid-row: 1;
 }
@@ -316,7 +323,7 @@ html {
 }
 
 .public-page-home .landing-hero-thoughts {
-  margin-top: -72px;
+  margin-top: calc(-1 * var(--home-header-height, 72px));
   min-height: 100svh;
   padding-top: 96px;
 }
@@ -687,13 +694,13 @@ html {
 }
 
 .why-skillsignal-section {
-  align-items: center;
+  align-items: start;
   margin-top: 0;
   max-width: 1480px;
-  min-height: calc(100svh - 120px);
-  padding-bottom: 32px;
-  padding-top: 20px;
-  scroll-margin-top: 86px;
+  min-height: 100dvh;
+  padding-bottom: 4px;
+  padding-top: 48px;
+  scroll-margin-top: 0;
 }
 
 .why-signal-shell {
@@ -945,7 +952,7 @@ html {
   display: grid;
   gap: 14px;
   grid-template-columns: 1fr;
-  padding: 18px;
+  padding: 22px 18px;
 }
 
 .why-outcome-grid {
@@ -960,7 +967,7 @@ html {
   border-radius: 20px;
   display: grid;
   gap: 10px;
-  padding: 15px;
+  padding: 23px 15px;
 }
 
 .why-outcome-label {
@@ -985,7 +992,7 @@ html {
 
 .how-it-works-section {
   align-items: start;
-  margin-top: 72px;
+  margin-top: 0;
   max-width: 1480px;
   min-height: 230svh;
   padding-bottom: 48px;
