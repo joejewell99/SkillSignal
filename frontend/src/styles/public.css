@@ -134,13 +134,6 @@ html {
   scroll-margin-top: 120px;
 }
 
-@media (min-width: 801px) {
-  .public-page-home .site-header {
-    /* The timeline sits in the centre of its 18px grid track. */
-    padding-left: calc(clamp(14px, 2.2vw, 28px) + 8px);
-  }
-}
-
 .home-section-nav {
   --home-nav-gap: 62.4px;
   align-items: stretch;
