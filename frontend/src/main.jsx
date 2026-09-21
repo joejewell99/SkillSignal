@@ -4,6 +4,8 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import { AuthProvider, useAuth } from './state/AuthContext.jsx';
 import { ThemeProvider } from './state/ThemeContext.jsx';
 import AppShell from './ui/AppShell.jsx';
+import RouteScrollReset from './ui/RouteScrollReset.jsx';
+import ScrollReveal from './ui/ScrollReveal.jsx';
 const Home = lazy(() => import('./views/Home.jsx'));
 const LegalPage = lazy(() => import('./views/LegalPage.jsx'));
 const Login = lazy(() => import('./views/Login.jsx'));
@@ -47,7 +49,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
+          <RouteScrollReset />
           <Suspense fallback={<RouteLoading />}>
+            <ScrollReveal />
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/privacy" element={<LegalPage />} />
