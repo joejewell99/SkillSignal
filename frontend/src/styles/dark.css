@@ -1,6 +1,10 @@
-:root[data-theme="dark"] .public-page,
-:root[data-theme="dark"] .auth-page {
+:root[data-theme="dark"] .public-page {
   background: #0d1216;
+}
+
+:root[data-theme="dark"] .auth-page .auth-panel {
+  background: rgba(17, 24, 29, 0.78);
+  border-color: rgba(126, 145, 169, 0.25);
 }
 
 :root[data-theme="dark"] .sidebar,
@@ -209,6 +213,12 @@
 :root[data-theme="dark"] .primary-button {
   background: #4f8cff;
   border-color: #4f8cff;
+  color: #071017;
+}
+
+:root[data-theme="dark"] .auth-page .primary-button {
+  background: linear-gradient(135deg, #6da0ff, #4f8cff);
+  border-color: #86b0ff;
   color: #071017;
 }
 

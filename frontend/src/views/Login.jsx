@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext.jsx';
+import BrandLogo from '../ui/BrandLogo.jsx';
+import AuthStars from '../ui/AuthStars.jsx';
 
 export default function Login() {
   const { login } = useAuth();
@@ -28,12 +30,22 @@ export default function Login() {
 
   return (
     <main className="auth-page">
-      <section className="auth-panel">
-        <div>
-          <p className="eyebrow">SkillSignal</p>
-          <h1>Sign in to your proof workspace</h1>
-          <p className="subtle">Use role-based access to manage developer proof, employer search, or admin moderation.</p>
+      <AuthStars />
+      <div className="auth-shell">
+        <div className="auth-branding">
+          <BrandLogo />
+          <p>Proof-backed hiring, in one focused workspace.</p>
         </div>
+        <section className="auth-panel">
+          <div className="auth-tabs" aria-label="Account access">
+            <span className="auth-tab active">Sign in</span>
+            <Link className="auth-tab" to="/register">Create account</Link>
+          </div>
+          <div className="auth-heading">
+            <p className="eyebrow">Welcome back</p>
+            <h1>Sign in to SkillSignal</h1>
+            <p className="subtle">Continue to your proof workspace.</p>
+          </div>
 
         <form className="form" onSubmit={handleSubmit}>
           <label>
@@ -67,7 +79,8 @@ export default function Login() {
         <p className="switch-link">
           New here? <Link to="/register">Create an account</Link>
         </p>
-      </section>
+        </section>
+      </div>
     </main>
   );
 }

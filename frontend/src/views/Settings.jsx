@@ -207,7 +207,7 @@ export default function Settings() {
               onClick={(event) => scrollToSection(event, section.id)}
             >
               <span className="settings-section-nav-mark" aria-hidden="true" />
-              <span>{section.label}</span>
+              <span className="settings-section-nav-label">{section.label}</span>
             </a>
           ))}
         </div>

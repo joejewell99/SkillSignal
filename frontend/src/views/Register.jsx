@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BriefcaseBusiness, Code2 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext.jsx';
 import ImageWithFallback from '../ui/ImageWithFallback.jsx';
+import BrandLogo from '../ui/BrandLogo.jsx';
+import AuthStars from '../ui/AuthStars.jsx';
 
 const roleOptions = {
   DEVELOPER: {
@@ -21,7 +23,7 @@ const roleOptions = {
 
 export default function Register() {
   const { register } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const requestedRole = searchParams.get('role');
   const initialRole = requestedRole === 'EMPLOYER' || requestedRole === 'DEVELOPER' ? requestedRole : null;
   const [selectedRole, setSelectedRole] = useState(initialRole);
@@ -30,15 +32,37 @@ export default function Register() {
     email: '',
     password: '',
     role: initialRole || 'DEVELOPER',
-    acceptedTerms: false,
+    acceptedTerms: true,
   });
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [transitioningRole, setTransitioningRole] = useState(null);
 
+  useEffect(() => {
+    const role = searchParams.get('role');
+    if (role === 'EMPLOYER' || role === 'DEVELOPER') {
+      setSelectedRole(role);
+      setForm((current) => ({ ...current, role }));
+    } else {
+      setSelectedRole(null);
+    }
+  }, [searchParams]);
   function chooseRole(role) {
-    setSelectedRole(role);
     setForm((current) => ({ ...current, role }));
+    setError('');
+    setStatus('');
+    setTransitioningRole(role);
+    window.setTimeout(() => {
+      setSelectedRole(role);
+      setSearchParams({ role });
+      setTransitioningRole(null);
+    }, 420);
+  }
+
+  function backToRoleChoice() {
+    setSelectedRole(null);
+    setSearchParams({});
     setError('');
     setStatus('');
   }
@@ -65,42 +89,22 @@ export default function Register() {
 
   return (
     <main className="auth-page register-page">
-      <section className="register-layout">
-        <div className="register-heading">
-          <p className="eyebrow">Join SkillSignal</p>
-          <h1>Choose how you want to use SkillSignal.</h1>
-          <p className="subtle">Pick a side, then create the account that matches what you want to do.</p>
-        </div>
-
-        <div className="role-choice-grid">
-          {Object.entries(roleOptions).map(([role, option]) => {
-            const Icon = option.icon;
-            return (
-              <button
-                className={`role-choice ${selectedRole === role ? 'selected' : ''}`}
-                key={role}
-                type="button"
-                onClick={() => chooseRole(role)}
-              >
-                <span className="role-choice-media" aria-hidden="true">
-                  <Icon size={52} />
-                  <ImageWithFallback className="role-choice-image" src={option.image} alt="" fallback={null} />
-                </span>
-                <span className="role-choice-content">
-                  <Icon size={24} />
-                  <strong>{option.title}</strong>
-                  <span>{option.description}</span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {selectedRole && (
+      <AuthStars />
+      {selectedRole ? (
+        <section className="register-form-view">
+          <div className="auth-branding">
+            <BrandLogo />
+            <p>Begin your journey with SkillSignal.</p>
+          </div>
           <section className="auth-panel register-form-panel">
-            <div>
+            <div className="auth-tabs" aria-label="Account access">
+              <Link className="auth-tab" to="/login">Sign in</Link>
+              <span className="auth-tab active">Create account</span>
+            </div>
+            <div className="auth-heading register-form-heading">
               <p className="eyebrow">{roleOptions[selectedRole].title} account</p>
-              <h2>Create your account</h2>
+              <h1>Create your {roleOptions[selectedRole].title.toLowerCase()} account</h1>
+              <button className="role-change" type="button" onClick={backToRoleChoice}>Choose a different account type</button>
             </div>
 
             <form className="form" onSubmit={handleSubmit}>
@@ -116,23 +120,48 @@ export default function Register() {
                 Password
                 <input value={form.password} onChange={(event) => updateField('password', event.target.value)} type="password" minLength="8" required />
               </label>
-              <label className="register-terms-checkbox">
-                <input type="checkbox" checked={form.acceptedTerms} onChange={(event) => updateField('acceptedTerms', event.target.checked)} required />
-                <span>I agree to the <Link to="/terms" target="_blank" rel="noreferrer">Terms and Conditions</Link> and acknowledge the <Link to="/privacy" target="_blank" rel="noreferrer">Privacy Policy</Link>.</span>
-              </label>
               {status && <p className="success">{status}</p>}
               {error && <p className="error">{error}</p>}
               <button className="primary-button" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Creating account...' : `Create ${roleOptions[selectedRole].title.toLowerCase()} account`}
               </button>
             </form>
+            <p className="terms-notice">
+              By creating an account you agree to our <Link to="/terms">Terms</Link> and <Link to="/privacy">Privacy Policy</Link>. We don&apos;t sell your data.
+            </p>
           </section>
-        )}
-
-        <p className="switch-link">
-          Already have an account? <Link to="/login">Sign in</Link>
-        </p>
-      </section>
+          <p className="switch-link">Already have an account? <Link to="/login">Sign in</Link></p>
+        </section>
+      ) : (
+        <section className="register-layout">
+          <div className="auth-branding register-branding">
+            <BrandLogo />
+          </div>
+          <div className="register-heading">
+            <h1>Choose your account type.</h1>
+            <p className="subtle">Select Developer or Employer to get started.</p>
+          </div>
+          <div className={`role-choice-grid ${transitioningRole ? 'is-transitioning' : ''}`}>
+            {Object.entries(roleOptions).map(([role, option]) => {
+              const Icon = option.icon;
+              return (
+                <button className={`role-choice ${transitioningRole === role ? 'is-choosing' : ''}`} key={role} type="button" onClick={() => chooseRole(role)} disabled={Boolean(transitioningRole)}>
+                  <span className="role-choice-media" aria-hidden="true">
+                    <Icon size={52} />
+                    <ImageWithFallback className="role-choice-image" src={option.image} alt="" fallback={null} />
+                  </span>
+                  <span className="role-choice-content">
+                    <Icon size={24} />
+                    <strong>{option.title}</strong>
+                    <span>{option.description}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="switch-link">Already have an account? <Link to="/login">Sign in</Link></p>
+        </section>
+      )}
     </main>
   );
 }
