@@ -74,10 +74,6 @@ function MatchResultCard({
   return (
     <article className={`match-card ${isSelected ? 'rundown-selected' : ''}`}>
       <div className="match-card-heading">
-      <div className="match-score">
-        <strong>{isEmployerMode ? match.readinessScore ?? match.matchScore : match.matchScore}%</strong>
-        <span>{isEmployerMode ? match.readinessLabel ?? 'readiness' : 'match'}</span>
-      </div>
       <div className="match-profile">
         {match.profile.image ? (
           <img src={match.profile.image} alt={match.profile.name} />
@@ -88,8 +84,12 @@ function MatchResultCard({
           <div className="match-name-row">
             <h3>{match.profile.name}</h3>
           </div>
-          <p>{match.profile.title}</p>
+          <p>{match.profile.title || (isEmployerMode ? 'Employer profile' : 'Developer profile')}</p>
         </div>
+      </div>
+      <div className="match-score">
+        <strong>{isEmployerMode ? match.readinessScore ?? match.matchScore : match.matchScore}%</strong>
+        <span>{isEmployerMode ? match.readinessLabel ?? 'readiness' : 'match'}</span>
       </div>
       </div>
       <p className="proof-text">{match.reason}</p>

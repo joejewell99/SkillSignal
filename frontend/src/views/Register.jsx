@@ -45,6 +45,7 @@ export default function Register() {
       setSelectedRole(role);
       setForm((current) => ({ ...current, role }));
     } else {
+      
       setSelectedRole(null);
     }
   }, [searchParams]);

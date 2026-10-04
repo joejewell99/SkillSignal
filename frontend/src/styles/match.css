@@ -6,6 +6,28 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* Final matcher card tuning: restrained section surfaces and profile-directory hover behavior. */
+.match-discovery .match-card {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: none;
+}
+.match-discovery .match-card:hover {
+  border-color: color-mix(in srgb, var(--signal) 48%, var(--line));
+  box-shadow: 0 8px 15px rgba(25, 56, 82, 0.1), 0 0 14px color-mix(in srgb, var(--signal) 10%, transparent);
+  transform: translateY(-3px);
+}
+.match-discovery .match-card-heading { flex-direction: row; }
+.match-discovery .proof-text,
+.match-discovery .match-columns > div { background: var(--surface-strong); }
+.match-discovery .match-evidence { background: var(--surface-strong); border-color: var(--line); }
+.match-discovery .match-columns > div { border-color: var(--line); }
+.match-discovery .skill-list span {
+  background: color-mix(in srgb, var(--signal) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--signal) 28%, var(--line));
+  color: var(--signal);
+}
+
 .match-grid.compact-view {
   gap: 18px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -921,6 +943,63 @@
   .match-workspace .tool-hero::before { animation: none; }
 }
 
+/* Matcher cards: quiet resume layout with the same lift language as the profile directory. */
+.match-discovery .match-card {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: none;
+  gap: 16px;
+  padding: 20px;
+}
+.match-discovery .match-card:hover {
+  border-color: color-mix(in srgb, var(--signal) 48%, var(--line));
+  box-shadow: 0 8px 15px rgba(25, 56, 82, 0.1), 0 0 14px color-mix(in srgb, var(--signal) 10%, transparent);
+  transform: translateY(-3px);
+}
+.match-discovery .match-card-heading { flex-direction: row; }
+.match-discovery .match-card-heading .match-score {
+  align-items: center;
+  background: color-mix(in srgb, var(--signal) 9%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--signal) 44%, var(--line));
+  border-radius: 12px;
+  flex: 0 0 76px;
+  min-height: 66px;
+  padding: 7px;
+}
+.match-discovery .match-card-heading .match-profile img,
+.match-discovery .match-card-heading .match-profile .profile-placeholder {
+  border: 2px solid color-mix(in srgb, var(--signal) 38%, var(--surface));
+  border-radius: 14px;
+  box-shadow: none;
+  height: 64px;
+  width: 64px;
+}
+.match-discovery .proof-text,
+.match-discovery .match-evidence,
+.match-discovery .match-columns > div {
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.match-discovery .proof-text { color: var(--ink); padding: 14px; }
+.match-discovery .match-evidence { background: color-mix(in srgb, var(--signal) 8%, var(--surface)); padding: 14px; }
+.match-discovery .match-columns > div { padding: 14px; }
+.match-discovery .match-columns > div > h4 { color: var(--primary); }
+.match-discovery .skill-list { gap: 7px; }
+.match-discovery .skill-list span {
+  align-items: center;
+  background: color-mix(in srgb, var(--signal) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--signal) 30%, var(--line));
+  border-radius: 6px;
+  color: var(--signal);
+  display: inline-flex;
+  font-size: .8rem;
+  font-weight: 850;
+  min-height: 30px;
+  padding: 5px 10px;
+}
+.match-discovery .match-action-row { border-top: 1px solid var(--line); padding-top: 14px; }
+
 /* The matcher is the preview: a calm brief workspace with proof-first guidance. */
 .match-discovery-stage {
   background:
@@ -1143,11 +1222,36 @@
 }
 .match-discovery .ai-results-section { padding-top: 34px; }
 .match-discovery .match-card { border-radius: 16px; }
-.match-discovery .match-card-heading { display: flex; flex-direction: row-reverse; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.match-discovery .match-card-heading .match-score { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; text-align: right; max-width: 110px; }
-.match-discovery .match-card-heading .match-score span { font-size: .7rem; }
+.match-discovery .match-card {
+  background: linear-gradient(145deg, var(--surface) 0%, color-mix(in srgb, var(--surface) 94%, var(--primary)) 100%);
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--line));
+  box-shadow: 0 12px 28px rgba(20, 53, 67, 0.08);
+  gap: 16px;
+  overflow: visible;
+  padding: 20px;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+.match-discovery .match-card::before,
+.match-page .match-card::before,
+.match-workspace .match-card::before { display: none; }
+.match-discovery .match-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--line));
+  box-shadow: 0 18px 38px rgba(20, 53, 67, 0.14);
+  transform: translateY(-4px);
+}
+.match-discovery .match-card-heading { display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.match-discovery .match-card-heading .match-score { align-items: center; background: color-mix(in srgb, var(--signal) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--signal) 38%, var(--line)); border-radius: 14px; display: flex; flex: 0 0 76px; flex-direction: column; gap: 3px; justify-content: center; min-height: 70px; padding: 8px; text-align: center; }
+.match-discovery .match-card-heading .match-score strong { color: var(--primary); font-size: 1.7rem; letter-spacing: -0.05em; }
+.match-discovery .match-card-heading .match-score span { color: var(--muted); font-size: .62rem; letter-spacing: .08em; }
 .match-discovery .match-card-heading .match-profile { flex: 1; min-width: 0; }
 .match-discovery .match-card-heading .match-profile > div { min-width: 0; }
+.match-discovery .match-card-heading .match-profile img,
+.match-discovery .match-card-heading .match-profile .profile-placeholder { border: 3px solid color-mix(in srgb, var(--signal) 35%, var(--surface)); border-radius: 16px; box-shadow: 0 5px 12px rgba(20, 53, 67, 0.12); height: 68px; width: 68px; }
+.match-discovery .proof-text { background: color-mix(in srgb, var(--primary) 5%, var(--surface)); border-left: 0; border-radius: 10px; color: var(--ink); font-size: .94rem; line-height: 1.55; margin: 0; padding: 12px 14px; }
+.match-discovery .match-evidence { background: color-mix(in srgb, var(--signal) 7%, var(--surface)); border-color: color-mix(in srgb, var(--signal) 24%, var(--line)); }
+.match-discovery .match-columns > div { background: color-mix(in srgb, var(--surface) 82%, var(--primary)); border: 1px solid color-mix(in srgb, var(--primary) 10%, var(--line)); border-radius: 10px; padding: 13px; }
+.match-discovery .match-columns > div > h4 { color: var(--primary); }
+.match-discovery .match-action-row { border-top: 1px solid var(--line); padding-top: 14px; }
 .match-discovery .match-card-heading .match-profile h3,
 .match-discovery .match-card-heading .match-profile p { overflow-wrap: anywhere; }
 @media (max-width: 560px) {
@@ -1187,5 +1291,23 @@
   .match-discovery .ai-submit,
   .match-discovery .ai-submit:hover:not(:disabled),
   .match-discovery .ai-submit:active:not(:disabled) { transform: none; transition: none; }
-  .match-discovery .ai-submit.just-pressed { animation: none; outline: 2px solid var(--primary); outline-offset: 2px; }
+.match-discovery .ai-submit.just-pressed { animation: none; outline: 2px solid var(--primary); outline-offset: 2px; }
 }
+
+/* Final matcher card tuning: restrained section surfaces and profile-directory hover behavior. */
+.match-discovery .match-card { background: var(--surface); border-color: color-mix(in srgb, var(--signal) 28%, var(--line)); box-shadow: 0 0 12px color-mix(in srgb, var(--signal) 8%, transparent); }
+.match-discovery .match-grid .match-card:hover {
+  background: var(--surface);
+  border-color: color-mix(in srgb, var(--signal) 58%, var(--line));
+  box-shadow: 0 8px 15px rgba(25, 56, 82, 0.1), 0 0 14px color-mix(in srgb, var(--signal) 10%, transparent);
+  transform: translateY(-5px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .match-discovery .match-grid .match-card:hover { transform: none; }
+}
+.match-discovery .match-card-heading { flex-direction: row; }
+.match-discovery .proof-text,
+.match-discovery .match-columns > div { background: var(--surface-strong); }
+.match-discovery .match-evidence { background: var(--surface-strong); border-color: var(--line); }
+.match-discovery .match-columns > div { border-color: var(--line); }
+.match-discovery .skill-list span { background: color-mix(in srgb, var(--signal) 8%, var(--surface)); border-color: color-mix(in srgb, var(--signal) 28%, var(--line)); color: var(--signal); }
