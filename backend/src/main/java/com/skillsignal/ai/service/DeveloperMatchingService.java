@@ -280,8 +280,8 @@ public class DeveloperMatchingService {
         score += Math.min(18, matchingProjectCount(projects, analysis) * 6);
         score += proofDepthScore(projects);
 
-        if (profile.isFeatured()) {
-            score += 4;
+        if (profile.getType() == ProfileType.DEVELOPER) {
+            score = evidenceFitScore(profile, projects, analysis);
         }
 
         return new CandidateScore(profile, projects, score);
@@ -378,6 +378,13 @@ public class DeveloperMatchingService {
             List<String> followUpQuestions,
             List<DeveloperMatchResponse> matches
     ) {
+        double bestDeveloperScore = matches.stream()
+                .filter(match -> "DEVELOPER".equals(match.profile().type()))
+                .mapToDouble(DeveloperMatchResponse::matchScore).max().orElse(0);
+        List<DeveloperMatchResponse> displayedMatches = matches.stream()
+                .map(match -> "DEVELOPER".equals(match.profile().type())
+                        ? match.withRelativeScore(MatchScoreFormula.relative(match.matchScore(), bestDeveloperScore))
+                        : match).toList();
         return new AiMatchResponse(
                 dailyLimit,
                 dailyUsed,
@@ -394,7 +401,7 @@ public class DeveloperMatchingService {
                 problemTypes,
                 evidenceToLookFor,
                 followUpQuestions,
-                matches
+                displayedMatches
         );
     }
 
@@ -452,7 +459,7 @@ public class DeveloperMatchingService {
         }
 
         score += proofDepthScore(projects);
-        score = Math.min(score, 97);
+        score = employerMode ? Math.min(score, 97) : evidenceFitScore(profile, projects, analysis);
         ProfileProjectResponse primaryMatch = matchedProjects.isEmpty() ? null : matchedProjects.get(0);
         ProfileProjectResponse developerProject = employerMode
                 ? bestDeveloperProjectForEmployer(developerContext, primaryMatch, analysis, strengths)
@@ -658,7 +665,7 @@ public class DeveloperMatchingService {
             }
         }
 
-        return completedMatches.stream().limit(MATCH_LIMIT).toList();
+        return completedMatches.stream().sorted(Comparator.comparing(DeveloperMatchResponse::matchScore).reversed()).limit(MATCH_LIMIT).toList();
     }
 
     private String openAiSystemPrompt() {
@@ -667,6 +674,13 @@ public class DeveloperMatchingService {
                 Use only the supplied profile data. Do not invent projects, links, companies, or skills.
                 Prefer candidates with concrete project evidence over candidates with only keyword overlap.
                 Score 0-100 based on required skill fit, project evidence, problem similarity, proof quality, and remaining risk. Only use 95+ when the profile clearly proves nearly every important part of the brief.
+                Compare the candidates against each other using the same rubric for this brief before assigning scores.
+                Your score supplies 30% of the final evidence-fit index. Evaluate contextual fit independently of deterministicScore.
+                Use fractional scores to one decimal place when supported by small evidence differences.
+                In the reason, identify the concrete evidence or limitation that explains the candidate's relative position.
+                Similar skills do not imply identical fit: consider project scope, specific workflows, implementation detail,
+                and how directly the described work addresses the user's priorities. Do not reward verbosity alone.
+                Do not add arbitrary variation or force unique scores. Tie candidates when the supplied evidence cannot distinguish them.
                 Write in third person for an employer. Do not use interview questions.
                 Do not suggest interviewing in nextStep; suggest inspecting a named project, shortlisting, or viewing proof instead.
                 Rewrite first-person project evidence into third person, for example "she implemented" or "they built".
@@ -801,7 +815,7 @@ public class DeveloperMatchingService {
                         "possessive", pronouns.possessive()
                 ),
                 "deterministicScore", fallbackMatch == null ? candidate.score() : fallbackMatch.matchScore(),
-                "projects", projects.stream().limit(2).map(project -> Map.of(
+                "projects", projects.stream().map(project -> Map.of(
                         "name", safe(project.name()),
                         "description", safe(project.description()),
                         "skills", project.skills() == null ? List.of() : project.skills(),
@@ -876,7 +890,7 @@ public class DeveloperMatchingService {
                                                 "required", List.of("profileId", "score", "reason", "matchedSignals", "bestEvidence", "remainingRisks", "hiringOutlook", "proofToShow", "nextStep"),
                                                 "properties", Map.of(
                                                         "profileId", Map.of("type", "integer"),
-                                                        "score", Map.of("type", "integer", "minimum", 0, "maximum", 100),
+                                                        "score", Map.of("type", "number", "minimum", 0, "maximum", 100),
                                                         "reason", Map.of("type", "string", "minLength", 160, "maxLength", 520),
                                                         "matchedSignals", Map.of("type", "array", "items", Map.of("type", "string"), "maxItems", 5),
                                                         "bestEvidence", Map.of("type", "array", "items", Map.of("type", "string", "maxLength", 240), "maxItems", 4),
@@ -896,16 +910,18 @@ public class DeveloperMatchingService {
         if (fallbackMatch == null) {
             return null;
         }
-        int score = Math.max(0, Math.min(100, aiMatch.score()));
+        double score = Math.max(0, Math.min(100, aiMatch.score()));
         List<String> strengths = aiMatch.matchedSignals().isEmpty() ? fallbackMatch.strengths() : aiMatch.matchedSignals();
         List<String> evidence = aiMatch.bestEvidence().isEmpty() ? fallbackMatch.evidence() : aiMatch.bestEvidence();
         List<String> gaps = aiMatch.remainingRisks().isEmpty() ? fallbackMatch.gaps() : aiMatch.remainingRisks();
-        score = capScoreForRisks(score, gaps);
+        score = "DEVELOPER".equals(fallbackMatch.profile().type())
+                ? MatchScoreFormula.enhanced(fallbackMatch.matchScore(), score)
+                : capScoreForRisks((int) Math.round(score), gaps);
         return new DeveloperMatchResponse(
                 fallbackMatch.profile(),
                 score,
-                score,
-                readinessLabel(score),
+                (int) Math.round(score),
+                readinessLabel((int) Math.round(score)),
                 strengths,
                 gaps,
                 evidence,
@@ -1018,6 +1034,58 @@ public class DeveloperMatchingService {
             score += 4;
         }
         return score;
+    }
+
+    private int evidenceFitScore(MarketplaceProfile profile, List<ProfileProjectResponse> projects, BriefAnalysis analysis) {
+        String profileText = normalize(safe(profile.getTitle()) + " " + safe(profile.getSummary())
+                + " " + String.join(" ", profile.getSkills()));
+        String projectText = projects.stream().map(this::projectSearchText).reduce("", (a, b) -> a + " " + b);
+        double skills = analysis.requiredSkills().isEmpty() ? 0 : analysis.requiredSkills().stream().distinct()
+                .mapToDouble(skill -> hasScoringSkill(projectText, skill) ? 1
+                        : hasScoringSkill(profileText, skill) ? .6 : 0)
+                .average().orElse(0);
+        // A second relevant project adds corroboration, not unlimited points for project count.
+        List<Double> relevance = projects.stream().map(project -> projectRelevance(project, analysis))
+                .sorted(Comparator.reverseOrder()).toList();
+        double projectFit = relevance.isEmpty() ? 0 : .85 * relevance.get(0)
+                + (relevance.size() > 1 ? .15 * relevance.get(1) : 0);
+        double proof = projects.stream().mapToDouble(project -> {
+            double depth = (hasValue(project.githubUrl()) ? .4 : 0)
+                    + (hasValue(project.liveUrl()) ? .25 : 0)
+                    + (project.images() != null && !project.images().isEmpty() ? .15 : 0)
+                    + (safe(project.description()).length() >= 100 ? .2 : 0);
+            return projectRelevance(project, analysis) * depth;
+        }).max().orElse(0);
+        double context = coverage(profileText, analysis.problemTypes(), briefAnalysisService.problemSignals());
+        if (analysis.problemTypes().isEmpty()) {
+            context = coverage(profileText, analysis.requiredSkills(), briefAnalysisService.skillSignals());
+        }
+        return MatchScoreFormula.local(skills, projectFit, proof, context);
+    }
+
+    private double projectRelevance(ProfileProjectResponse project, BriefAnalysis analysis) {
+        String text = projectSearchText(project);
+        double skills = analysis.requiredSkills().stream().distinct()
+                .mapToDouble(skill -> hasScoringSkill(text, skill) ? 1 : 0).average().orElse(0);
+        double problems = coverage(text, analysis.problemTypes(), briefAnalysisService.problemSignals());
+        if (analysis.requiredSkills().isEmpty()) return problems;
+        if (analysis.problemTypes().isEmpty()) return skills;
+        return .4 * skills + .6 * problems;
+    }
+
+    private boolean hasScoringSkill(String text, String skill) {
+        // Discovery aliases (e.g. "frontend" for React) are too broad to count as skill evidence.
+        if (containsSearchTerm(text, skill)) return true;
+        return switch (skill) {
+            case "PostgreSQL" -> containsSearchTerm(text, "postgres");
+            case "Node.js" -> containsSearchTerm(text, "nodejs") || containsSearchTerm(text, "node.js");
+            default -> false;
+        };
+    }
+
+    private double coverage(String text, List<String> signals, Map<String, List<String>> aliases) {
+        return signals.stream().distinct().mapToDouble(signal -> containsSignal(text, signal, aliases) ? 1 : 0)
+                .average().orElse(0);
     }
 
     private boolean containsSignal(String text, String signal, Map<String, List<String>> signalMap) {
@@ -1940,7 +2008,7 @@ public class DeveloperMatchingService {
 
     private record OpenAiDeveloperMatch(
             Long profileId,
-            int score,
+            double score,
             String reason,
             List<String> matchedSignals,
             List<String> bestEvidence,

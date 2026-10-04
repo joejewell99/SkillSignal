@@ -1311,3 +1311,113 @@
 .match-discovery .match-evidence { background: var(--surface-strong); border-color: var(--line); }
 .match-discovery .match-columns > div { border-color: var(--line); }
 .match-discovery .skill-list span { background: color-mix(in srgb, var(--signal) 8%, var(--surface)); border-color: color-mix(in srgb, var(--signal) 28%, var(--line)); color: var(--signal); }
+
+/* Resume hierarchy: open summary, a quiet evidence inset, then skills and caveats.
+   Scope through the grid to beat the shared dark-theme panel styles. */
+.match-discovery .match-grid .match-card {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: clamp(18px, 2vw, 28px);
+  background: radial-gradient(ellipse at top right, color-mix(in srgb, var(--signal) 5%, transparent), transparent 55%), var(--surface);
+}
+.match-discovery .match-grid .match-card .match-profile-type {
+  display: block;
+  color: var(--primary);
+  font-size: .63rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.match-discovery .match-grid .match-card .match-profile {
+  grid-template-columns: 60px minmax(0, 1fr);
+}
+.match-discovery .match-grid .match-card .match-profile img,
+.match-discovery .match-grid .match-card .profile-placeholder {
+  width: 60px;
+  height: 60px;
+  border: 1px solid color-mix(in srgb, var(--signal) 38%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--signal) 7%, transparent);
+  border-radius: 12px;
+}
+.match-discovery .match-grid .match-card .match-score {
+  background: transparent;
+  border: 0;
+  min-height: 0;
+  padding: 0;
+  flex-basis: 88px;
+  align-items: flex-end;
+}
+.match-discovery .match-grid .match-card .match-score strong { color: var(--primary); font-variant-numeric: tabular-nums; }
+.match-discovery .match-grid .match-card .match-score span { white-space: nowrap; font-size: .59rem; letter-spacing: .09em; }
+.match-discovery .match-grid .match-card .proof-text {
+  background: linear-gradient(125deg, color-mix(in srgb, var(--primary) 5%, var(--surface)), color-mix(in srgb, var(--ink) 2%, var(--surface)));
+  border: 1px solid color-mix(in srgb, var(--primary) 13%, var(--line));
+  padding: 16px 18px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+.match-discovery .match-grid .match-card .match-evidence {
+  background: color-mix(in srgb, var(--signal) 4%, var(--surface));
+  border: 0;
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+.match-discovery .match-grid .match-card .match-evidence h4 { color: var(--signal); }
+.match-discovery .match-grid .match-card .match-evidence li::marker { color: var(--signal); }
+.match-discovery .match-grid .match-card h4 {
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: .84rem;
+  font-weight: 650;
+  margin-bottom: 10px;
+}
+.match-discovery .match-grid .match-card .match-columns {
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+.match-discovery .match-grid .match-card .match-columns > div {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  height: auto;
+  overflow: visible;
+}
+.match-discovery .match-grid .match-card .skill-list span {
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+  color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--line));
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: .8rem;
+  padding: 4px 9px;
+  min-height: 28px;
+}
+.match-discovery .match-grid .match-card .match-action-row {
+  margin-top: auto;
+  padding-top: 18px;
+  align-self: stretch;
+}
+.match-discovery .match-grid .match-card .rundown-launch {
+  margin-left: 0;
+  background: color-mix(in srgb, var(--signal) 7%, var(--surface));
+  border-color: color-mix(in srgb, var(--signal) 35%, var(--line));
+  color: var(--signal);
+}
+.match-discovery .match-grid .match-card .rundown-launch:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--signal) 8%, var(--surface));
+  border-color: var(--signal);
+  color: var(--ink);
+}
+.match-discovery .match-grid .match-card .rundown-allowance {
+  color: var(--muted);
+  font-size: .75rem;
+  line-height: 1.5;
+  margin: -10px 0 0;
+}
+@media (max-width: 560px) {
+  .match-discovery .match-grid .match-card .rundown-launch { margin-left: 0; }
+}

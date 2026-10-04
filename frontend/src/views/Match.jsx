@@ -44,7 +44,7 @@ function readStoredMatchState(storageKey) {
     return {
       brief: storedState?.brief || '',
       mode: storedState?.mode || '',
-      results: storedState?.scoringVersion ? null : storedState?.results || null,
+      results: storedState?.scoringVersion === 4 ? storedState?.results || null : null,
       resultsBrief: storedState?.resultsBrief ?? storedState?.brief ?? '',
     };
   } catch {
@@ -81,6 +81,7 @@ function MatchResultCard({
           <div className="profile-placeholder">{match.profile.name.slice(0, 2).toUpperCase()}</div>
         )}
         <div>
+          <span className="match-profile-type">{isEmployerMode ? 'Employer' : 'Developer'}</span>
           <div className="match-name-row">
             <h3>{match.profile.name}</h3>
           </div>
@@ -88,8 +89,8 @@ function MatchResultCard({
         </div>
       </div>
       <div className="match-score">
-        <strong>{isEmployerMode ? match.readinessScore ?? match.matchScore : match.matchScore}%</strong>
-        <span>{isEmployerMode ? match.readinessLabel ?? 'readiness' : 'match'}</span>
+        <strong>{isEmployerMode ? match.readinessScore ?? match.matchScore : match.relativeMatchScore ?? match.matchScore}%</strong>
+        <span>{isEmployerMode ? match.readinessLabel ?? 'readiness' : 'Match score'}</span>
       </div>
       </div>
       <p className="proof-text">{match.reason}</p>
@@ -162,12 +163,6 @@ function MatchResultCard({
         )}
       </div>
       <div className="match-action-row">
-        {user ? <button className="secondary-button rundown-launch" type="button" onClick={() => openRundown(match)}
-          disabled={!canOpenRundown} aria-haspopup="dialog" aria-label={`AI rundown for ${match.profile.name}`}>
-          <Sparkles size={16} /><span>AI rundown</span>
-        </button> : <Link className="secondary-button rundown-launch" to="/login" state={{ returnTo: '/match' }}>
-          <Sparkles size={16} /><span>Sign in for AI rundown</span>
-        </Link>}
         <Link className="secondary-button match-view-profile" to={`/profiles/${match.profile.id}`}>
           <ExternalLink size={16} />
           <span>{isEmployerMode ? 'View employer' : 'View profile'}</span>
@@ -187,10 +182,16 @@ function MatchResultCard({
                   ? 'Connected'
                   : connectionForProfile(match.profile.id)
                     ? 'Request sent'
-                    : 'Connect'}
+                  : 'Connect'}
             </span>
           </button>
         )}
+        {user ? <button className="secondary-button rundown-launch" type="button" onClick={() => openRundown(match)}
+          disabled={!canOpenRundown} aria-haspopup="dialog" aria-label={`AI rundown for ${match.profile.name}`}>
+          <Sparkles size={16} /><span>AI rundown</span>
+        </button> : <Link className="secondary-button rundown-launch" to="/login" state={{ returnTo: '/match' }}>
+          <Sparkles size={16} /><span>Sign in for AI rundown</span>
+        </Link>}
       </div>
       <p className="rundown-allowance">{user ? 'A focused explanation of this match. Uses 1 AI allowance credit when generated.' : 'AI rundowns are available with a developer or employer account.'}</p>
     </article>
@@ -275,7 +276,7 @@ export default function Match() {
   }, [defaultMode, matchStorageKey]);
 
   useEffect(() => {
-    sessionStorage.setItem(matchStorageKey, JSON.stringify({ brief: aiBrief, mode: matchMode, results: aiResults, resultsBrief }));
+    sessionStorage.setItem(matchStorageKey, JSON.stringify({ scoringVersion: 4, brief: aiBrief, mode: matchMode, results: aiResults, resultsBrief }));
   }, [aiBrief, aiResults, matchMode, matchStorageKey, resultsBrief]);
 
   useEffect(() => {
@@ -375,7 +376,7 @@ export default function Match() {
       .then((results) => {
         setAiResults(results);
         setResultsBrief(aiBrief);
-        sessionStorage.setItem(matchStorageKey, JSON.stringify({ brief: aiBrief, mode: matchMode, results, resultsBrief: aiBrief }));
+        sessionStorage.setItem(matchStorageKey, JSON.stringify({ scoringVersion: 4, brief: aiBrief, mode: matchMode, results, resultsBrief: aiBrief }));
       })
       .catch((err) => {
         setAiResults(null);
@@ -607,13 +608,13 @@ export default function Match() {
                     <strong>How percentages work</strong>
                     <p>
                       {!isEmployerMode
-                        ? 'Match scores compare your search with developer skills, project evidence, proof depth, and useful overlap for connection.'
+                        ? 'Match scores compare shortlisted developers with the best available candidate for your brief, using a relative 70–99 scale. Skills, project relevance, supporting evidence and profile context inform the ranking, with AI evaluation when available. The percentage is not the proportion of requirements met or a hiring probability. Review project evidence and uncertainties alongside the score. Equally supported candidates may tie.'
                         : 'Match scores compare your search with employer needs, skills, problem areas, and useful fit signals.'}
                     </p>
                     <ul>
                       <li>Skills and stack overlap</li>
                       <li>Similar project proof</li>
-                      <li>GitHub, live demo, screenshots, or featured work</li>
+                      <li>Relevant code, live demos, screenshots, and project descriptions</li>
                       <li>Relevant risks like auth, performance, data, or deployment</li>
                     </ul>
                   </div>
