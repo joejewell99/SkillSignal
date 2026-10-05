@@ -1,3 +1,27 @@
+/* Blend dark matcher surfaces with the shared dashboard star field. */
+:root[data-theme="dark"] .match-discovery :is(.ai-search-panel, .match-grid .match-card, .match-empty-state, .ai-brief-summary:not(.rejected):not(.needs-detail)) {
+  background:
+    linear-gradient(180deg, rgba(71, 153, 173, 0.015), transparent 56px),
+    linear-gradient(0deg, rgba(71, 153, 173, 0.015), transparent 56px),
+    rgba(10, 14, 21, 0.84);
+}
+
+:root[data-theme="dark"] .match-discovery .match-grid .match-card:hover {
+  background: rgba(14, 21, 29, 0.88);
+}
+
+:root[data-theme="dark"] .match-discovery .match-grid .match-card :is(.proof-text, .match-evidence, .accordion-panel) {
+  background: rgba(21, 28, 38, 0.65);
+}
+
+:root[data-theme="dark"] .match-discovery :is(.ai-mode-toggle, .result-view-toggle) {
+  background: rgba(14, 21, 30, 0.84);
+}
+
+:root[data-theme="dark"] .match-discovery .ai-search-panel textarea {
+  background: rgba(10, 15, 22, 0.72);
+}
+
 .match-grid {
   align-items: stretch;
   display: grid;
