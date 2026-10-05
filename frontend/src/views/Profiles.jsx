@@ -201,6 +201,8 @@ export default function Profiles() {
             <Search size={21} />
             <input
               id="marketplace-search"
+              autoComplete="off"
+              aria-label="Search profiles by name, skills, work, or proof"
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value);

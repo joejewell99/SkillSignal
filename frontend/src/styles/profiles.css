@@ -1,3 +1,52 @@
+/* Softer directory backgrounds; retain the original accents and interactions. */
+:root[data-theme="dark"] .profiles-discovery .profile-grid .profile-card {
+  background:
+    linear-gradient(180deg, rgba(71, 153, 173, 0.015), transparent 56px),
+    linear-gradient(0deg, rgba(71, 153, 173, 0.015), transparent 56px),
+    rgba(10, 14, 21, 0.84);
+}
+
+:root[data-theme="dark"] .profiles-discovery .profile-grid .profile-card:hover {
+  background: rgba(14, 21, 29, 0.88);
+}
+
+:root[data-theme="dark"] .profiles-discovery .directory-inline-search .directory-primary-search {
+  --directory-search-fill: #0c121a;
+  background: var(--directory-search-fill);
+  border-color: rgba(154, 177, 207, 0.2);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .profiles-discovery .directory-inline-search .directory-primary-search:focus-within {
+  border-color: rgba(154, 177, 207, 0.5);
+  outline: 2px solid rgba(109, 160, 255, 0.16);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .profiles-discovery .directory-inline-search .directory-primary-search input {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+  color: var(--ink);
+  caret-color: var(--ink);
+}
+
+:root[data-theme="dark"] .profiles-discovery .directory-primary-search input:-webkit-autofill {
+  -webkit-box-shadow: inset 0 0 0 1000px var(--directory-search-fill);
+  -webkit-text-fill-color: var(--ink);
+}
+
+:root[data-theme="dark"] .profiles-discovery .directory-primary-search input:autofill {
+  box-shadow: inset 0 0 0 1000px var(--directory-search-fill);
+}
+
+:root[data-theme="dark"] .profiles-discovery .directory-inline-search .directory-primary-search svg {
+  color: var(--muted);
+}
+
 .developer-grid,
 .profile-grid {
   display: grid;
