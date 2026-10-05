@@ -5,6 +5,7 @@ import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import AuthStars from '../ui/AuthStars.jsx';
 import ImageWithFallback from '../ui/ImageWithFallback.jsx';
+import SkillIcon from '../ui/SkillIcon.jsx';
 import { apiRequest } from '../api/client.js';
 
 const popularSkills = ['Python', 'Ruby', 'SQL', 'Spring Boot', 'React', 'APIs'];
@@ -265,7 +266,7 @@ export default function Profiles() {
                 </div>
                 <div className="skill-list">
                   {profile.skills.map((skill) => (
-                    <span key={skill}>{skill}</span>
+                    <span key={skill}><SkillIcon skill={skill} />{skill}</span>
                   ))}
                 </div>
                 <div className="proof-text">

@@ -1983,6 +1983,9 @@ html {
 
 .skill-chips button,
 .skill-list span {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
   background: var(--signal-soft);
   border: 1px solid color-mix(in srgb, var(--signal) 28%, var(--line));
   border-radius: 999px;
@@ -1992,6 +1995,11 @@ html {
   min-height: 34px;
   padding: 7px 11px;
 }
+
+.skill-chip-brand-icon { flex: 0 0 auto; height: 14px; opacity: 0.92; width: 14px; }
+.skill-chip-java-icon { height: 17px; width: 14px; }
+.skill-chip-concept-icon { color: var(--signal); flex: 0 0 auto; opacity: 0.75; }
+.skill-chip-warning-icon { color: #e06b72; flex: 0 0 auto; }
 
 .results-section {
   display: grid;

@@ -19,6 +19,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { apiRequest } from '../../../api/client.js';
+import SkillIcon, { getSkillRecognition } from '../../../ui/SkillIcon.jsx';
 import ImageWithFallback from '../../../ui/ImageWithFallback.jsx';
 import ContactLinks from '../profile/ContactLinks.jsx';
 import ConversationContextMenu from './ConversationContextMenu.jsx';
@@ -1023,10 +1024,15 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                     <Plus size={18} />
                   </button>
                 </form>
+                {skillInput.trim() && getSkillRecognition(skillInput) !== 'recognized' && (
+                  <p className={`skill-recognition-note ${getSkillRecognition(skillInput) === 'off-topic' ? 'is-warning' : ''}`}>
+                    {getSkillRecognition(skillInput) === 'off-topic' ? 'This looks off-topic. Add a technology, tool, method, or area of experience.' : 'This skill is not recognized yet, but it may be a valid niche term.'}
+                  </p>
+                )}
                 <div className="editable-skill-list">
                   {profile.skills.map((skill) => (
                     <button className="remove-chip-button" key={skill} type="button" onClick={() => removeSkill(skill)}>
-                      <span>{skill}</span>
+                      <span><SkillIcon skill={skill} />{skill}</span>
                       <Trash2 size={14} />
                     </button>
                   ))}
@@ -1178,7 +1184,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                 </div>
                 <div className="skill-list">
                   {profile.skills.map((skill) => (
-                    <span key={skill}>{skill}</span>
+                    <span key={skill}><SkillIcon skill={skill} />{skill}</span>
                   ))}
                 </div>
                 <div className="proof-text">

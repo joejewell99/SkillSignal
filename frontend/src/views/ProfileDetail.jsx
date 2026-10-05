@@ -6,6 +6,7 @@ import { useAuth } from '../state/AuthContext.jsx';
 import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import ImageWithFallback from '../ui/ImageWithFallback.jsx';
+import SkillIcon from '../ui/SkillIcon.jsx';
 import ContactLinks from './components/profile/ContactLinks.jsx';
 import EmployerNeedsList from './components/profile/EmployerNeedsList.jsx';
 
@@ -579,7 +580,7 @@ export default function ProfileDetail() {
               <p>{profile.title}</p>
               <div className="skill-list">
                 {skills.map((skill) => (
-                  <span key={skill}>{skill}</span>
+                  <span key={skill}><SkillIcon skill={skill} />{skill}</span>
                 ))}
               </div>
               {isDeveloperProfile && <ContactLinks contactLinks={profile.contactLinks} className="profile-detail-contact-links" />}
@@ -741,7 +742,7 @@ export default function ProfileDetail() {
                             <p>{project.description}</p>
                             <div className="skill-list">
                               {(project.skills ?? []).map((skill) => (
-                                <span key={skill}>{skill}</span>
+                                <span key={skill}><SkillIcon skill={skill} />{skill}</span>
                               ))}
                             </div>
                             <div className="project-links">

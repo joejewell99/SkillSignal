@@ -7,6 +7,7 @@ import AuthStars from '../ui/AuthStars.jsx';
 import { apiRequest } from '../api/client.js';
 import { useAuth } from '../state/AuthContext.jsx';
 import CandidateRundown from './components/CandidateRundown.jsx';
+import SkillIcon from '../ui/SkillIcon.jsx';
 
 const developerPlaceholder = 'Example: I am looking for developers with React, Spring Boot, PostgreSQL, and dashboard experience. I would like to see GitHub projects, deployed work, screenshots, or proof they have handled auth, APIs, data cleanup, or production fixes.';
 const employerPlaceholder = 'Example: I am strongest with React, Python, SQL, APIs, and dashboard work. I am looking for employers hiring junior developers for data cleanup, admin screens, reporting tools, or full-stack projects where my GitHub work would be useful.';
@@ -134,7 +135,7 @@ function MatchResultCard({
         <div>
           <h4>{isEmployerMode ? 'Skill overlap' : 'Matching skills'}</h4>
           <div className="skill-list">
-            {match.strengths.map((strength) => <span key={strength}>{strength}</span>)}
+            {match.strengths.map((strength) => <span key={strength}><SkillIcon skill={strength} />{strength}</span>)}
           </div>
         </div>
         {isEmployerMode && (match.readinessScore ?? match.matchScore) < 75 ? (
@@ -650,7 +651,7 @@ export default function Match() {
             {![...(aiResults.requiredSkills ?? []), ...(aiResults.problemTypes ?? [])].length ? null : (
               <div className="skill-list">
                 {[...(aiResults.requiredSkills ?? []), ...(aiResults.problemTypes ?? [])].map((signal) => (
-                  <span key={signal}>{signal}</span>
+                  <span key={signal}><SkillIcon skill={signal} />{signal}</span>
                 ))}
               </div>
             )}

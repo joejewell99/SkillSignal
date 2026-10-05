@@ -1524,16 +1524,8 @@
   text-transform: none;
 }
 
-.profiles-discovery .profile-card .skill-list span::before {
-  color: #75869a;
-  content: '#';
-  flex: 0 0 auto;
-  font-weight: 850;
-}
-
-/* GitHub-style issue labels: strong ink surfaces with compact category signals. */
+/* Compact skill labels keep the technology logo as the only visual marker. */
 .profiles-discovery .profile-card .skill-list span {
-  --skill-dot: #db6a5b;
   background: #28333d;
   border: 1px solid #202a33;
   border-radius: 4px;
@@ -1547,20 +1539,6 @@
   padding: 5px 8px;
   text-transform: none;
 }
-
-.profiles-discovery .profile-card .skill-list span::before {
-  background: var(--skill-dot);
-  border-radius: 999px;
-  content: '';
-  display: block;
-  flex: 0 0 auto;
-  height: 6px;
-  width: 6px;
-}
-
-.profiles-discovery .profile-card .skill-list span:nth-child(4n + 2) { --skill-dot: #9467dd; }
-.profiles-discovery .profile-card .skill-list span:nth-child(4n + 3) { --skill-dot: #d59a38; }
-.profiles-discovery .profile-card .skill-list span:nth-child(4n) { --skill-dot: #cf5f8f; }
 
 /* Search refinements sit directly beneath the input, without a redundant divider. */
 .profiles-discovery .directory-inline-search .directory-search-refinements {

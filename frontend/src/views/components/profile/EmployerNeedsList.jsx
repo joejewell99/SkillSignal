@@ -1,4 +1,5 @@
 import React from 'react';
+import SkillIcon from '../../../ui/SkillIcon.jsx';
 
 export default function EmployerNeedsList({ needs = [], fallbackProjects = [], describeIdealDeveloper }) {
   const normalizedNeeds = needs.length > 0
@@ -29,7 +30,7 @@ export default function EmployerNeedsList({ needs = [], fallbackProjects = [], d
               <h4>Required skills</h4>
               <div className="skill-list">
                 {(need.requiredSkills ?? []).map((skill) => (
-                  <span key={skill}>{skill}</span>
+                    <span key={skill}><SkillIcon skill={skill} />{skill}</span>
                 ))}
               </div>
             </div>

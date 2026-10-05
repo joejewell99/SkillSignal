@@ -519,6 +519,37 @@
   margin-top: 4px;
 }
 
+/* Make match-card actions visibly interactive while staying within the dark theme. */
+.match-discovery .match-action-row :is(.match-view-profile, .primary-button, .rundown-launch) {
+  position: relative;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.match-discovery .match-action-row .match-view-profile:hover,
+.match-discovery .match-action-row .match-view-profile:focus-visible {
+  background: rgba(154, 177, 207, 0.1);
+  border-color: rgba(154, 177, 207, 0.52);
+  box-shadow: 0 7px 16px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.match-discovery .match-action-row .primary-button:hover:not(:disabled),
+.match-discovery .match-action-row .primary-button:focus-visible {
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--primary) 34%, transparent);
+  transform: translateY(-2px);
+}
+
+.match-discovery .match-action-row .rundown-launch:hover:not(:disabled),
+.match-discovery .match-action-row .rundown-launch:focus-visible {
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--signal) 24%, transparent);
+  transform: translateY(-2px);
+}
+
+.match-discovery .match-action-row :is(.match-view-profile, .primary-button, .rundown-launch):active:not(:disabled) {
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.22);
+  transform: translateY(1px) scale(0.98);
+}
+
 .match-action-row .match-view-profile {
   margin-top: 0;
 }
@@ -1009,6 +1040,8 @@
 .match-discovery .match-evidence { background: color-mix(in srgb, var(--signal) 8%, var(--surface)); padding: 14px; }
 .match-discovery .match-columns > div { padding: 14px; }
 .match-discovery .match-columns > div > h4 { color: var(--primary); }
+.match-discovery .match-columns .skill-list span { align-items: center; display: inline-flex; gap: 6px; }
+.match-discovery .match-columns .skill-chip-icon { flex: 0 0 auto; height: 14px; width: 14px; }
 .match-discovery .skill-list { gap: 7px; }
 .match-discovery .skill-list span {
   align-items: center;

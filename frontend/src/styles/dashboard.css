@@ -1887,6 +1887,15 @@
   gap: 8px;
 }
 
+.skill-recognition-note {
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.4;
+  margin: -6px 0 0;
+}
+
+.skill-recognition-note.is-warning { color: #e06b72; }
+
 .editable-skill-list button {
   align-items: center;
   background: var(--signal-soft);
@@ -1899,6 +1908,18 @@
   gap: 7px;
   min-height: 34px;
   padding: 7px 11px;
+}
+
+.editable-skill-list button > span {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  line-height: 1;
+}
+
+.editable-skill-list button .skill-chip-icon {
+  display: block;
+  flex: 0 0 auto;
 }
 
 .editable-skill-list button.remove-chip-button {
