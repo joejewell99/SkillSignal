@@ -108,9 +108,11 @@ export default function Settings() {
       const triggerLine = window.scrollY + 150;
       const nextSection = SETTINGS_SECTIONS.reduce((current, section, index) => {
         const element = document.getElementById(section.id);
-        return element && element.offsetTop <= triggerLine ? index : current;
+        const sectionTop = element ? element.getBoundingClientRect().top + window.scrollY : Infinity;
+        return sectionTop <= triggerLine ? index : current;
       }, 0);
-      setActiveSection(nextSection);
+      const atPageBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+      setActiveSection(atPageBottom ? SETTINGS_SECTIONS.length - 1 : nextSection);
       frameId = null;
     };
 

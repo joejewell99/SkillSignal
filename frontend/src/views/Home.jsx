@@ -234,7 +234,8 @@ export default function Home() {
           return current;
         }
 
-        return element.offsetTop <= triggerLine ? index : current;
+        const sectionTop = element.getBoundingClientRect().top + window.scrollY;
+        return sectionTop <= triggerLine ? index : current;
       }, 0);
 
       setActiveHomeSection(nextSection);
