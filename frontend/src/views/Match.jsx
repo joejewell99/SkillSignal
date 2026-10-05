@@ -3,6 +3,7 @@ import { AlertTriangle, BrainCircuit, CheckCircle2, ChevronDown, ExternalLink, I
 import { Link } from 'react-router-dom';
 import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
+import AuthStars from '../ui/AuthStars.jsx';
 import { apiRequest } from '../api/client.js';
 import { useAuth } from '../state/AuthContext.jsx';
 import CandidateRundown from './components/CandidateRundown.jsx';
@@ -457,6 +458,7 @@ export default function Match() {
 
   return (
     <main className={`public-page match-discovery ${rundownSelection ? 'rundown-open' : ''}`}>
+      <div className="dashboard-backdrop" aria-hidden="true"><AuthStars /></div>
       <div className="match-discovery-stage">
       <PublicHeader />
 

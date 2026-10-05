@@ -3,6 +3,7 @@ import { Building2, ChevronLeft, ChevronRight, Code2, ExternalLink, Search, Sear
 import { Link } from 'react-router-dom';
 import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
+import AuthStars from '../ui/AuthStars.jsx';
 import ImageWithFallback from '../ui/ImageWithFallback.jsx';
 import { apiRequest } from '../api/client.js';
 
@@ -132,6 +133,7 @@ export default function Profiles() {
 
   return (
     <main className="public-page profiles-discovery">
+      <div className="dashboard-backdrop" aria-hidden="true"><AuthStars /></div>
       <div className="profiles-discovery-stage">
       <PublicHeader />
 

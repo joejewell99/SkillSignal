@@ -1,3 +1,56 @@
+.app-shell,
+.public-page.profiles-discovery,
+.public-page.match-discovery {
+  position: relative;
+  isolation: isolate;
+}
+
+.profiles-discovery .profiles-discovery-stage,
+.profiles-discovery .profiles-discovery-footer,
+.match-discovery .match-discovery-stage,
+.match-discovery .match-discovery-footer {
+  background: transparent;
+}
+
+/* Reuse the login star field beneath the dashboard, including long scrolling views. */
+.dashboard-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(17, 87, 217, 0.13) 0%, rgba(17, 87, 217, 0.06) 12%, transparent 32%),
+    linear-gradient(to top, rgba(0, 138, 120, 0.12) 0%, rgba(0, 138, 120, 0.06) 12%, transparent 32%),
+    var(--bg);
+}
+
+:root[data-theme="dark"] .dashboard-backdrop {
+  background:
+    linear-gradient(to bottom, rgba(17, 87, 217, 0.13) 0%, rgba(17, 87, 217, 0.06) 12%, transparent 32%),
+    linear-gradient(to top, rgba(0, 138, 120, 0.12) 0%, rgba(0, 138, 120, 0.06) 12%, transparent 32%),
+    #080b10;
+}
+
+.home-themed-content {
+  position: relative;
+  isolation: isolate;
+  display: flow-root;
+}
+
+.home-themed-content > .home-content-backdrop {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  margin-bottom: -100vh;
+  width: 100%;
+}
+
+.public-page-home .home-themed-content > .landing-section,
+.public-page-home .home-themed-content > .public-footer {
+  background: transparent;
+}
+
 .app-shell > .site-header {
   align-self: start;
   background: color-mix(in srgb, var(--bg) 94%, transparent);

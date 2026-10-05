@@ -1,8 +1,8 @@
 .auth-page {
   align-items: center;
   background:
-    radial-gradient(circle at 50% 10%, rgba(17, 87, 217, 0.13), transparent 34%),
-    radial-gradient(circle at 15% 85%, rgba(0, 138, 120, 0.08), transparent 28%),
+    linear-gradient(to bottom, rgba(17, 87, 217, 0.13) 0%, rgba(17, 87, 217, 0.06) 12%, transparent 32%),
+    linear-gradient(to top, rgba(0, 138, 120, 0.12) 0%, rgba(0, 138, 120, 0.06) 12%, transparent 32%),
     #080b10;
   display: flex;
   justify-content: center;
@@ -12,7 +12,8 @@
   position: relative;
 }
 
-.auth-page::before {
+.auth-page::before,
+.dashboard-backdrop::before {
   background-image:
     radial-gradient(circle at 5% 12%, rgba(232, 238, 242, 0.62) 0 1px, transparent 1.5px),
     radial-gradient(circle at 18% 31%, rgba(169, 195, 255, 0.5) 0 1px, transparent 1.5px),
@@ -38,7 +39,8 @@
   animation: auth-dots-glow 7s ease-in-out infinite;
 }
 
-.auth-page::after {
+.auth-page::after,
+.dashboard-backdrop::after {
   background-image:
     radial-gradient(circle at 12% 48%, rgba(109, 160, 255, 0.48) 0 1px, transparent 1.5px),
     radial-gradient(circle at 38% 17%, rgba(109, 160, 255, 0.38) 0 1px, transparent 1.5px),
@@ -86,6 +88,8 @@
 @media (prefers-reduced-motion: reduce) {
   .auth-page::before,
   .auth-page::after,
+  .dashboard-backdrop::before,
+  .dashboard-backdrop::after,
   .auth-star {
     animation: none;
   }

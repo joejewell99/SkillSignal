@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BrainCircuit, CheckCircle2, Search, ShieldCheck } from 'lucide-react';
 import PublicFooter from '../ui/PublicFooter.jsx';
+import AuthStars from '../ui/AuthStars.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import { apiRequest } from '../api/client.js';
 import heroBackdrop from '../assets/home-hero-soft-studio.jpg';
@@ -494,6 +495,8 @@ export default function Home() {
         </div>
       </section>
 
+      <div className="home-themed-content">
+      <div className="dashboard-backdrop home-content-backdrop" aria-hidden="true"><AuthStars /></div>
       <section className="landing-section why-skillsignal-section" id="why-skillsignal">
         <div className="why-signal-shell">
           <div className="why-skillsignal-heading">
@@ -737,6 +740,7 @@ export default function Home() {
         </div>
       </section>
       <PublicFooter />
+      </div>
     </main>
   );
 }
