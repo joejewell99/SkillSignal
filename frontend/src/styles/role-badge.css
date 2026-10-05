@@ -1,0 +1,44 @@
+.role-badge {
+  --role-ink: #2855a0;
+  --role-fill: rgba(65, 120, 215, 0.09);
+  --role-border: rgba(65, 120, 215, 0.3);
+  align-items: center;
+  display: inline-flex;
+  justify-self: start;
+  align-self: start;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 9px;
+  border: 1px solid var(--role-border);
+  border-radius: 7px;
+  background: var(--role-fill);
+  color: var(--role-ink);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  line-height: 1.15;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.role-badge--employer {
+  --role-ink: #126857;
+  --role-fill: rgba(35, 155, 125, 0.09);
+  --role-border: rgba(35, 155, 125, 0.3);
+}
+
+.role-badge > svg { flex: 0 0 auto; }
+
+:root[data-theme="dark"] .role-badge {
+  --role-ink: #b4d0ff;
+  --role-fill: rgba(79, 140, 255, 0.13);
+  --role-border: rgba(109, 160, 255, 0.36);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+:root[data-theme="dark"] .role-badge--employer {
+  --role-ink: #9aead4;
+  --role-fill: rgba(55, 185, 150, 0.12);
+  --role-border: rgba(112, 224, 197, 0.32);
+}

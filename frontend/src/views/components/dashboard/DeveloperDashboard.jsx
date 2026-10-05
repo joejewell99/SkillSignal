@@ -942,7 +942,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
             <input id="developer-photo" type="file" accept="image/*" onChange={handlePhotoChange} />
           </div>
           <div>
-            <p className="eyebrow">Developer dashboard</p>
+            <RoleBadge role="developer" context="dashboard" />
             <h1>{user.name}</h1>
             <label className="inline-field" htmlFor="developer-title">
               <span>Professional title</span>
@@ -1178,7 +1178,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                   fallback={<div className="profile-placeholder" aria-label={`${user.name} image unavailable`}>{user.name.slice(0, 2).toUpperCase()}</div>}
                 />
                 <div className="profile-card-heading">
-                  <span className="profile-type developer">Developer</span>
+                  <RoleBadge role="developer" />
                   <h3>{user.name}</h3>
                   <p>{profile.title}</p>
                 </div>
@@ -1942,3 +1942,4 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
     </section>
   );
 }
+import RoleBadge from '../../../ui/RoleBadge.jsx';

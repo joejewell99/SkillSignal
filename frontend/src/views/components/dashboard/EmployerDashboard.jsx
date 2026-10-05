@@ -734,7 +734,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
             <input id="employer-photo" type="file" accept="image/*" onChange={handleEmployerPhotoChange} />
           </div>
           <div>
-            <p className="eyebrow">Employer dashboard</p>
+            <RoleBadge role="employer" context="dashboard" />
             <h1>{user.name}</h1>
             <label className="inline-field" htmlFor="employer-title">
               <span>Company or hiring title</span>
@@ -1317,7 +1317,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                   fallback={<div className="profile-placeholder" aria-label={`${user.name} image unavailable`}>{user.name.slice(0, 2).toUpperCase()}</div>}
                 />
                 <div className="profile-card-heading">
-                  <span className="profile-type employer">Employer</span>
+                  <RoleBadge role="employer" />
                   <h3>{user.name}</h3>
                   <p>{profile.title}</p>
                 </div>
@@ -1485,3 +1485,4 @@ export default function EmployerDashboard({ user, token, selectedSection, select
     </section>
   );
 }
+import RoleBadge from '../../../ui/RoleBadge.jsx';

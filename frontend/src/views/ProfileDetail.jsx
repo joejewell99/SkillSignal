@@ -575,7 +575,7 @@ export default function ProfileDetail() {
               <span className={`presence-dot profile-presence ${profile.presence?.toLowerCase().replaceAll('_', '-') ?? 'offline'}`} title={profile.presence?.replaceAll('_', ' ') ?? 'Offline'} />
             </div>
             <div className="profile-detail-copy">
-              <p className="eyebrow">{isEmployerProfile ? 'Employer profile' : 'Developer profile'}</p>
+              <RoleBadge role={isEmployerProfile ? 'employer' : 'developer'} context="profile" />
               <h1>{profile.name}</h1>
               <p>{profile.title}</p>
               <div className="skill-list">
@@ -874,3 +874,4 @@ export default function ProfileDetail() {
     </main>
   );
 }
+import RoleBadge from '../ui/RoleBadge.jsx';

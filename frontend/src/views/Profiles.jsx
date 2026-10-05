@@ -256,9 +256,7 @@ export default function Profiles() {
                   </div>
                   <div className="profile-card-heading">
                     <div className="profile-badges">
-                      <span className={`profile-type ${profile.type.toLowerCase()}`}>
-                        {profile.type === 'DEVELOPER' ? 'Developer' : 'Employer'}
-                      </span>
+                      <RoleBadge role={profile.type} />
                     </div>
                     <h3>{profile.name}</h3>
                     <p>{profile.title}</p>
@@ -300,3 +298,4 @@ export default function Profiles() {
     </main>
   );
 }
+import RoleBadge from '../ui/RoleBadge.jsx';

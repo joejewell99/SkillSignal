@@ -83,7 +83,7 @@ function MatchResultCard({
           <div className="profile-placeholder">{match.profile.name.slice(0, 2).toUpperCase()}</div>
         )}
         <div>
-          <span className="match-profile-type">{isEmployerMode ? 'Employer' : 'Developer'}</span>
+          <RoleBadge role={isEmployerMode ? 'employer' : 'developer'} />
           <div className="match-name-row">
             <h3>{match.profile.name}</h3>
           </div>
@@ -697,3 +697,4 @@ export default function Match() {
     </main>
   );
 }
+import RoleBadge from '../ui/RoleBadge.jsx';
