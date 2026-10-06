@@ -1311,15 +1311,17 @@ export default function EmployerDashboard({ user, token, selectedSection, select
 
             <aside className="employer-profile-preview-column">
               <section className="profile-card employer-dashboard-preview-card">
+                <div className="dashboard-preview-identity">
                 <ImageWithFallback
                   src={profile.photo}
                   alt={`${user.name} preview`}
                   fallback={<div className="profile-placeholder" aria-label={`${user.name} image unavailable`}>{user.name.slice(0, 2).toUpperCase()}</div>}
                 />
+                <RoleBadge role="employer" />
                 <div className="profile-card-heading">
-                  <RoleBadge role="employer" />
                   <h3>{user.name}</h3>
                   <p>{profile.title}</p>
+                </div>
                 </div>
                 <div className="skill-list">
                   {profile.focus.map((item) => (

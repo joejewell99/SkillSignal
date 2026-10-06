@@ -46,12 +46,12 @@ public class BriefAnalysisService {
         List<String> problemTypes = extractSignals(normalizedBrief, PROBLEM_SIGNALS);
         List<String> idealTraits = extractIdealTraits(normalizedBrief);
 
-        if (isOffTopic(normalizedBrief, requiredSkills, problemTypes)) {
+        if (isOffTopic(normalizedBrief, requiredSkills, problemTypes) || isLowSignalNoise(normalizedBrief, requiredSkills, problemTypes)) {
             return new BriefAnalysis(
                     normalizedBrief,
-                    "OFF_TOPIC",
+                    "INVALID_BRIEF",
                     true,
-                    "This matcher is for software hiring needs. Describe a software problem, stack, product area, or project evidence you want to see.",
+                    "This does not contain enough technical or work-related information to match a profile. Describe a software problem, stack, product area, responsibility, or project evidence you want to see.",
                     List.of(),
                     List.of(),
                     List.of(),
@@ -100,6 +100,44 @@ public class BriefAnalysisService {
                 || normalizedBrief.contains("bug")
                 || normalizedBrief.contains("feature");
         return !hasSoftwareSignal && OFF_TOPIC_SIGNALS.stream().anyMatch(normalizedBrief::contains);
+    }
+
+    private boolean isLowSignalNoise(String normalizedBrief, List<String> requiredSkills, List<String> problemTypes) {
+        if (normalizedBrief.isBlank()) {
+            return false;
+        }
+
+        boolean hasWorkSignal = normalizedBrief.contains("software")
+                || normalizedBrief.contains("developer")
+                || normalizedBrief.contains("app")
+                || normalizedBrief.contains("website")
+                || normalizedBrief.contains("api")
+                || normalizedBrief.contains("database")
+                || normalizedBrief.contains("bug")
+                || normalizedBrief.contains("feature")
+                || normalizedBrief.contains("project")
+                || normalizedBrief.contains("code")
+                || normalizedBrief.contains("hire")
+                || normalizedBrief.contains("team");
+        String lettersOnly = normalizedBrief.replaceAll("[^a-z]", "");
+        String[] words = normalizedBrief.split("\\s+");
+        long distinctWords = java.util.Arrays.stream(words).distinct().count();
+        boolean repeatedWords = words.length >= 4 && distinctWords <= Math.max(2, words.length / 3);
+        boolean repeatedCharacterSpam = lettersOnly.length() >= 6 && lettersOnly.chars().distinct().count() <= 2;
+        boolean mostlySingleCharacterWords = java.util.Arrays.stream(words)
+                .filter(word -> !word.isBlank())
+                .allMatch(word -> word.length() <= 2);
+
+        if (repeatedWords || repeatedCharacterSpam || mostlySingleCharacterWords) {
+            return true;
+        }
+
+        // A keyword by itself is not a usable brief. Require context around it before matching.
+        if (hasWorkSignal || !requiredSkills.isEmpty() || !problemTypes.isEmpty()) {
+            return words.length < 6 || lettersOnly.length() < 20;
+        }
+
+        return true;
     }
 
     private List<String> buildRequiredFollowUpQuestions(String normalizedBrief, List<String> requiredSkills, List<String> problemTypes) {

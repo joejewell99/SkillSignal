@@ -1,3 +1,11 @@
+.social-brand-icon {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+svg.social-brand-icon--github { color: #181717; }
+:root[data-theme="dark"] svg.social-brand-icon--github { color: #f0f6fc; }
+
 .role-badge {
   --role-ink: #2855a0;
   --role-fill: rgba(65, 120, 215, 0.09);
@@ -6,19 +14,21 @@
   display: inline-flex;
   justify-self: start;
   align-self: start;
-  gap: 6px;
+  gap: 7px;
   width: fit-content;
   max-width: 100%;
-  padding: 6px 9px;
+  padding: 5px 10px 5px 7px;
   border: 1px solid var(--role-border);
-  border-radius: 7px;
-  background: var(--role-fill);
+  border-radius: 999px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--role-fill) 92%, white), var(--role-fill));
   color: var(--role-ink);
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   font-weight: 800;
-  letter-spacing: 0.035em;
+  letter-spacing: 0.08em;
   line-height: 1.15;
   text-transform: uppercase;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--role-border) 18%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
   vertical-align: middle;
 }
 
@@ -28,7 +38,21 @@
   --role-border: rgba(35, 155, 125, 0.3);
 }
 
-.role-badge > svg { flex: 0 0 auto; }
+.role-badge > svg {
+  flex: 0 0 auto;
+  padding: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--role-ink) 14%, transparent);
+  stroke-width: 2.4;
+}
+
+.role-badge:hover {
+  border-color: color-mix(in srgb, var(--role-ink) 62%, var(--role-border));
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--role-border) 28%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  transform: translateY(-1px);
+}
 
 :root[data-theme="dark"] .role-badge {
   --role-ink: #b4d0ff;

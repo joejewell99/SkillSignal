@@ -1,5 +1,6 @@
 import React from 'react';
-import { Github, Globe, Linkedin, Mail } from 'lucide-react';
+import { Globe, Mail } from 'lucide-react';
+import SocialBrandIcon from '../../../ui/SocialBrandIcon.jsx';
 
 function contactItems(contactLinks = {}) {
   return [
@@ -7,13 +8,13 @@ function contactItems(contactLinks = {}) {
       id: 'linkedin',
       label: 'LinkedIn',
       href: contactLinks.linkedinUrl,
-      icon: Linkedin,
+      brand: 'linkedin',
     },
     {
       id: 'github',
       label: 'GitHub',
       href: contactLinks.githubUrl,
-      icon: Github,
+      brand: 'github',
     },
     {
       id: 'email',
@@ -43,7 +44,7 @@ export default function ContactLinks({ contactLinks, compact = false, className 
         const Icon = item.icon;
         return (
           <a key={item.id} href={item.href} target={item.id === 'email' ? undefined : '_blank'} rel={item.id === 'email' ? undefined : 'noreferrer'} aria-label={item.label} title={item.label}>
-            <Icon size={compact ? 17 : 19} />
+            {item.brand ? <SocialBrandIcon brand={item.brand} size={compact ? 17 : 19} /> : <Icon size={compact ? 17 : 19} />}
           </a>
         );
       })}

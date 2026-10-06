@@ -1399,23 +1399,65 @@
   transform: translateY(-2px);
 }
 
-/* Keep long names and job titles from changing a card's layout. */
+/* Let badges, names and titles determine the header height. */
 .profiles-discovery .profile-card .profile-card-top {
-  height: 64px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 10px;
+  flex: 0 0 auto;
+  height: auto;
   min-height: 64px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .profiles-discovery .profile-card .profile-card-heading {
+  flex: 1 1 150px;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
+  gap: 4px;
+}
+
+.profiles-discovery .profile-card .profile-badges {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  margin: 0 0 0 auto;
+}
+
+.profiles-discovery .profile-card .profile-card-top > .profile-avatar-wrap {
+  flex: 0 0 64px;
+}
+
+.profiles-discovery .profile-card .role-badge {
+  padding: 3px 9px 3px 6px;
+  gap: 5px;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  box-shadow: none;
+}
+
+.profiles-discovery .profile-card .role-badge > svg {
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+}
+
+.profiles-discovery .profile-card .role-badge:hover {
+  transform: none;
 }
 
 .profiles-discovery .profile-card .profile-card-heading h3,
 .profiles-discovery .profile-card .profile-card-heading p {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: block;
+  margin: 0;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+  -webkit-line-clamp: unset;
 }
 
 /* Let the most detailed profile set a shared height for the current card grid. */

@@ -82,17 +82,21 @@ function MatchResultCard({
         ) : (
           <div className="profile-placeholder">{match.profile.name.slice(0, 2).toUpperCase()}</div>
         )}
-        <div>
-          <RoleBadge role={isEmployerMode ? 'employer' : 'developer'} />
-          <div className="match-name-row">
-            <h3>{match.profile.name}</h3>
+        <div className="match-identity">
+          <div className="match-identity-copy">
+            <div className="match-name-row">
+              <h3>{match.profile.name}</h3>
+            </div>
+            <p>{match.profile.title || (isEmployerMode ? 'Employer profile' : 'Developer profile')}</p>
           </div>
-          <p>{match.profile.title || (isEmployerMode ? 'Employer profile' : 'Developer profile')}</p>
         </div>
       </div>
+      <div className="match-header-meta">
+      <RoleBadge role={isEmployerMode ? 'employer' : 'developer'} />
       <div className="match-score">
         <strong>{isEmployerMode ? match.readinessScore ?? match.matchScore : match.relativeMatchScore ?? match.matchScore}%</strong>
         <span>{isEmployerMode ? match.readinessLabel ?? 'readiness' : 'Match score'}</span>
+      </div>
       </div>
       </div>
       <p className="proof-text">{match.reason}</p>
@@ -260,11 +264,36 @@ export default function Match() {
   const [isAiRefreshing, setIsAiRefreshing] = useState(false);
   const [aiError, setAiError] = useState('');
   const [connectionActivity, setConnectionActivity] = useState([]);
+
+  const hasUsableBriefSignal = (value) => {
+    const text = value.toLowerCase().trim();
+    if (!text) return false;
+    const technicalSignal = /\b(software|developer|coding|code|programming|app|application|website|api|database|sql|react|javascript|typescript|java|spring|python|ruby|rails|node|docker|aws|cloud|frontend|backend|full[- ]?stack|bug|feature|project|dashboard|auth|authentication|login|security|deployment|deploy|testing|test|performance|data|automation|hire|hiring|team|stack|framework|language|platform)\b/i;
+    const lettersOnly = text.replace(/[^a-z]/g, '');
+    const words = text.split(/\s+/).filter(Boolean);
+    const distinctWords = new Set(words).size;
+    const repeatedWords = words.length >= 4 && distinctWords <= Math.max(2, Math.floor(words.length / 3));
+    const repeatedCharacters = lettersOnly.length >= 6 && new Set(lettersOnly).size <= 2;
+    const mostlyShortWords = words.length > 0 && words.every((word) => word.length <= 2);
+    if (repeatedWords || repeatedCharacters || mostlyShortWords) return false;
+    return technicalSignal.test(text)
+      && words.length >= 6
+      && lettersOnly.length >= 20
+      && words.some((word) => word.length > 3);
+  };
   const [connectingProfileId, setConnectingProfileId] = useState(null);
   const [connectionMessage, setConnectionMessage] = useState('');
   const [resultView, setResultView] = useState('detail');
   const [aiMatchMessageIndex, setAiMatchMessageIndex] = useState(0);
   const [isSearchButtonPressed, setIsSearchButtonPressed] = useState(false);
+
+  useEffect(() => {
+    if (aiResults && !hasUsableBriefSignal(aiBrief)) {
+      setAiResults(null);
+      setResultsBrief('');
+      setRundownSelection(null);
+    }
+  }, [aiBrief, aiResults]);
 
   useEffect(() => {
     const storedState = readStoredMatchState(matchStorageKey);
@@ -365,6 +394,12 @@ export default function Match() {
       setAiError('Add a skill, stack, project type, or hiring need to search.');
       return;
     }
+    if (!hasUsableBriefSignal(aiBrief)) {
+      setAiResults(null);
+      setRundownSelection(null);
+      setAiError('This looks like spam or does not include a usable technical/work signal. Add the software problem, stack, project type, or hiring need before searching.');
+      return;
+    }
     setIsAiLoading(true);
     setRundownSelection(null);
     setAiError('');
@@ -446,7 +481,9 @@ export default function Match() {
         : '';
 
   const quotaLabel = aiResults
-    ? aiResults.dailySearchLimit < 0
+    ? aiResults.rejected
+      ? 'No search used — improve your brief and try again'
+      : aiResults.dailySearchLimit < 0
       ? 'Unlimited AI searches today'
       : `${aiResults.dailySearchesRemaining} of ${aiResults.dailySearchLimit} AI searches left today`
     : user?.role === 'ADMIN'

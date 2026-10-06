@@ -1390,6 +1390,40 @@
 .match-discovery .match-grid .match-card .match-profile {
   grid-template-columns: 60px minmax(0, 1fr);
 }
+.match-discovery .match-profile .match-identity {
+  display: block;
+}
+.match-discovery .match-identity-copy {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.match-discovery .match-header-meta {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 14px;
+}
+.match-discovery .match-header-meta > .role-badge {
+  align-self: flex-start;
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 3px 9px 3px 6px;
+  gap: 5px;
+  font-size: .6rem;
+  letter-spacing: .05em;
+  box-shadow: none;
+}
+.match-discovery .match-header-meta > .role-badge > svg {
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+}
+.match-discovery .match-header-meta > .role-badge:hover { transform: none; }
+.match-discovery .match-card-heading .match-header-meta > .match-score {
+  flex: 0 0 auto;
+}
 .match-discovery .match-grid .match-card .match-profile img,
 .match-discovery .match-grid .match-card .profile-placeholder {
   width: 60px;

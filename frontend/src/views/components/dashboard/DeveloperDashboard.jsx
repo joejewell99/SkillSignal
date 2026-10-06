@@ -5,10 +5,9 @@ import {
   CheckCircle2,
   Code2,
   ExternalLink,
-  Github,
   Globe,
   ImagePlus,
-  Linkedin,
+  Info,
   Mail,
   MessageSquareText,
   Pencil,
@@ -20,6 +19,7 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '../../../api/client.js';
 import SkillIcon, { getSkillRecognition } from '../../../ui/SkillIcon.jsx';
+import SocialBrandIcon from '../../../ui/SocialBrandIcon.jsx';
 import ImageWithFallback from '../../../ui/ImageWithFallback.jsx';
 import ContactLinks from '../profile/ContactLinks.jsx';
 import ConversationContextMenu from './ConversationContextMenu.jsx';
@@ -942,7 +942,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
             <input id="developer-photo" type="file" accept="image/*" onChange={handlePhotoChange} />
           </div>
           <div>
-            <RoleBadge role="developer" context="dashboard" />
+            <p className="eyebrow">Developer dashboard</p>
             <h1>{user.name}</h1>
             <label className="inline-field" htmlFor="developer-title">
               <span>Professional title</span>
@@ -1097,7 +1097,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                 </div>
                 <div className="contact-link-fields">
                   <label htmlFor="developer-linkedin">
-                    <span><Linkedin size={17} /> LinkedIn</span>
+                    <span><SocialBrandIcon brand="linkedin" /> LinkedIn</span>
                     <input
                       id="developer-linkedin"
                       type="url"
@@ -1108,7 +1108,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                     />
                   </label>
                   <label htmlFor="developer-github-contact">
-                    <span><Github size={17} /> GitHub</span>
+                    <span><SocialBrandIcon brand="github" /> GitHub</span>
                     <input
                       id="developer-github-contact"
                       type="url"
@@ -1172,15 +1172,17 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
 
             <aside className="employer-profile-preview-column">
               <section className="profile-card employer-dashboard-preview-card">
+                <div className="dashboard-preview-identity">
                 <ImageWithFallback
                   src={profile.photo}
                   alt={`${user.name} preview`}
                   fallback={<div className="profile-placeholder" aria-label={`${user.name} image unavailable`}>{user.name.slice(0, 2).toUpperCase()}</div>}
                 />
+                <RoleBadge role="developer" />
                 <div className="profile-card-heading">
-                  <RoleBadge role="developer" />
                   <h3>{user.name}</h3>
                   <p>{profile.title}</p>
+                </div>
                 </div>
                 <div className="skill-list">
                   {profile.skills.map((skill) => (
@@ -1196,7 +1198,13 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                 </Link>
               </section>
               <div className="profile-preview-actions">
-                <p className="info-message preview-note">This mirrors your searchable profile card.</p>
+                <aside className="preview-note" aria-label="About this preview">
+                  <Info size={18} aria-hidden="true" />
+                  <div>
+                    <strong>Profile preview</strong>
+                    <p>This shows the details on your searchable profile. Save your changes to update it.</p>
+                  </div>
+                </aside>
                 <button className={`primary-button profile-view-link ${profileSaveStatus ? 'success-button' : ''}`} type="button" onClick={saveProfileDetails}>
                   <CheckCircle2 size={17} />
                   <span>{profileSaveStatus || 'Save profile'}</span>
@@ -1269,7 +1277,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                   </label>
                   <div className="two-column-fields">
                     <label htmlFor="project-github">
-                      GitHub link
+                      <span><SocialBrandIcon brand="github" /> GitHub link</span>
                       <input
                         id="project-github"
                         type="url"
@@ -1373,7 +1381,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                       <div className="project-links">
                         {project.githubUrl && (
                           <a href={project.githubUrl} target="_blank" rel="noreferrer">
-                            <Github size={16} />
+                            <SocialBrandIcon brand="github" size={16} />
                             <span>Code</span>
                           </a>
                         )}

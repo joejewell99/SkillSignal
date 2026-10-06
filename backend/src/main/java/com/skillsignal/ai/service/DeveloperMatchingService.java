@@ -95,13 +95,13 @@ public class DeveloperMatchingService {
         pruneExpiredSearches();
         boolean employerMode = "EMPLOYER".equalsIgnoreCase(safe(mode));
         boolean peerMode = !employerMode;
-        AiSearchQuota quota = quotaService.consumeSearch(authentication, request);
         BriefAnalysis analysis = briefAnalysisService.analyze(brief);
         if (analysis.rejected()) {
+            // Invalid briefs are rejected before quota consumption or profile ranking.
             return buildResponse(
-                    quota.dailyLimit(),
-                    quota.used(),
-                    quota.remaining(),
+                    -1,
+                    0,
+                    -1,
                     analysis.quality(),
                     "NOT_USED",
                     false,
@@ -119,6 +119,7 @@ public class DeveloperMatchingService {
                     List.of()
             );
         }
+        AiSearchQuota quota = quotaService.consumeSearch(authentication, request);
         if ("NEEDS_MORE_DETAIL".equals(analysis.quality()) && !canProfileSearchWithPartialSignals(analysis)) {
             return buildResponse(
                     quota.dailyLimit(),

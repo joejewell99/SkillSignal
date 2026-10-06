@@ -255,11 +255,11 @@ export default function Profiles() {
                     <span className={`presence-dot profile-presence ${profile.presence?.toLowerCase().replaceAll('_', '-') ?? 'offline'}`} title={profile.presence?.replaceAll('_', ' ') ?? 'Offline'} />
                   </div>
                   <div className="profile-card-heading">
-                    <div className="profile-badges">
-                      <RoleBadge role={profile.type} />
-                    </div>
                     <h3>{profile.name}</h3>
                     <p>{profile.title}</p>
+                  </div>
+                  <div className="profile-badges">
+                    <RoleBadge role={profile.type} />
                   </div>
                 </div>
                 <div className="skill-list">
