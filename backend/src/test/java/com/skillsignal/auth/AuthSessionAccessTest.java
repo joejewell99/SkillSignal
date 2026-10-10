@@ -3,7 +3,9 @@ package com.skillsignal.auth;
 import com.skillsignal.auth.controller.AuthController;
 import com.skillsignal.auth.dto.AuthResponse;
 import com.skillsignal.auth.service.AuthService;
+import com.skillsignal.auth.service.TurnstileVerificationService;
 import com.skillsignal.security.JwtAuthenticationFilter;
+import com.skillsignal.security.IpRateLimitFilter;
 import com.skillsignal.security.JwtService;
 import com.skillsignal.security.SecurityConfig;
 import com.skillsignal.security.UserPrincipal;
@@ -33,12 +35,27 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "app.auth.cookie-secure=false"
         }
 )
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, IpRateLimitFilter.class})
 class AuthSessionAccessTest {
     @Autowired MockMvc mvc;
     @MockBean AuthService authService;
     @MockBean JwtService jwtService;
     @MockBean UserDetailsService userDetailsService;
+    @MockBean TurnstileVerificationService turnstileVerificationService;
+
+    @Test
+    void failedBotCheckCannotCreateAccount() throws Exception {
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/auth/register")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("""
+                    {"name":"Test User","email":"test@example.com","password":"test-password-123",
+                     "role":"DEVELOPER","acceptedTerms":true,"turnstileToken":"invalid-token"}
+                    """))
+                .andExpect(status().isBadRequest());
+        verify(turnstileVerificationService).verify(org.mockito.ArgumentMatchers.eq("invalid-token"), org.mockito.ArgumentMatchers.anyString());
+        org.mockito.Mockito.verifyNoInteractions(authService);
+    }
 
     @Test
     void anonymousUsersReceiveUnauthorizedForCurrentSession() throws Exception {

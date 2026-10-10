@@ -80,6 +80,7 @@ public class AuthService {
     }
 
     public AuthResponse register(RegisterRequest request) {
+        PasswordPolicy.validate(request.password(), request.name(), request.email());
         if (request.role() == Role.ADMIN) {
             throw new IllegalArgumentException("Admin accounts cannot be self-registered.");
         }

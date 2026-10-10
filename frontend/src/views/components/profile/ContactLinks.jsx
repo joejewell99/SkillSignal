@@ -2,18 +2,27 @@ import React from 'react';
 import { Globe, Mail } from 'lucide-react';
 import SocialBrandIcon from '../../../ui/SocialBrandIcon.jsx';
 
+function safeWebUrl(value) {
+  try {
+    const url = new URL(value);
+    return ['https:', 'http:'].includes(url.protocol) ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
 function contactItems(contactLinks = {}) {
   return [
     {
       id: 'linkedin',
       label: 'LinkedIn',
-      href: contactLinks.linkedinUrl,
+      href: safeWebUrl(contactLinks.linkedinUrl),
       brand: 'linkedin',
     },
     {
       id: 'github',
       label: 'GitHub',
-      href: contactLinks.githubUrl,
+      href: safeWebUrl(contactLinks.githubUrl),
       brand: 'github',
     },
     {
@@ -25,7 +34,7 @@ function contactItems(contactLinks = {}) {
     {
       id: 'website',
       label: 'Website',
-      href: contactLinks.websiteUrl,
+      href: safeWebUrl(contactLinks.websiteUrl),
       icon: Globe,
     },
   ].filter((item) => item.href);

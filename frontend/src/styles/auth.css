@@ -369,6 +369,35 @@
   text-align: center;
 }
 
+.turnstile-wrap {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 65px;
+  width: 100%;
+}
+
+.password-strength { display: grid; gap: 8px; margin-top: -6px; --strength-color: #f09898; }
+.password-strength[data-score="2"] { --strength-color: #e9c576; }
+.password-strength[data-score="3"], .password-strength[data-score="4"] { --strength-color: #68dcc2; }
+.password-strength-heading { display: flex; justify-content: space-between; gap: 12px; font-size: 0.8rem; color: #aebbc6; }
+.password-strength-heading strong { color: var(--strength-color); }
+.password-strength-bars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.password-strength-bars span { height: 4px; border-radius: 4px; background: #34414c; }
+.password-strength-bars .filled { background: var(--strength-color); }
+.password-strength p, .password-strength small { margin: 0; color: #aebbc6; font-size: 0.78rem; line-height: 1.5; }
+.password-strength .password-warning { color: #ffb4b4; background: rgba(170, 40, 50, 0.12); border: 1px solid rgba(240, 110, 120, 0.4); border-radius: 8px; padding: 10px 12px; }
+
+.turnstile-widget {
+  width: 100%;
+  min-height: 65px;
+  max-width: 100%;
+}
+
+.turnstile-error {
+  margin: 0;
+}
+
 .terms-notice a {
   color: #9bbdff;
   font-weight: 700;

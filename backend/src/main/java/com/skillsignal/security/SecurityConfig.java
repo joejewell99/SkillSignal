@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -29,15 +30,18 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final IpRateLimitFilter ipRateLimitFilter;
     private final UserDetailsService userDetailsService;
     private final String allowedOrigin;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
+            IpRateLimitFilter ipRateLimitFilter,
             UserDetailsService userDetailsService,
             @Value("${app.cors.allowed-origin}") String allowedOrigin
     ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.ipRateLimitFilter = ipRateLimitFilter;
         this.userDetailsService = userDetailsService;
         this.allowedOrigin = allowedOrigin;
     }
@@ -52,7 +56,10 @@ public class SecurityConfig {
                 .headers(headers -> headers
                         .contentTypeOptions(org.springframework.security.config.Customizer.withDefaults())
                         .frameOptions(frame -> frame.deny())
-                        .httpStrictTransportSecurity(hsts -> hsts
+                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://challenges.cloudflare.com ws: wss:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"))
+                        .referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                        .permissionsPolicy(permissions -> permissions.policy("camera=(), microphone=(), geolocation=()")))
+                .headers(headers -> headers.httpStrictTransportSecurity(hsts -> hsts
                                 .includeSubDomains(true)
                                 .maxAgeInSeconds(31536000)))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -85,6 +92,7 @@ public class SecurityConfig {
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(ipRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
@@ -104,6 +112,13 @@ public class SecurityConfig {
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    FilterRegistrationBean<IpRateLimitFilter> disableRateLimitServletRegistration(IpRateLimitFilter filter) {
+        FilterRegistrationBean<IpRateLimitFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean

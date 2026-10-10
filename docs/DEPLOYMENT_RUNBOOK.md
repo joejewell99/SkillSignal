@@ -14,6 +14,7 @@ Provide these through the hosting platform's secret manager, never in Git:
 Use [`.env.production.example`](../.env.production.example) as the variable checklist. Keep the populated file outside the repository.
 
 Keep `DEMO_DATA_ENABLED=false`, `JPA_DDL_AUTO=validate`, and `AUTH_COOKIE_SECURE=true` in production.
+Keep PostgreSQL private to the compose network. Put the public frontend behind HTTPS and a managed WAF/CDN with DDoS protection, bot controls, and origin lock-down. Leave `TRUST_FORWARDED_FOR=false` unless the API is only reachable via a proxy that overwrites forwarding headers. The app limiter is per process; edge/shared-store limits are required across multiple replicas.
 
 ## Release
 
@@ -39,4 +40,4 @@ Rollback the application by redeploying the previous image tag. Roll back a data
 
 ## Operational Gaps
 
-The hosting provider still needs HTTPS, managed backups, uptime monitoring, error reporting, trusted-proxy configuration, and one restore rehearsal before this is presented as a live production service.
+The hosting provider still needs HTTPS, WAF/DDoS protection, origin lock-down, managed backups, uptime and resource monitoring, error reporting, reviewed trusted-proxy configuration, and one restore rehearsal before this is presented as a live production service. Legal readiness also depends on operating jurisdictions, accurate privacy/terms notices, retention and deletion policy, data-rights handling, subprocessors, and breach procedures; see [`SECURITY.md`](../SECURITY.md).

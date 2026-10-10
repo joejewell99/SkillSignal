@@ -1,5 +1,9 @@
 server:
   port: 8080
+  max-http-request-header-size: 8KB
+  tomcat:
+    max-http-form-post-size: 1MB
+    max-swallow-size: 1MB
 
 spring:
   datasource:
@@ -11,7 +15,7 @@ spring:
       ddl-auto: ${JPA_DDL_AUTO:validate}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
     open-in-view: false
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
@@ -32,6 +36,13 @@ app:
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
   auth:
     cookie-secure: ${AUTH_COOKIE_SECURE:false}
+  security:
+    trust-forwarded-for: ${TRUST_FORWARDED_FOR:false}
+    auth-requests-per-minute: ${AUTH_REQUESTS_PER_MINUTE:10}
+    write-requests-per-minute: ${WRITE_REQUESTS_PER_MINUTE:300}
+  turnstile:
+    secret-key: ${TURNSTILE_SECRET_KEY:1x0000000000000000000000000000000AA}
+    expected-hostname: ${TURNSTILE_EXPECTED_HOSTNAME:}
   cors:
     allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
   admin:

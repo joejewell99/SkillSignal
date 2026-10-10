@@ -12,6 +12,7 @@ import com.skillsignal.proof.dto.ProofSignalRequest;
 import com.skillsignal.proof.dto.ProofSignalResponse;
 import com.skillsignal.proof.service.ProofSignalService;
 import com.skillsignal.security.UserPrincipal;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,7 +48,7 @@ public class DeveloperController {
 
     @PatchMapping("/profile")
     ProfileResponse updateProfile(
-            @RequestBody DeveloperProfileUpdateRequest request,
+            @Valid @RequestBody DeveloperProfileUpdateRequest request,
             Authentication authentication
     ) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
@@ -77,7 +78,7 @@ public class DeveloperController {
 
     @PostMapping("/proof-signals")
     ProofSignalResponse sendProofSignal(
-            @RequestBody ProofSignalRequest request,
+            @Valid @RequestBody ProofSignalRequest request,
             Authentication authentication
     ) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
@@ -98,7 +99,7 @@ public class DeveloperController {
 
     @PostMapping("/connections")
     DeveloperConnectionResponse requestConnection(
-            @RequestBody ConnectionRequest request,
+            @Valid @RequestBody ConnectionRequest request,
             Authentication authentication
     ) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();

@@ -6,6 +6,7 @@ import com.skillsignal.auth.dto.PresenceUpdateRequest;
 import com.skillsignal.auth.dto.LoginRequest;
 import com.skillsignal.auth.dto.RegisterRequest;
 import com.skillsignal.auth.service.AuthService;
+import com.skillsignal.auth.service.TurnstileVerificationService;
 import com.skillsignal.security.UserPrincipal;
 import com.skillsignal.security.JwtSessionPolicy;
 import jakarta.validation.Valid;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.http.ResponseCookie;
 import org.springframework.beans.factory.annotation.Value;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import org.springframework.security.web.csrf.CsrfToken;
 
@@ -31,20 +33,26 @@ public class AuthController {
     private final AuthService authService;
     private final long jwtExpirationMs;
     private final boolean secureCookie;
+    private final TurnstileVerificationService turnstileVerificationService;
 
     public AuthController(
             AuthService authService,
             @Value("${app.jwt.expiration-ms}") long jwtExpirationMs,
-            @Value("${app.auth.cookie-secure}") boolean secureCookie
+            @Value("${app.auth.cookie-secure}") boolean secureCookie,
+            TurnstileVerificationService turnstileVerificationService
     ) {
         this.authService = authService;
         this.jwtExpirationMs = JwtSessionPolicy.effectiveExpirationMs(jwtExpirationMs);
         this.secureCookie = secureCookie;
+        this.turnstileVerificationService = turnstileVerificationService;
     }
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    AuthResponse register(@Valid @RequestBody RegisterRequest request, HttpServletResponse response) {
+    AuthResponse register(@Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest, HttpServletResponse response) {
+        if (!turnstileVerificationService.verify(request.turnstileToken(), httpRequest.getRemoteAddr())) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST, "Please complete the bot protection check and try again.");
+        }
         return authenticatedResponse(authService.register(request), response);
     }
 

@@ -27,6 +27,8 @@ copy .env.example .env
 
 Set `POSTGRES_USER`, `POSTGRES_PASSWORD`, `DB_USERNAME`, `DB_PASSWORD`, and a random `JWT_SECRET` of at least 32 characters in `.env`. Add `OPENAI_API_KEY` if you want to use the AI features. Keep `.env` local; it is ignored by Git.
 
+Registration uses Cloudflare Turnstile in interaction-only appearance: checks run automatically and a visible prompt is shown only when Cloudflare needs another check. Local defaults use Cloudflare's invisible testing key; before production, set `VITE_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, and `TURNSTILE_EXPECTED_HOSTNAME` to values from a Managed-mode Turnstile widget in the Cloudflare dashboard. Production Compose requires all three, and the backend verifies tokens server-side.
+
 Then start PostgreSQL:
 
 ```bash

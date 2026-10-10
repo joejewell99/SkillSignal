@@ -18,7 +18,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AiSearchQuotaService {
-    private static final String UNLIMITED_TEST_EMAIL = "joejewell99@hotmail.com";
     private static final int GUEST_DAILY_LIMIT = 3;
     private static final int DEVELOPER_DAILY_LIMIT = 5;
     private static final int EMPLOYER_DAILY_LIMIT = 10;
@@ -57,11 +56,8 @@ public class AiSearchQuotaService {
 
     private SearchSubject resolveSubject(Authentication authentication, HttpServletRequest request) {
         if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal principal) {
-            if (UNLIMITED_TEST_EMAIL.equalsIgnoreCase(principal.getUsername())) {
-                return new SearchSubject("USER", String.valueOf(principal.id()), UNLIMITED);
-            }
             return switch (principal.role()) {
-                case "ADMIN" -> new SearchSubject("USER", String.valueOf(principal.id()), UNLIMITED);
+                case "ADMIN" -> new SearchSubject("USER", String.valueOf(principal.id()), EMPLOYER_DAILY_LIMIT);
                 case "EMPLOYER" -> new SearchSubject("USER", String.valueOf(principal.id()), EMPLOYER_DAILY_LIMIT);
                 case "DEVELOPER" -> new SearchSubject("USER", String.valueOf(principal.id()), DEVELOPER_DAILY_LIMIT);
                 default -> new SearchSubject("USER", String.valueOf(principal.id()), GUEST_DAILY_LIMIT);
@@ -72,10 +68,7 @@ public class AiSearchQuotaService {
     }
 
     private String guestFingerprint(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        String ipAddress = forwardedFor == null || forwardedFor.isBlank()
-                ? request.getRemoteAddr()
-                : forwardedFor.split(",")[0].trim();
+        String ipAddress = request.getRemoteAddr();
         String userAgent = request.getHeader("User-Agent") == null ? "" : request.getHeader("User-Agent");
         return sha256(ipAddress + "|" + userAgent);
     }

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 import com.skillsignal.ai.model.AiSearchUsage;
 import com.skillsignal.ai.repository.AiSearchUsageRepository;
@@ -23,13 +24,18 @@ class AiSearchQuotaServiceTest {
     private final HttpServletRequest request = mock(HttpServletRequest.class);
 
     @Test
-    void personalTestAccountHasUnlimitedDailyAllowance() {
+    void personalTestAccountUsesTheStandardDeveloperAllowance() {
         UserPrincipal principal = principal("joejewell99@hotmail.com", "DEVELOPER");
+        AiSearchUsage usage = new AiSearchUsage("USER", "42", LocalDate.now(ZoneOffset.UTC));
+        when(usageRepository.findBySubjectTypeAndSubjectKeyAndUsageDate(
+                "USER", "42", LocalDate.now(ZoneOffset.UTC))).thenReturn(Optional.of(usage));
+        when(usageRepository.save(usage)).thenReturn(usage);
         AiSearchQuota quota = service.consumeSearch(authentication(principal), request);
 
-        assertThat(quota.dailyLimit()).isEqualTo(-1);
-        assertThat(quota.remaining()).isEqualTo(-1);
-        assertThat(quota.unlimited()).isTrue();
+        assertThat(quota.dailyLimit()).isEqualTo(5);
+        assertThat(quota.remaining()).isEqualTo(4);
+        assertThat(quota.unlimited()).isFalse();
+        verify(usageRepository).save(usage);
     }
 
     @Test

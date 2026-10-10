@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext.jsx';
 import BrandLogo from '../ui/BrandLogo.jsx';
 import AuthStars from '../ui/AuthStars.jsx';
+import { EMAIL_ERROR, isValidEmail, validateEmailInput } from '../utils/emailValidation.js';
 
 export default function Login() {
   const { login } = useAuth();
@@ -18,6 +19,7 @@ export default function Login() {
     setStatus('Signing in...');
     setIsSubmitting(true);
     try {
+      if (!isValidEmail(email)) throw new Error(EMAIL_ERROR);
       await login(email, password);
       setStatus('Signed in. Taking you to your dashboard...');
     } catch (err) {
@@ -54,7 +56,9 @@ export default function Login() {
               autoComplete="email"
               placeholder="JordanBlake@example.com"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => { setEmail(event.target.value); validateEmailInput(event.target); }}
+              onBlur={(event) => validateEmailInput(event.target)}
+              maxLength={254}
               type="email"
               required
             />

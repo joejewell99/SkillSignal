@@ -1,4 +1,7 @@
 package com.skillsignal.connection.dto;
 
-public record ConnectionRequest(Long receiverProfileId) {
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
+public record ConnectionRequest(@NotNull @Positive Long receiverProfileId) {
 }

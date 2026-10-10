@@ -10,6 +10,7 @@ import com.skillsignal.marketplace.dto.ProfileResponse;
 import com.skillsignal.proof.dto.ProofSignalResponse;
 import com.skillsignal.proof.service.ProofSignalService;
 import com.skillsignal.security.UserPrincipal;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -48,7 +49,7 @@ public class EmployerController {
 
     @PatchMapping("/profile")
     ProfileResponse updateProfile(
-            @RequestBody EmployerProfileUpdateRequest request,
+            @Valid @RequestBody EmployerProfileUpdateRequest request,
             Authentication authentication
     ) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
@@ -82,7 +83,7 @@ public class EmployerController {
 
     @PostMapping("/saved-candidates")
     SavedCandidateResponse saveCandidate(
-            @RequestBody SavedCandidateRequest request,
+            @Valid @RequestBody SavedCandidateRequest request,
             Authentication authentication
     ) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
