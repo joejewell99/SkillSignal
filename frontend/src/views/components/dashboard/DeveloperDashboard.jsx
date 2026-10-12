@@ -1149,7 +1149,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                     <h2>Profile quality</h2>
                     <p className="subtle">Use this as a quick QA check before employers review your work.</p>
                   </div>
-                  <Link className="secondary-button" to="/profiles/me">
+                  <Link className="secondary-button profile-view-action" to="/profiles/me">
                     <ExternalLink size={16} />
                     <span>View profile</span>
                   </Link>
@@ -1192,7 +1192,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                 <div className="proof-text">
                   <p>{profile.summary || 'Add a summary so employers understand the kind of work you can take on.'}</p>
                 </div>
-                <Link className="secondary-button profile-view-link" to="/profiles/me">
+                <Link className="secondary-button profile-view-link profile-view-action" to="/profiles/me">
                   <ExternalLink size={16} />
                   <span>View profile</span>
                 </Link>

@@ -169,7 +169,7 @@ function MatchResultCard({
         )}
       </div>
       <div className="match-action-row">
-        <Link className="secondary-button match-view-profile" to={`/profiles/${match.profile.id}`}>
+        <Link className="secondary-button match-view-profile profile-view-action" to={`/profiles/${match.profile.id}`}>
           <ExternalLink size={16} />
           <span>{isEmployerMode ? 'View employer' : 'View profile'}</span>
         </Link>

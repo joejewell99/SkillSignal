@@ -1,0 +1,124 @@
+/* Shared feedback for actions, including links styled as buttons. Page-specific
+   colours and selected states remain owned by their component styles. */
+:where(button, [role="button"], .primary-button, .secondary-button, .ghost-button,
+  .nav-item, .auth-tab, .project-links a, .contact-link-icons a,
+  .saved-candidate-view-link) {
+  transition: background-color 180ms ease, border-color 180ms ease,
+    color 180ms ease, box-shadow 180ms ease, filter 180ms ease,
+    transform 180ms ease;
+}
+
+/* Compact controls get feedback without shifting tabs, menus or toggles. */
+@media (hover: hover) {
+  :where(button, [role="button"], .ghost-button, .nav-item, .auth-tab,
+    .saved-candidate-view-link):not(:disabled):not([aria-disabled="true"]):hover {
+    filter: brightness(1.04);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--signal) 45%, transparent),
+      0 3px 10px color-mix(in srgb, var(--signal) 12%, transparent);
+  }
+}
+
+/* Match the directory's teal outline and the Connect action's blue glow. */
+@media (hover: hover) {
+  :root :is(.primary-button, .secondary-button, .project-links a, .contact-link-icons a):not(:disabled):not([aria-disabled="true"]):hover {
+    border-color: var(--signal);
+    box-shadow: 0 6px 12px color-mix(in srgb, var(--signal) 18%, transparent);
+    transform: translateY(-2px);
+  }
+
+  :root :is(.secondary-button, .project-links a, .contact-link-icons a):not(:disabled):not([aria-disabled="true"]):hover {
+    color: var(--signal);
+  }
+
+  :root :is(a.primary-button, button.primary-button):not(:disabled):not([aria-disabled="true"]):hover {
+    border-color: var(--primary);
+    box-shadow: 0 6px 12px color-mix(in srgb, var(--primary) 18%, transparent);
+  }
+}
+
+/* Reuse the directory card's original View profile treatment everywhere. */
+:root .profile-view-action {
+  border-radius: 7px;
+  transition: background-color 180ms ease, border-color 180ms ease,
+    box-shadow 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+:root .profile-view-action:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
+  border-color: var(--signal);
+  box-shadow: 0 6px 12px color-mix(in srgb, var(--signal) 18%, transparent);
+  color: var(--signal);
+  filter: none;
+  transform: translateY(-2px);
+}
+
+/* Upload and checkbox labels are actions too, but should stay in place. */
+:is(.photo-upload, .screenshot-upload, .chat-attachment-button,
+  .featured-project-toggle, .compact-visibility-toggle) {
+  transition: filter 180ms ease, box-shadow 180ms ease;
+}
+
+@media (hover: hover) {
+  :is(.photo-upload, .screenshot-upload, .chat-attachment-button,
+    .featured-project-toggle, .compact-visibility-toggle):not(:has(input:disabled)):hover {
+    filter: brightness(1.04);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--signal) 45%, transparent);
+  }
+}
+
+:is(.photo-upload, .screenshot-upload, .chat-attachment-button,
+  .featured-project-toggle, .compact-visibility-toggle):not(:has(input:disabled)):active {
+  filter: brightness(0.96);
+}
+
+:is(.photo-upload, .screenshot-upload, .chat-attachment-button,
+  .featured-project-toggle, .compact-visibility-toggle):has(input:focus-visible) {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+}
+
+/* Keep destructive actions recognisable even when hovered. */
+:root :is(.destructive-button, .destructive-outline-button, .settings-delete-button, button.danger) {
+  --signal: #d64545;
+}
+
+:root :is(button, [role="button"], .primary-button, .secondary-button,
+  .ghost-button, .nav-item, .auth-tab, .project-links a, .contact-link-icons a,
+  .saved-candidate-view-link):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 65%, var(--signal));
+  outline-offset: 3px;
+}
+
+/* Press wins over hover, including the more specific discovery-page rules. */
+:root :is(button, [role="button"], .primary-button, .secondary-button,
+  .ghost-button, .nav-item, .auth-tab, .project-links a, .contact-link-icons a,
+  .saved-candidate-view-link):not(:disabled):not([aria-disabled="true"]):active {
+  box-shadow: inset 0 2px 4px rgb(0 0 0 / 16%);
+  filter: brightness(0.96);
+  transform: translateY(1px) scale(0.98);
+}
+
+/* Disabled actions must never look clickable, even under old page hover rules. */
+:root :is(button, [role="button"], .primary-button, .secondary-button):is(:disabled, [aria-disabled="true"]) {
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.photo-upload, .screenshot-upload, .chat-attachment-button,
+    .featured-project-toggle, .compact-visibility-toggle) {
+    transition: none;
+  }
+
+  :root :is(button, [role="button"], .primary-button, .secondary-button,
+    .ghost-button, .nav-item, .auth-tab, .project-links a, .contact-link-icons a,
+    .saved-candidate-view-link) {
+    transition: none !important;
+  }
+
+  :root :is(button, [role="button"], .primary-button, .secondary-button,
+    .ghost-button, .nav-item, .auth-tab, .project-links a, .contact-link-icons a,
+    .saved-candidate-view-link):is(:hover, :focus-visible, :active) {
+    transform: none !important;
+  }
+}

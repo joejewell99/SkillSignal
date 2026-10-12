@@ -949,7 +949,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                         </div>
                       </div>
                       <div className="saved-candidate-side-actions">
-                        <Link className="saved-candidate-view-link" to={`/profiles/${candidate.developerProfileId}`}>
+                        <Link className="secondary-button saved-candidate-view-link profile-view-action" to={`/profiles/${candidate.developerProfileId}`}>
                           <ExternalLink size={16} />
                           <span>View profile</span>
                         </Link>
@@ -1331,7 +1331,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                 <div className="proof-text">
                   <p>{profile.summary || 'Add a summary so developers understand what you are hiring for.'}</p>
                 </div>
-                <Link className="secondary-button profile-view-link" to={backendData?.id ? `/profiles/${backendData.id}` : '/profiles'}>
+                <Link className="secondary-button profile-view-link profile-view-action" to={backendData?.id ? `/profiles/${backendData.id}` : '/profiles'}>
                   <ExternalLink size={16} />
                   <span>View profile</span>
                 </Link>

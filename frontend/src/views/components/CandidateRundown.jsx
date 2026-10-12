@@ -168,7 +168,7 @@ function CandidateRundown({ selection, token, onClose, setAiResults }) {
         </div>
         <footer className="rundown-footer">
           <span>Based on the saved profile and your search brief.</span>
-          <Link className="primary-button" to={`/profiles/${profile.id}`} onClick={onClose}>View full profile <ArrowUpRight size={16} /></Link>
+          <Link className="secondary-button profile-view-action" to={`/profiles/${profile.id}`} onClick={onClose}>View full profile <ArrowUpRight size={16} /></Link>
         </footer>
       </>}
     </dialog>

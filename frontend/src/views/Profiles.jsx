@@ -270,7 +270,7 @@ export default function Profiles() {
                 <div className="proof-text">
                   <p>{summaryPreview(profile.summary)}</p>
                 </div>
-                <Link className="secondary-button profile-view-link" to={`/profiles/${profile.id}`}>
+                <Link className="secondary-button profile-view-link profile-view-action" to={`/profiles/${profile.id}`}>
                   <ExternalLink size={16} />
                   <span>View profile</span>
                 </Link>

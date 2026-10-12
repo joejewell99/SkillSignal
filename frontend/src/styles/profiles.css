@@ -1387,18 +1387,6 @@
   margin-top: auto;
 }
 
-/* One consistent profile action treatment, based on the employer card interaction. */
-.profiles-discovery .profile-card .profile-view-link {
-  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 180ms ease;
-}
-
-.profiles-discovery .profile-card .profile-view-link:hover {
-  border-color: var(--signal);
-  box-shadow: 0 6px 12px color-mix(in srgb, var(--signal) 18%, transparent);
-  color: var(--signal);
-  transform: translateY(-2px);
-}
-
 /* Let badges, names and titles determine the header height. */
 .profiles-discovery .profile-card .profile-card-top {
   display: flex;

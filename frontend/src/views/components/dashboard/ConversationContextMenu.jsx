@@ -66,7 +66,7 @@ export default function ConversationContextMenu({ menu, endpoint, token, onClose
 
   return (
     <div ref={menuRef} className="conversation-context-menu" style={{ left, top }} role="menu" aria-label={`Actions for ${partner?.name ?? 'contact'}`}>
-      <button type="button" role="menuitem" onClick={() => { onClose(); onViewProfile(partner?.profileId); }} disabled={isBusy}>
+      <button className="profile-view-action" type="button" role="menuitem" onClick={() => { onClose(); onViewProfile(partner?.profileId); }} disabled={isBusy}>
         <Eye size={15} aria-hidden="true" />
         <span>View profile</span>
       </button>
