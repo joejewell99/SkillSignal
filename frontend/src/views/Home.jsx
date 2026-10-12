@@ -444,6 +444,8 @@ export default function Home() {
           {homeSections.map((section, index) => (
             <a
               className={index === activeHomeSection ? 'active' : ''}
+              aria-current={index === activeHomeSection ? 'location' : undefined}
+              aria-label={section.label}
               href={`#${section.id}`}
               key={section.id}
               onClick={(event) => handleSectionNavClick(event, section.id)}
