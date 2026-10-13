@@ -202,9 +202,8 @@ export default function Home() {
   const [developerSampleMatches, setDeveloperSampleMatches] = useState([]);
   const [briefMode, setBriefMode] = useState('developer');
   const [gettingStartedIndex, setGettingStartedIndex] = useState(0);
-  const [processProgress, setProcessProgress] = useState(0);
-  const [runnerProgress, setRunnerProgress] = useState(0);
-  const runnerProgressRef = useRef(0);
+  const [activeStep, setActiveStep] = useState(0);
+  const runnerRef = useRef(null);
 
   useLayoutEffect(() => {
     const page = homePageRef.current;
@@ -321,111 +320,108 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return undefined;
-    }
-
-    const intervalId = window.setInterval(() => {
-      setGettingStartedIndex((current) => (current + 1) % gettingStartedMessages.length);
-    }, 3200);
-
-    return () => window.clearInterval(intervalId);
-  }, []);
-
-  useEffect(() => {
-    let frameId = null;
-
-    const animateRunner = () => {
-      const current = runnerProgressRef.current;
-      const distance = processProgress - current;
-
-      if (Math.abs(distance) < 0.002) {
-        runnerProgressRef.current = processProgress;
-        setRunnerProgress(processProgress);
-        frameId = null;
-        return;
+    const hero = document.getElementById('home');
+    const gettingStarted = document.getElementById('try-it-out');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let heroVisible = false;
+    let gettingStartedVisible = false;
+    let intervalId = null;
+    const updateActivity = () => {
+      const canAnimate = !document.hidden && !reducedMotion.matches;
+      hero?.classList.toggle('animations-paused', !canAnimate || !heroVisible);
+      if (canAnimate && gettingStartedVisible && intervalId === null) {
+        intervalId = window.setInterval(() => {
+          setGettingStartedIndex((current) => (current + 1) % gettingStartedMessages.length);
+        }, 3200);
+      } else if ((!canAnimate || !gettingStartedVisible) && intervalId !== null) {
+        clearInterval(intervalId);
+        intervalId = null;
       }
-
-      const next = current + distance * 0.11;
-      runnerProgressRef.current = next;
-      setRunnerProgress(next);
-      frameId = window.requestAnimationFrame(animateRunner);
     };
-
-    frameId = window.requestAnimationFrame(animateRunner);
-
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === hero) heroVisible = entry.isIntersecting;
+        if (entry.target === gettingStarted) gettingStartedVisible = entry.isIntersecting;
+      }
+      updateActivity();
+    });
+    if (hero) observer.observe(hero);
+    if (gettingStarted) observer.observe(gettingStarted);
+    document.addEventListener('visibilitychange', updateActivity);
+    reducedMotion.addEventListener('change', updateActivity);
+    updateActivity();
     return () => {
-      if (frameId !== null) {
-        window.cancelAnimationFrame(frameId);
-      }
+      observer.disconnect();
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', updateActivity);
+      reducedMotion.removeEventListener('change', updateActivity);
+      hero?.classList.remove('animations-paused');
     };
-  }, [processProgress]);
+  }, []);
 
   useEffect(() => {
     const element = processRef.current;
-    if (!element || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const runner = runnerRef.current;
+    const shell = element?.querySelector('.how-it-works-shell');
+    if (!element || !runner || !shell || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return undefined;
     }
 
-    let frameId = null;
+    let scrollFrame = null;
+    let animationFrame = null;
+    let target = 0;
+    let current = 0;
+    let width = shell.offsetWidth;
+    let height = shell.offsetHeight;
+    let sectionHeight = element.offsetHeight;
+    let previousTime = null;
 
+    // Move only the decorative runner; React updates only when a step changes.
+    const paintRunner = () => {
+      const x = current < 1 / 3 ? current * 3 : current < 2 / 3 ? 1 : (1 - current) * 3;
+      const y = current < 1 / 3 ? 0 : current < 2 / 3 ? (current - 1 / 3) * 3 : 1;
+      runner.style.transform = `translate3d(${x * width}px, ${y * height}px, 0) translate(-50%, -50%) rotate(45deg)`;
+    };
+    const animate = (time) => {
+      const elapsed = previousTime === null ? 16.67 : Math.min(time - previousTime, 64);
+      previousTime = time;
+      current += (target - current) * (1 - Math.pow(0.89, elapsed / 16.67));
+      if (Math.abs(target - current) < 0.002) current = target;
+      paintRunner();
+      animationFrame = current === target ? null : requestAnimationFrame(animate);
+      if (animationFrame === null) previousTime = null;
+    };
     const updateProgress = () => {
-      const rect = element.getBoundingClientRect();
-      const shell = element.querySelector('.how-it-works-shell');
-      const stickyTop = 80;
-      const shellHeight = shell?.getBoundingClientRect().height ?? window.innerHeight;
-      const scrollableDistance = rect.height - shellHeight;
-
-      if (scrollableDistance <= 0) {
-        setProcessProgress(0);
-        frameId = null;
-        return;
-      }
-
-      const rawProgressDistance = stickyTop - rect.top;
-      const endpointBuffer = Math.min(260, scrollableDistance * 0.16);
-      const animatedDistance = Math.max(scrollableDistance - endpointBuffer * 2, 1);
-      const nextProgress = Math.min(Math.max((rawProgressDistance - endpointBuffer) / animatedDistance, 0), 1);
-      setProcessProgress((current) => (Math.abs(current - nextProgress) > 0.002 ? nextProgress : current));
-      frameId = null;
+      scrollFrame = null;
+      const distance = sectionHeight - height;
+      const buffer = Math.min(260, distance * 0.16);
+      target = distance <= 0 ? 0 : Math.min(Math.max(
+        (80 - element.getBoundingClientRect().top - buffer) / Math.max(distance - buffer * 2, 1), 0), 1);
+      setActiveStep(target < 0.24 ? 0 : target < 0.58 ? 1 : target < 0.92 ? 2 : 3);
+      if (animationFrame === null && current !== target) animationFrame = requestAnimationFrame(animate);
     };
-
-    const requestProgressUpdate = () => {
-      if (frameId !== null) {
-        return;
-      }
-
-      frameId = window.requestAnimationFrame(updateProgress);
+    const requestUpdate = () => {
+      if (scrollFrame === null) scrollFrame = requestAnimationFrame(updateProgress);
     };
-
-    requestProgressUpdate();
-    window.addEventListener('scroll', requestProgressUpdate, { passive: true });
-    window.addEventListener('resize', requestProgressUpdate);
-
+    const resizeObserver = new ResizeObserver(() => {
+      width = shell.offsetWidth;
+      height = shell.offsetHeight;
+      sectionHeight = element.offsetHeight;
+      paintRunner();
+      requestUpdate();
+    });
+    resizeObserver.observe(shell);
+    resizeObserver.observe(element);
+    requestUpdate();
+    window.addEventListener('scroll', requestUpdate, { passive: true });
     return () => {
-      window.removeEventListener('scroll', requestProgressUpdate);
-      window.removeEventListener('resize', requestProgressUpdate);
-      if (frameId !== null) {
-        window.cancelAnimationFrame(frameId);
-      }
+      window.removeEventListener('scroll', requestUpdate);
+      resizeObserver.disconnect();
+      cancelAnimationFrame(scrollFrame);
+      cancelAnimationFrame(animationFrame);
     };
   }, []);
 
-  const activeStep =
-    processProgress < 0.24 ? 0 : processProgress < 0.58 ? 1 : processProgress < 0.92 ? 2 : 3;
-  const borderOffset = 0;
-  const runnerPercentX =
-    runnerProgress < 1 / 3
-      ? (runnerProgress / (1 / 3)) * 100
-      : runnerProgress < 2 / 3
-        ? 100
-        : 100 - (((runnerProgress - 2 / 3) / (1 / 3)) * 100);
-  const runnerPercentY =
-    runnerProgress < 1 / 3
-      ? 0
-      : runnerProgress < 2 / 3
-        ? ((runnerProgress - 1 / 3) / (1 / 3)) * 100
-        : 100;
   const activeBrief = demoBriefs.find((brief) => brief.mode === briefMode) ?? demoBriefs[0];
   const activeSampleMatches = activeBrief.mode === 'employer' ? employerSampleMatches : developerSampleMatches;
 
@@ -561,10 +557,7 @@ export default function Home() {
           <span
             className="how-it-works-runner"
             aria-hidden="true"
-            style={{
-              left: `calc(${borderOffset}px + (${runnerPercentX} * ((100% - ${borderOffset * 2}px) / 100)))`,
-              top: `calc(${borderOffset}px + (${runnerPercentY} * ((100% - ${borderOffset * 2}px) / 100)))`,
-            }}
+            ref={runnerRef}
           />
           <div className="section-heading how-it-works-heading">
             <div>

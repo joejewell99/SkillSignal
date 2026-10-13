@@ -537,6 +537,10 @@ html {
   animation-delay: var(--thought-delay, 0s);
 }
 
+.animations-paused .thought-cloud {
+  animation-play-state: paused;
+}
+
 .thought-cloud:nth-child(4n) {
   max-width: 232px;
 }
@@ -1066,6 +1070,8 @@ html {
 }
 
 .how-it-works-runner {
+  left: 0;
+  top: 0;
   --runner-size: 18px;
   background: linear-gradient(135deg, #ffffff, color-mix(in srgb, var(--primary) 32%, #ffffff));
   border: 2px solid color-mix(in srgb, var(--primary) 58%, #ffffff);

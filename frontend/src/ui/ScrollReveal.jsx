@@ -26,8 +26,10 @@ export default function ScrollReveal() {
     let revealIndex = 0;
     let intersectionObserver;
 
-    const observeElements = () => {
-      document.querySelectorAll(REVEAL_SELECTOR).forEach((element) => {
+    const observeElements = (root) => {
+      const elements = [...root.querySelectorAll(REVEAL_SELECTOR)];
+      if (root instanceof Element && root.matches(REVEAL_SELECTOR)) elements.unshift(root);
+      elements.forEach((element) => {
         if (observed.has(element)) {
           return;
         }
@@ -54,8 +56,21 @@ export default function ScrollReveal() {
       threshold: 0.08,
     });
 
-    observeElements();
-    const mutationObserver = new MutationObserver(observeElements);
+    observeElements(document);
+    // Inspect only new subtrees, not the entire page for every text update.
+    const mutationObserver = new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node instanceof Element) observeElements(node);
+        }
+      }
+      for (const element of observed) {
+        if (!element.isConnected) {
+          intersectionObserver.unobserve(element);
+          observed.delete(element);
+        }
+      }
+    });
     mutationObserver.observe(document.body, { childList: true, subtree: true });
 
     return () => {
