@@ -1,0 +1,1 @@
+ALTER TABLE developer_messages ADD COLUMN image_spoiler BOOLEAN NOT NULL DEFAULT FALSE;

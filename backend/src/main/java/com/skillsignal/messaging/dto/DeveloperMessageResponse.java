@@ -8,6 +8,8 @@ public record DeveloperMessageResponse(
         String senderName,
         String body,
         String imageUrl,
-        Instant createdAt
+        boolean imageSpoiler,
+        Instant createdAt,
+        Long replyToMessageId
 ) {
 }

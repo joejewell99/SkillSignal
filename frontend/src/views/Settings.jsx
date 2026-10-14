@@ -39,6 +39,7 @@ function readAppearance() {
       density: 'comfortable',
       showProfileImages: true,
       showInlineMedia: true,
+      blurChatImages: false,
       reduceMotion: false,
       ...JSON.parse(localStorage.getItem(APPEARANCE_KEY) ?? '{}'),
     };
@@ -296,6 +297,7 @@ export default function Settings() {
             </div>
             <div className="settings-toggle-list">
               <PreferenceToggle label="Display profile images" description="Show avatars beside messages, profiles, and activity." checked={appearance.showProfileImages} onChange={() => updateAppearance('showProfileImages', !appearance.showProfileImages)} />
+              <PreferenceToggle label="Blur chat images" description="Hide all message images behind a spoiler. Reveal each image when you choose. Saved on this browser." checked={Boolean(appearance.blurChatImages)} onChange={() => updateAppearance('blurChatImages', !appearance.blurChatImages)} />
               <PreferenceToggle label="Display inline media" description="Show shared screenshots and image previews in conversations." checked={appearance.showInlineMedia} onChange={() => updateAppearance('showInlineMedia', !appearance.showInlineMedia)} />
               <PreferenceToggle label="Reduce motion" description="Limit non-essential movement and transitions in the interface." checked={appearance.reduceMotion} onChange={() => updateAppearance('reduceMotion', !appearance.reduceMotion)} />
             </div>

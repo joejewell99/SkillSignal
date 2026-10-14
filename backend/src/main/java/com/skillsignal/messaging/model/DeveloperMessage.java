@@ -35,7 +35,17 @@ public class DeveloperMessage {
     private String imageUrl;
 
     @Column(nullable = false)
+    private boolean imageSpoiler = false;
+
+    @Column(nullable = false)
     private Instant createdAt = Instant.now();
+
+    @Column
+    private Long replyToMessageId;
+
+    public Long getReplyToMessageId() { return replyToMessageId; }
+
+    public void setReplyToMessageId(Long value) { replyToMessageId = value; }
 
     protected DeveloperMessage() {
     }
@@ -59,6 +69,10 @@ public class DeveloperMessage {
         return senderUserId;
     }
 
+    public void setBody(String body) {
+        this.body = body;
+    }
+
     public String getBody() {
         return body;
     }
@@ -66,6 +80,10 @@ public class DeveloperMessage {
     public String getImageUrl() {
         return imageUrl;
     }
+
+    public boolean isImageSpoiler() { return imageSpoiler; }
+
+    public void setImageSpoiler(boolean value) { imageSpoiler = value; }
 
     public Instant getCreatedAt() {
         return createdAt;

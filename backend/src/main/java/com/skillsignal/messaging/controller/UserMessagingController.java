@@ -45,7 +45,7 @@ public class UserMessagingController {
             Authentication authentication
     ) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        return messagingService.sendMessage(principal.id(), request.receiverProfileId(), request.body(), request.imageUrl());
+        return messagingService.sendMessage(principal.id(), request.receiverProfileId(), request.body(), request.imageUrl(), request.imageSpoiler());
     }
 
     @PostMapping("/{id}/reply")
@@ -55,7 +55,21 @@ public class UserMessagingController {
             Authentication authentication
     ) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        return messagingService.reply(principal.id(), id, request.body(), request.imageUrl());
+        return messagingService.reply(principal.id(), id, request.body(), request.imageUrl(), request.imageSpoiler(), request.replyToMessageId());
+    }
+
+    @PatchMapping("/{id}/items/{messageId}")
+    DeveloperConversationResponse editMessage(@PathVariable Long id, @PathVariable Long messageId,
+            @Valid @RequestBody ReplyDeveloperMessageRequest request, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return messagingService.editMessage(principal.id(), id, messageId, request.body());
+    }
+
+    @DeleteMapping("/{id}/items/{messageId}")
+    DeveloperConversationResponse deleteMessage(@PathVariable Long id, @PathVariable Long messageId,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return messagingService.deleteMessage(principal.id(), id, messageId);
     }
 
     @PatchMapping("/{id}/accept")

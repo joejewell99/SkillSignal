@@ -1,10 +1,12 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bookmark, BriefcaseBusiness, Camera, CheckCircle2, ExternalLink, ImagePlus, MessageSquareText, Pencil, Plus, Search, Send, Star, Trash2 } from 'lucide-react';
+import { Bookmark, BriefcaseBusiness, Camera, CheckCircle2, ExternalLink, EyeOff, ImagePlus, MessageSquareText, Pencil, Plus, Search, Send, Star, Trash2 } from 'lucide-react';
 import { apiRequest } from '../../../api/client.js';
 import ImageWithFallback from '../../../ui/ImageWithFallback.jsx';
 import ConversationContextMenu from './ConversationContextMenu.jsx';
 import MessageRateLimitNotice from './MessageRateLimitNotice.jsx';
+import ChatMessage from './ChatMessage.jsx';
+import ChatReplyInput from './ChatReplyInput.jsx';
 import useMessageRateLimit from '../../../hooks/useMessageRateLimit.js';
 import {
   emptyProject,
@@ -58,19 +60,6 @@ function formatThreadPreview(value) {
   return preview.length > 72 ? `${preview.slice(0, 69)}...` : preview;
 }
 
-function formatChatTime(value) {
-  if (!value) {
-    return '';
-  }
-  return new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: '2-digit',
-    year: '2-digit',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(value));
-}
-
 function isWithinLastDays(value, days) {
   if (!value) {
     return false;
@@ -107,8 +96,19 @@ export default function EmployerDashboard({ user, token, selectedSection, select
   const [activeThreadId, setActiveThreadId] = useState('');
   const [conversationContextMenu, setConversationContextMenu] = useState(null);
   const [threadReplyDraft, setThreadReplyDraft] = useState('');
+  const [replyTarget, setReplyTarget] = useState(null);
+  useEffect(() => { setReplyTarget(null); }, [activeThreadId]);
   const [threadReplyImageDraft, setThreadReplyImageDraft] = useState('');
-  const [messageStatus, setMessageStatus] = useState('');
+  const [threadReplyImageSpoiler, setThreadReplyImageSpoiler] = useState(false);
+  const [messageStatus, setMessageStatus] = useState(null);
+  const [messageStatusLeaving, setMessageStatusLeaving] = useState(false);
+  useEffect(() => {
+    if (!messageStatus) return undefined;
+    setMessageStatusLeaving(false);
+    const fadeTimer = window.setTimeout(() => setMessageStatusLeaving(true), 2200);
+    const clearTimer = window.setTimeout(() => setMessageStatus(null), 2800);
+    return () => { window.clearTimeout(fadeTimer); window.clearTimeout(clearTimer); };
+  }, [messageStatus?.id]);
   const [profileSaveStatus, setProfileSaveStatus] = useState('');
   const [messageFilter, setMessageFilter] = useState('all');
   const [focusInput, setFocusInput] = useState('');
@@ -500,7 +500,10 @@ export default function EmployerDashboard({ user, token, selectedSection, select
   }
 
   function handleReplyImageChange(event) {
-    readImage(event.target.files?.[0], (result) => setThreadReplyImageDraft(result));
+    readImage(event.target.files?.[0], (result) => {
+      setThreadReplyImageDraft(result);
+      setThreadReplyImageSpoiler(false);
+    });
     event.target.value = '';
   }
 
@@ -651,16 +654,21 @@ export default function EmployerDashboard({ user, token, selectedSection, select
       const updatedThread = await apiRequest(`/api/employer/messages/${thread.id}/reply`, {
         token,
         method: 'POST',
-        body: JSON.stringify({ body: nextReply, imageUrl: threadReplyImageDraft || null }),
+        body: JSON.stringify({ body: nextReply, imageUrl: threadReplyImageDraft || null, imageSpoiler: threadReplyImageSpoiler, replyToMessageId: replyTarget?.id ?? null }),
       });
+      const sentThread = threadReplyImageDraft && threadReplyImageSpoiler
+        ? { ...updatedThread, messages: updatedThread.messages?.map((message, index, messages) => index === messages.length - 1 ? { ...message, imageSpoiler: true } : message) }
+        : updatedThread;
       setChatThreads((current) => {
-        const nextThreads = current.map((item) => (item.id === updatedThread.id ? updatedThread : item));
+        const nextThreads = current.map((item) => (item.id === sentThread.id ? sentThread : item));
         return [...nextThreads].sort((first, second) => new Date(second.updatedAt ?? 0).getTime() - new Date(first.updatedAt ?? 0).getTime());
       });
       setThreadReplyDraft('');
+      setReplyTarget(null);
       setThreadReplyImageDraft('');
-      setActiveThreadId(String(updatedThread.id));
-      setMessageStatus(`Message sent to ${getOtherParticipant(updatedThread)?.name ?? 'user'}.`);
+      setThreadReplyImageSpoiler(false);
+      setActiveThreadId(String(sentThread.id));
+      setMessageStatus({ id: Date.now(), messageId: sentThread.messages?.at(-1)?.id });
     } catch (err) {
       setError(err.message);
     }
@@ -1154,27 +1162,33 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                       </div>
 
                       <div className="chat-message-list" ref={chatListRef}>
-                        {(activeThread.messages ?? []).map((message) => {
-                          const isOwnMessage = String(message.senderUserId) === String(user.userId);
-                          const senderLabel = isOwnMessage ? 'Me' : (message.senderName ?? activeThreadPartner.name ?? 'User');
+                        {(activeThread.messages ?? []).map((message, index) => {
+                          const showSentStatus = messageStatus && String(messageStatus.messageId) === String(message.id);
                           return (
-                            <article className={`chat-bubble ${isOwnMessage ? 'own' : ''}`} key={message.id}>
-                              <div className="chat-message-meta">
-                                <strong>{senderLabel}</strong>
-                                <span>{formatChatTime(message.createdAt)}</span>
-                              </div>
-                              {message.imageUrl ? (
-                                <button
-                                  className="chat-message-image-button"
-                                  type="button"
-                                  onClick={() => setExpandedChatImage(message.imageUrl)}
-                                  aria-label="Expand message image"
-                                >
-                                  <img className="chat-message-image" src={message.imageUrl} alt="Message attachment" />
-                                </button>
-                              ) : null}
-                              <p>{message.body}</p>
-                            </article>
+                            <React.Fragment key={message.id}>
+                            <ChatMessage
+                                message={message}
+                                previousMessage={activeThread.messages[index - 1]}
+                                repliedMessage={activeThread.messages.find((item) => String(item.id) === String(message.replyToMessageId))}
+                                onReply={canReplyToActiveThread ? (target) => {
+                                  setReplyTarget(target);
+                                  chatListRef.current?.closest('.message-thread-panel')?.querySelector('.chat-reply-form textarea')?.focus();
+                                } : undefined}
+                                user={user}
+                                profile={profile}
+                                partner={activeThreadPartner}
+                                showSentStatus={showSentStatus}
+                                sentStatusLeaving={messageStatusLeaving}
+                                onExpandImage={setExpandedChatImage}
+                                onUpdate={async (messageId, body, remove = false) => {
+                                  const updated = await apiRequest(`/api/employer/messages/${activeThread.id}/items/${messageId}`, {
+                                    token, method: remove ? 'DELETE' : 'PATCH',
+                                    ...(remove ? {} : { body: JSON.stringify({ body }) }),
+                                  });
+                                  setChatThreads((current) => current.map((thread) => thread.id === updated.id ? updated : thread));
+                                }}
+                              />
+                            </React.Fragment>
                           );
                         })}
                       </div>
@@ -1196,35 +1210,44 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                           sendReply(activeThread);
                         }}
                       >
-                        <label className="chat-attachment-button" htmlFor="employer-chat-image" aria-label="Attach image">
-                          <ImagePlus size={18} />
-                        </label>
-                        <input
-                          id="employer-chat-image"
-                          className="chat-attachment-input"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleReplyImageChange}
-                        />
-                        <input
-                          className="chat-reply-input"
-                          type="text"
-                          value={threadReplyDraft}
-                          onChange={(event) => setThreadReplyDraft(event.target.value)}
-                          placeholder={cooldownSeconds > 0 ? 'Messaging paused while the spam protection timer runs.' : activeThread.blocked ? 'You blocked this conversation.' : activeThread.blockedByPartner ? 'Messaging is temporarily blocked.' : canReplyToActiveThread ? `Message ${activeThreadPartner.name}...` : 'Accept this message request before replying.'}
-                          disabled={!canReplyToActiveThread}
-                        />
-                        <button className="primary-button chat-send-button" type="submit" disabled={!canReplyToActiveThread || (!threadReplyDraft.trim() && !threadReplyImageDraft)}>
-                          <Send size={16} />
-                          <span>Send</span>
-                        </button>
+                        {replyTarget && <div className="chat-reply-target">
+                          <div><strong>Replying to {String(replyTarget.senderUserId) === String(user.userId) ? user.name : activeThreadPartner.name}</strong><span>{replyTarget.body || 'Image attachment'}</span></div>
+                          <button type="button" aria-label="Cancel reply" onClick={() => setReplyTarget(null)}>Cancel</button>
+                        </div>}
+                          <div className="chat-composer-field">
+                            <label className="chat-attachment-button" htmlFor="employer-chat-image" aria-label="Attach image" title="Attach image">
+                              <ImagePlus size={19} />
+                            </label>
+                            <input
+                              id="employer-chat-image"
+                              className="chat-attachment-input"
+                              type="file"
+                              accept="image/*"
+                              onChange={handleReplyImageChange}
+                            />
+                            <ChatReplyInput
+                              value={threadReplyDraft}
+                              onChange={(event) => setThreadReplyDraft(event.target.value)}
+                              onPasteImage={(image) => readImage(image, (result) => { setThreadReplyImageDraft(result); setThreadReplyImageSpoiler(false); })}
+                              placeholder={cooldownSeconds > 0 ? 'Messaging paused while the spam protection timer runs.' : activeThread.blocked ? 'You blocked this conversation.' : activeThread.blockedByPartner ? 'Messaging is temporarily blocked.' : canReplyToActiveThread ? `Message ${activeThreadPartner.name}...` : 'Accept this message request before replying.'}
+                              disabled={!canReplyToActiveThread}
+                            />
+                          </div>
                       </form>
                       {threadReplyImageDraft ? (
                         <div className="chat-image-preview">
-                          <img src={threadReplyImageDraft} alt="Pending attachment" />
-                          <button className="secondary-button" type="button" onClick={() => setThreadReplyImageDraft('')}>
-                            Remove image
+                          <button className="chat-image-preview-open" type="button" aria-label="View full image" title="View full image" onClick={() => setExpandedChatImage(threadReplyImageDraft)}>
+                            <img className={threadReplyImageSpoiler ? 'is-spoiler' : ''} src={threadReplyImageDraft} alt="Pending attachment" />
                           </button>
+                          {threadReplyImageSpoiler && <span className="chat-image-preview-spoiler"><EyeOff size={18} /> Hidden when sent</span>}
+                          <div className="chat-image-preview-actions">
+                            <button className={`chat-image-preview-spoiler-toggle${threadReplyImageSpoiler ? ' is-active' : ''}`} type="button" aria-label={threadReplyImageSpoiler ? 'Show image when sent' : 'Hide image when sent'} title={threadReplyImageSpoiler ? 'Show image when sent' : 'Hide image when sent'} onMouseDown={(event) => event.preventDefault()} onClick={() => setThreadReplyImageSpoiler((hidden) => !hidden)}>
+                              <EyeOff size={16} />
+                            </button>
+                            <button className="chat-image-preview-remove" type="button" aria-label="Remove attached image" title="Remove image" onClick={() => { setThreadReplyImageDraft(''); setThreadReplyImageSpoiler(false); }}>
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
                       ) : null}
                     </>
@@ -1245,7 +1268,6 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                 />
               </div>
             ) : null}
-            {messageStatus && <p className="connection-toast inbox-toast">{messageStatus}</p>}
           </section>
         )}
 

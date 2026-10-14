@@ -60,7 +60,7 @@ public class UserMessagingService {
     }
 
     @Transactional
-    public DeveloperConversationResponse sendMessage(Long senderUserId, Long receiverProfileId, String body, String imageUrl) {
+    public DeveloperConversationResponse sendMessage(Long senderUserId, Long receiverProfileId, String body, String imageUrl, boolean imageSpoiler) {
         MarketplaceProfile senderProfile = profileForUser(senderUserId);
         MarketplaceProfile receiverProfile = profileRepository.findById(receiverProfileId)
                 .filter(MarketplaceProfile::isDisplayed)
@@ -84,7 +84,7 @@ public class UserMessagingService {
                 )));
 
         if (conversation.getRequesterUserId().equals(senderUserId) && conversation.getStatus() == ConversationStatus.REQUEST) {
-            appendMessage(conversation, senderUserId, body, imageUrl);
+            appendMessage(conversation, senderUserId, body, imageUrl, imageSpoiler);
             return toConversationResponse(conversation, senderUserId);
         }
 
@@ -92,18 +92,55 @@ public class UserMessagingService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Accept this message request before replying.");
         }
 
-        appendMessage(conversation, senderUserId, body, imageUrl);
+        appendMessage(conversation, senderUserId, body, imageUrl, imageSpoiler);
         return toConversationResponse(conversation, senderUserId);
     }
 
     @Transactional
-    public DeveloperConversationResponse reply(Long userId, Long conversationId, String body, String imageUrl) {
+    public DeveloperConversationResponse reply(Long userId, Long conversationId, String body, String imageUrl, boolean imageSpoiler, Long replyToMessageId) {
         DeveloperConversation conversation = conversationForUser(userId, conversationId);
         if (conversation.getStatus() == ConversationStatus.REQUEST && conversation.getReceiverUserId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Accept this message request before replying.");
         }
-        appendMessage(conversation, userId, body, imageUrl);
+        if (replyToMessageId != null) {
+            messageRepository.findById(replyToMessageId)
+                    .filter(message -> message.getConversation().getId().equals(conversationId))
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Original message not found in this conversation."));
+        }
+        appendMessage(conversation, userId, body, imageUrl, imageSpoiler, replyToMessageId);
         return toConversationResponse(conversation, userId);
+    }
+
+    @Transactional
+    public DeveloperConversationResponse editMessage(Long userId, Long conversationId, Long messageId, String body) {
+        DeveloperConversation conversation = conversationForUser(userId, conversationId);
+        DeveloperMessage message = ownedMessage(userId, conversationId, messageId);
+        ensureMessagingAllowed(conversation, userId);
+        messagingRateLimiter.check(userId);
+        if (body != null && body.length() > 1000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message must be 1000 characters or fewer.");
+        }
+        message.setBody(normalizeBody(body, message.getImageUrl()));
+        messageRepository.saveAndFlush(message);
+        publishConversationUpdate(conversation);
+        return toConversationResponse(conversation, userId);
+    }
+
+    @Transactional
+    public DeveloperConversationResponse deleteMessage(Long userId, Long conversationId, Long messageId) {
+        DeveloperConversation conversation = conversationForUser(userId, conversationId);
+        DeveloperMessage message = ownedMessage(userId, conversationId, messageId);
+        messageRepository.delete(message);
+        messageRepository.flush();
+        publishConversationUpdate(conversation);
+        return toConversationResponse(conversation, userId);
+    }
+
+    private DeveloperMessage ownedMessage(Long userId, Long conversationId, Long messageId) {
+        return messageRepository.findById(messageId)
+                .filter(message -> message.getConversation().getId().equals(conversationId))
+                .filter(message -> message.getSenderUserId().equals(userId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Message not found."));
     }
 
     @Transactional
@@ -214,10 +251,21 @@ public class UserMessagingService {
     }
 
     private void appendMessage(DeveloperConversation conversation, Long senderUserId, String body, String imageUrl) {
+        appendMessage(conversation, senderUserId, body, imageUrl, false, null);
+    }
+
+    private void appendMessage(DeveloperConversation conversation, Long senderUserId, String body, String imageUrl, boolean imageSpoiler) {
+        appendMessage(conversation, senderUserId, body, imageUrl, imageSpoiler, null);
+    }
+
+    private void appendMessage(DeveloperConversation conversation, Long senderUserId, String body, String imageUrl, boolean imageSpoiler, Long replyToMessageId) {
         String normalizedBody = normalizeBody(body, imageUrl);
         ensureMessagingAllowed(conversation, senderUserId);
         messagingRateLimiter.check(senderUserId);
-        messageRepository.save(new DeveloperMessage(conversation, senderUserId, normalizedBody, normalizeImageUrl(imageUrl)));
+        DeveloperMessage message = new DeveloperMessage(conversation, senderUserId, normalizedBody, normalizeImageUrl(imageUrl));
+        message.setImageSpoiler(imageUrl != null && imageSpoiler);
+        message.setReplyToMessageId(replyToMessageId);
+        messageRepository.save(message);
         if (conversation.getRequesterUserId().equals(senderUserId)) {
             conversation.setRequesterReadAt(Instant.now());
         } else {
@@ -261,7 +309,9 @@ public class UserMessagingService {
                         resolveSenderName(conversation, message.getSenderUserId()),
                         message.getBody(),
                         message.getImageUrl(),
-                        message.getCreatedAt()
+                        message.isImageSpoiler(),
+                        message.getCreatedAt(),
+                        message.getReplyToMessageId()
                 ))
                 .toList();
         String preview = messages.isEmpty() ? "" : messages.get(messages.size() - 1).body();

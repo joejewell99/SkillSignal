@@ -20,6 +20,7 @@ spring:
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
     baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:true}
+    ignore-migration-patterns: "${FLYWAY_IGNORE_MIGRATION_PATTERNS:*:missing}"
     locations: classpath:db/migration
 
 logging:
