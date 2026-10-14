@@ -231,7 +231,8 @@ export default function ProfileDetail() {
   const shouldShowDeveloperConnection = Boolean(token && user?.role === 'DEVELOPER' && isDeveloperProfile && !connectionStatus.includes('SELF'));
   const canRequestConnection = Boolean(shouldShowDeveloperConnection && profile?.acceptsConnections);
   const canSaveCandidate = Boolean(token && user?.role === 'EMPLOYER' && isDeveloperProfile);
-  const canMessageDeveloper = Boolean(token && isDeveloperProfile && user?.role !== undefined);
+  const showMessaging = Boolean(token && isDeveloperProfile && user?.role !== undefined);
+  const canMessageDeveloper = Boolean(showMessaging && profile?.acceptsMessages);
 
   useEffect(() => {
     let isMounted = true;
@@ -591,7 +592,7 @@ export default function ProfileDetail() {
                   ))}
                 </div>
               )}
-              {(shouldShowDeveloperConnection && profile.acceptsConnections) || canMessageDeveloper || canSaveCandidate ? (
+              {(shouldShowDeveloperConnection && profile.acceptsConnections) || showMessaging || canSaveCandidate ? (
                 <div className="profile-action-row">
                   {canSaveCandidate && (
                     <button
@@ -624,6 +625,9 @@ export default function ProfileDetail() {
                           : isConnecting ? 'Sending request...' : 'Connect'}
                       </span>
                     </button>
+                  )}
+                  {showMessaging && !canMessageDeveloper && (
+                    <p className="muted">This profile has no account attached to receive messages.</p>
                   )}
                   {canMessageDeveloper && (
                     <div className="profile-message-popover-wrap">

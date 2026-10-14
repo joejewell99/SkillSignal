@@ -1120,7 +1120,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                             </div>
                           </div>
                           <div className="message-card-body">
-                            <p>{formatThreadPreview(thread.preview || lastMessage?.body || 'No messages yet.')}</p>
+                            <p>{formatThreadPreview(thread.preview || lastMessage?.body || (lastMessage?.imageUrl ? 'Image attachment' : 'No messages yet.'))}</p>
                           </div>
                           <div className="message-thread-card-footer">
                             <span className="compact-empty-copy">{thread.requestReceived && !isThreadAcceptedForUser(thread) ? '' : 'Private chat'}</span>
@@ -1232,6 +1232,9 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                               placeholder={cooldownSeconds > 0 ? 'Messaging paused while the spam protection timer runs.' : activeThread.blocked ? 'You blocked this conversation.' : activeThread.blockedByPartner ? 'Messaging is temporarily blocked.' : canReplyToActiveThread ? `Message ${activeThreadPartner.name}...` : 'Accept this message request before replying.'}
                               disabled={!canReplyToActiveThread}
                             />
+                            <button className="chat-composer-send" type="submit" aria-label="Send message" title="Send message" disabled={!canReplyToActiveThread || cooldownSeconds > 0 || (!threadReplyDraft.trim() && !threadReplyImageDraft)}>
+                              <Send size={19} />
+                            </button>
                           </div>
                       </form>
                       {threadReplyImageDraft ? (

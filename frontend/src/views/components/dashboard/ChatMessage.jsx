@@ -87,6 +87,32 @@ export default function ChatMessage({ message, previousMessage, user, profile, p
     catch (err) { setError(err.message || 'Could not update this message. Try again.'); }
     finally { setBusy(false); }
   }
+  async function copyImage() {
+    setMenu(null);
+    setError('');
+    try {
+      if (!navigator.clipboard?.write || !window.ClipboardItem) {
+        throw new Error('Image clipboard access is not supported in this browser.');
+      }
+      const response = await fetch(message.imageUrl);
+      if (!response.ok) throw new Error('Could not load this image.');
+      let imageBlob = await response.blob();
+      if (imageBlob.type !== 'image/png') {
+        const bitmap = await createImageBitmap(imageBlob);
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        canvas.getContext('2d').drawImage(bitmap, 0, 0);
+        bitmap.close();
+        imageBlob = await new Promise((resolve, reject) => {
+          canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not prepare this image for copying.')), 'image/png');
+        });
+      }
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': imageBlob })]);
+    } catch (copyError) {
+      setError(copyError.message || 'Could not copy the image.');
+    }
+  }
   const own = String(message.senderUserId) === String(user.userId);
   const name = (own ? user.name : partner.name) || message.senderName || 'User';
   const photo = own ? profile.photo : partner.image;
@@ -125,6 +151,7 @@ export default function ChatMessage({ message, previousMessage, user, profile, p
         {message.imageUrl && <button role="menuitem" onClick={() => { setHidden(!hidden); setMenu(null); }}>{hidden ? <Eye size={16} /> : <EyeOff size={16} />}{hidden ? 'Reveal image' : 'Hide image'}</button>}
         {own && <button role="menuitem" onClick={() => { setDraft(message.body || ''); setEditing(true); setDeleting(false); setMenu(null); }}><Pencil size={16} />Edit message</button>}
         {message.body && <button role="menuitem" onClick={async () => { setMenu(null); try { await navigator.clipboard.writeText(message.body); } catch { setError('Could not copy the message.'); } }}><Copy size={16} />Copy text</button>}
+        {message.imageUrl && <button role="menuitem" onClick={copyImage}><Copy size={16} />Copy image</button>}
         {own && <button role="menuitem" className="chat-delete-action" disabled={busy} onClick={requestDelete}><Trash2 size={16} />Delete message</button>}
         <button role="menuitem" onClick={async () => { setMenu(null); try { await navigator.clipboard.writeText(String(message.id)); } catch { setError('Could not copy the message ID.'); } }}>Copy message ID</button>
       </div>, document.body)}

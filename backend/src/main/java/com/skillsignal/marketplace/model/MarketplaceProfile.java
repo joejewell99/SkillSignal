@@ -174,6 +174,13 @@ public class MarketplaceProfile {
         return userId;
     }
 
+    public void attachAccount(Long userId) {
+        if (this.userId != null || userId == null) {
+            throw new IllegalStateException("A profile must be unowned before attaching an account.");
+        }
+        this.userId = userId;
+    }
+
     public String getProjectsJson() {
         return projectsJson;
     }

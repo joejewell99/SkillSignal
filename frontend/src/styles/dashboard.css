@@ -890,7 +890,7 @@
 .message-thread-list {
   align-content: start;
   display: grid;
-  gap: 12px;
+  gap: 7px;
   grid-auto-rows: max-content;
   justify-items: stretch;
   min-height: 0;
@@ -909,10 +909,10 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
-  gap: 12px;
+  gap: 7px;
   flex: 0 0 auto;
-  min-height: 168px;
-  padding: 14px;
+  min-height: 132px;
+  padding: 9px 10px;
   text-align: left;
   transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
@@ -928,7 +928,7 @@
   background: transparent;
   border: 0;
   display: grid;
-  gap: 12px;
+  gap: 7px;
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 100%;
   padding: 0;
@@ -1501,6 +1501,34 @@
   background: color-mix(in srgb, var(--primary) 10%, transparent);
 }
 
+.chat-composer-send {
+  align-items: center;
+  align-self: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 38px;
+  justify-content: center;
+  margin-left: 2px;
+  padding: 0;
+  transition: background-color 150ms ease, color 150ms ease;
+  width: 38px;
+}
+
+.chat-composer-send:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+
+.chat-composer-send:disabled {
+  color: color-mix(in srgb, var(--muted) 55%, transparent);
+  cursor: not-allowed;
+}
+
 .chat-attachment-input {
   display: none;
 }
@@ -1701,32 +1729,32 @@
 .message-card-identity img,
 .message-card-identity .profile-placeholder {
   border-radius: 8px;
-  height: 56px;
+  height: 44px;
   object-fit: cover;
-  width: 56px;
+  width: 44px;
 }
 
 .message-card-title {
   color: var(--muted);
-  margin: 4px 0 0;
+  margin: 2px 0 0;
 }
 
 .message-card-body {
   display: grid;
-  gap: 10px;
-  min-height: 24px;
+  gap: 5px;
+  min-height: 20px;
 }
 
 .message-card-body > p {
   color: var(--ink);
   display: -webkit-box;
-  line-height: 1.45;
+  line-height: 1.4;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: normal;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
 }
 
 .message-card-body > p.expanded {

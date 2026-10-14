@@ -63,11 +63,10 @@ public class UserMessagingService {
     public DeveloperConversationResponse sendMessage(Long senderUserId, Long receiverProfileId, String body, String imageUrl, boolean imageSpoiler) {
         MarketplaceProfile senderProfile = profileForUser(senderUserId);
         MarketplaceProfile receiverProfile = profileRepository.findById(receiverProfileId)
-                .filter(MarketplaceProfile::isDisplayed)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User profile not found."));
 
         if (receiverProfile.getUserId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This user is not accepting messages yet.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This profile has no account attached to receive messages.");
         }
         if (senderUserId.equals(receiverProfile.getUserId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot message yourself.");
@@ -294,8 +293,7 @@ public class UserMessagingService {
 
     private MarketplaceProfile profileForUser(Long userId) {
         return profileRepository.findByUserId(userId)
-                .filter(MarketplaceProfile::isDisplayed)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Create your profile before messaging."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Your account profile could not be found."));
     }
 
     private DeveloperConversationResponse toConversationResponse(DeveloperConversation conversation, Long viewerUserId) {

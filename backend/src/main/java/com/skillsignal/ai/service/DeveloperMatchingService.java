@@ -985,6 +985,7 @@ public class DeveloperMatchingService {
                 response.featured(),
                 response.displayed(),
                 response.acceptsConnections(),
+                response.acceptsMessages(),
                 response.demoProfile(),
                 response.contactLinks(),
                 response.preferences(),

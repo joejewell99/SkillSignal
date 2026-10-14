@@ -1384,11 +1384,11 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
             <div className="panel-heading-row">
               <div>
                 <h2>Messages</h2>
-                <p className="subtle">Private conversation threads, message requests, and direct replies in one place.</p>
+                <p className="subtle">Private conversations, message requests, and direct replies in one place.</p>
               </div>
               <div className="inbox-meta-pill">
                 <MessageSquareText size={16} />
-                <span>{chatThreads.length} thread{chatThreads.length === 1 ? '' : 's'}</span>
+                <span>{chatThreads.length} conversation{chatThreads.length === 1 ? '' : 's'}</span>
               </div>
             </div>
             <div className="inbox-switcher employer-message-filters" role="tablist" aria-label="Message filters">
@@ -1521,7 +1521,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                               </div>
                             </div>
                             <div className="message-card-body">
-                              <p>{formatThreadPreview(thread.preview || lastMessage?.body || 'No messages yet.')}</p>
+                              <p>{formatThreadPreview(thread.preview || lastMessage?.body || (lastMessage?.imageUrl ? 'Image attachment' : 'No messages yet.'))}</p>
                             </div>
                             <div className="message-thread-card-footer">
                               <span className="compact-empty-copy" aria-hidden="true"></span>
@@ -1634,6 +1634,9 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                             placeholder={cooldownSeconds > 0 ? 'Messaging paused while the spam protection timer runs.' : activeThread.blocked ? 'You blocked this conversation.' : activeThread.blockedByPartner ? 'Messaging is temporarily blocked.' : canReplyToActiveThread ? `Message ${activeThreadPartner.name}...` : 'Accept this message request before replying.'}
                             disabled={!canReplyToActiveThread}
                           />
+                          <button className="chat-composer-send" type="submit" aria-label="Send message" title="Send message" disabled={!canReplyToActiveThread || cooldownSeconds > 0 || (!threadReplyDraft.trim() && !threadReplyImageDraft)}>
+                            <Send size={19} />
+                          </button>
                         </div>
                       </form>
                       {threadReplyImageDraft ? (

@@ -244,7 +244,7 @@ public class MarketplaceProfileService {
                 ? readPreferences(profile)
                 : null;
         ProfileResponse response = ProfileResponse.from(profile, projects, needs, proofQuality, readPosts(profile), readContactLinks(profile), preferences);
-        return new ProfileResponse(response.id(), response.type(), response.name(), response.title(), response.summary(), response.image(), presenceFor(profile), response.skills(), response.featured(), response.displayed(), response.acceptsConnections(), response.demoProfile(), response.contactLinks(), response.preferences(), response.projects(), response.needs(), response.proofQuality(), response.posts());
+        return new ProfileResponse(response.id(), response.type(), response.name(), response.title(), response.summary(), response.image(), presenceFor(profile), response.skills(), response.featured(), response.displayed(), response.acceptsConnections(), response.acceptsMessages(), response.demoProfile(), response.contactLinks(), response.preferences(), response.projects(), response.needs(), response.proofQuality(), response.posts());
     }
 
     private String presenceFor(MarketplaceProfile profile) {
