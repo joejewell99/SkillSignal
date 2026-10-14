@@ -31,6 +31,9 @@ export default function useMessagingRealtime({ token, onConversationUpdated, onC
 
     const client = new Client({
       brokerURL: websocketUrl(),
+      connectHeaders: {
+        Authorization: `Bearer ${token}`,
+      },
       reconnectDelay: 3000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
