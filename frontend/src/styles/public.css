@@ -93,20 +93,25 @@
     color 180ms ease;
 }
 
-.account-menu-settings:hover,
-.account-menu-settings:focus-visible {
-  background: var(--signal-soft);
-  color: var(--primary);
+:root .account-menu .account-menu-settings:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--muted) 14%, transparent);
+  color: var(--ink);
 }
 
 .account-menu-signout {
   color: #b33a3a;
 }
 
-.account-menu-signout:hover,
-.account-menu-signout:focus-visible {
-  background: #fff0f0;
-  color: #9d2424;
+:root .account-menu .account-menu-signout:is(:hover, :focus-visible) {
+  background: rgb(214 69 69 / 16%);
+  color: #e05252;
+}
+
+:root .account-menu :is(button, a):is(:hover, :focus-visible, :active) {
+  box-shadow: none;
+  outline: none;
+  filter: none;
+  transform: none;
 }
 
 .dashboard-attention-count { align-items: center; background: var(--primary); border-radius: 999px; color: #ffffff; display: inline-flex; font-size: 0.68rem; justify-content: center; line-height: 1; min-width: 18px; padding: 4px 5px; }
@@ -116,7 +121,7 @@
 .presence-menu { border-bottom: 1px solid var(--line); display: grid; gap: 4px; margin-bottom: 5px; padding: 4px; }
 .presence-menu-current, .presence-menu-option { align-items: center; background: transparent; border: 0; border-radius: 6px; color: var(--muted); display: flex; font-size: 0.82rem; font-weight: 800; gap: 8px; min-height: 32px; padding: 6px; text-align: left; width: 100%; }
 .presence-menu-current svg { margin-left: auto; transition: transform 160ms ease; }
-.presence-menu-current:hover, .presence-menu-option:hover, .presence-menu-option.active { background: var(--signal-soft); color: var(--ink); }
+.presence-menu-current:is(:hover, :focus-visible), .presence-menu-option:is(:hover, :focus-visible, .active) { background: color-mix(in srgb, var(--muted) 14%, transparent); color: var(--ink); }
 .presence-menu-options { border-top: 1px solid var(--line); display: grid; gap: 2px; padding-top: 4px; }
 .presence-menu-option { align-items: center; background: transparent; border: 0; border-radius: 6px; color: var(--muted); display: flex; font-size: 0.82rem; font-weight: 800; gap: 8px; min-height: 30px; padding: 5px 6px; text-align: left; }
 .presence-dot { background: #94a3ad; border: 2px solid var(--surface); border-radius: 50%; display: inline-block; height: 11px; width: 11px; }

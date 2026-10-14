@@ -11,7 +11,7 @@
 /* Compact controls get feedback without shifting tabs, menus or toggles. */
 @media (hover: hover) {
   :where(button, [role="button"], .ghost-button, .nav-item, .auth-tab,
-    .saved-candidate-view-link):not(:disabled):not([aria-disabled="true"]):hover {
+    .saved-candidate-view-link):not(:where(.header-notifications-trigger, .chat-composer-send, .chat-attachment-button, .account-menu *)):not(:disabled):not([aria-disabled="true"]):hover {
     filter: brightness(1.04);
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--signal) 45%, transparent),
       0 3px 10px color-mix(in srgb, var(--signal) 12%, transparent);
@@ -58,7 +58,7 @@
 }
 
 @media (hover: hover) {
-  :is(.photo-upload, .screenshot-upload, .chat-attachment-button,
+  :is(.photo-upload, .screenshot-upload,
     .featured-project-toggle, .compact-visibility-toggle):not(:has(input:disabled)):hover {
     filter: brightness(1.04);
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--signal) 45%, transparent);
@@ -83,7 +83,7 @@
 
 :root :is(button, [role="button"], .primary-button, .secondary-button,
   .ghost-button, .nav-item, .auth-tab, .project-links a, .contact-link-icons a,
-  .saved-candidate-view-link):focus-visible {
+  .saved-candidate-view-link):not(:where(.account-menu *)):focus-visible {
   outline: 3px solid color-mix(in srgb, var(--primary) 65%, var(--signal));
   outline-offset: 3px;
 }
@@ -91,10 +91,17 @@
 /* Press wins over hover, including the more specific discovery-page rules. */
 :root :is(button, [role="button"], .primary-button, .secondary-button,
   .ghost-button, .nav-item, .auth-tab, .project-links a, .contact-link-icons a,
-  .saved-candidate-view-link):not(:disabled):not([aria-disabled="true"]):active {
+  .saved-candidate-view-link):not(:where(.account-menu *)):not(:disabled):not([aria-disabled="true"]):active {
   box-shadow: inset 0 2px 4px rgb(0 0 0 / 16%);
   filter: brightness(0.96);
   transform: translateY(1px) scale(0.98);
+}
+
+/* These icon controls use a quiet fill instead of a focus border or glow. */
+:root :is(.header-notifications-trigger, .chat-composer-send, .chat-attachment-button):focus-visible {
+  outline: none;
+  box-shadow: none;
+  background-color: color-mix(in srgb, var(--muted) 18%, transparent);
 }
 
 /* Disabled actions must never look clickable, even under old page hover rules. */
