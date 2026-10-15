@@ -23,6 +23,7 @@ import SkillIcon, { getSkillRecognition } from '../../../ui/SkillIcon.jsx';
 import SocialBrandIcon from '../../../ui/SocialBrandIcon.jsx';
 import ImageWithFallback from '../../../ui/ImageWithFallback.jsx';
 import ContactLinks from '../profile/ContactLinks.jsx';
+import ProfileSaveNotice from './ProfileSaveNotice.jsx';
 import ConversationContextMenu from './ConversationContextMenu.jsx';
 import MessageRateLimitNotice from './MessageRateLimitNotice.jsx';
 import ChatMessage from './ChatMessage.jsx';
@@ -129,6 +130,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
   const [isComposingPost, setIsComposingPost] = useState(false);
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [profileSaveStatus, setProfileSaveStatus] = useState('');
+  const [profileSavedAt, setProfileSavedAt] = useState(0);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [projectSaveStatus, setProjectSaveStatus] = useState('');
   const [projectForm, setProjectForm] = useState(emptyProject);
@@ -734,6 +736,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
     try {
       await saveDeveloperProfile(profile);
       setProfileSaveStatus('Changes saved');
+      setProfileSavedAt(Date.now());
     } catch (err) {
       setError(err.message);
       setProfileSaveStatus(err.message);
@@ -743,7 +746,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
   }
 
   function handleProfileFieldKeyDown(event) {
-    if (event.key !== 'Enter' || event.shiftKey || event.metaKey || event.ctrlKey || event.altKey) {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing || event.repeat || event.altKey) {
       return;
     }
     event.preventDefault();
@@ -929,6 +932,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
 
   return (
     <section className="dashboard developer-dashboard">
+      <ProfileSaveNotice savedAt={profileSavedAt} />
       <ConversationContextMenu
         menu={conversationContextMenu}
         endpoint="/api/developer/messages"
@@ -1020,6 +1024,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                   Summary
                   <textarea
                     id="developer-summary"
+                    onKeyDown={handleProfileFieldKeyDown}
                     value={profile.summary}
                     maxLength={500}
                     onChange={(event) => updateProfile('summary', event.target.value.slice(0, 500))}

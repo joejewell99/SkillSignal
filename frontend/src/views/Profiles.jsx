@@ -240,9 +240,15 @@ export default function Profiles() {
         <div className="profile-grid" key={`${filter}-${page}-${query}`}>
           {profiles.map((profile) => {
             const profileKey = `${profile.type}-${profile.id ?? profile.name}`;
+            const hiringDetails = profile.type === 'EMPLOYER' ? [
+              ['Location', profile.hiringDetails?.location],
+              ['Work arrangement', profile.hiringDetails?.workArrangement],
+              ['Opportunities', profile.hiringDetails?.opportunities],
+              ['Roles', profile.hiringDetails?.roles],
+            ].filter(([, value]) => value?.trim()) : [];
             return (
               <article
-                className={`profile-card profile-card-${profile.type.toLowerCase()}`}
+                className={`profile-card profile-card-${profile.type.toLowerCase()}${hiringDetails.length > 0 ? ' directory-hiring-card' : ''}`}
                 key={profileKey}
               >
                 <div className="profile-card-top">
@@ -267,7 +273,14 @@ export default function Profiles() {
                     <span key={skill}><SkillIcon skill={skill} />{skill}</span>
                   ))}
                 </div>
-                <div className="proof-text">
+                {hiringDetails.length > 0 && (
+                    <dl className="directory-hiring-details">
+                      {hiringDetails.map(([label, value]) => (
+                        <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                      ))}
+                    </dl>
+                )}
+                <div className={`proof-text${hiringDetails.length > 0 ? ' directory-combined-summary' : ''}`}>
                   <p>{summaryPreview(profile.summary)}</p>
                 </div>
                 <Link className="secondary-button profile-view-link profile-view-action" to={`/profiles/${profile.id}`}>

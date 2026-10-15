@@ -407,7 +407,29 @@
   box-shadow: none;
   max-width: 320px;
   width: 100%;
+  padding: 18px;
+  gap: 16px;
+  grid-template-rows: none;
 }
+
+.employer-dashboard-preview-card .dashboard-preview-identity {
+  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-areas: 'avatar name' 'avatar badge' 'title title';
+  gap: 6px 12px;
+}
+.employer-dashboard-preview-card .dashboard-preview-identity > .role-badge { justify-self: start; }
+.employer-dashboard-preview-card .dashboard-preview-identity > img,
+.employer-dashboard-preview-card .dashboard-preview-identity > .profile-placeholder { width: 56px; height: 56px; }
+.employer-dashboard-preview-card .dashboard-preview-identity .profile-card-heading p { margin-top: 6px; font-size: .87rem; }
+.employer-dashboard-preview-card .skill-list { gap: 6px; margin: 0; }
+.employer-dashboard-preview-card .skill-list > span { font-size: .75rem; padding: 5px 9px; }
+.employer-dashboard-preview-card .employer-hiring-preview { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; margin: 0; padding: 16px 0; border-block: 1px solid var(--line); }
+.employer-dashboard-preview-card .employer-hiring-preview:empty { display: none; }
+.employer-dashboard-preview-card .employer-hiring-preview dt { font-size: .7rem; }
+.employer-dashboard-preview-card .employer-hiring-preview dd { font-size: .84rem; line-height: 1.45; font-weight: 600; }
+.employer-dashboard-preview-card .proof-text { border: 0; margin: 0; padding: 0; }
+.employer-dashboard-preview-card .proof-text p { margin: 0; font-size: .84rem; }
+.employer-dashboard-preview-card .profile-view-link { width: 100%; box-sizing: border-box; margin: 0; }
 
 .employer-dashboard-preview-card:hover {
   box-shadow: var(--shadow);
@@ -477,7 +499,7 @@
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
+  -webkit-line-clamp: 3;
 }
 
 .compact-post-form {
@@ -2925,3 +2947,35 @@
 .chat-reply-reference strong { max-width: 35%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
 .chat-reply-reference > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 .chat-reply-avatar { width: 18px; height: 18px; object-fit: cover; border-radius: 50%; flex-shrink: 0; }
+
+/* Employer hiring information shares the developer dashboard's field styling. */
+.employer-hiring-details form, .employer-hiring-details label { display: grid; gap: 10px; }
+.employer-hiring-details form { gap: 18px; }
+.employer-hiring-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.employer-hiring-details input, .employer-hiring-details select, .employer-hiring-details textarea { box-sizing: border-box; width: 100%; min-width: 0; padding: 12px 14px; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 9px; font: inherit; }
+.employer-hiring-details textarea { resize: vertical; min-height: 110px; }
+.employer-hiring-details .panel-heading-row { margin-bottom: 20px; align-items: flex-start; }
+.employer-hiring-tip { margin: 0; padding: 12px 14px; border-left: 2px solid var(--signal); background: var(--signal-soft); border-radius: 0 8px 8px 0; font-size: .85rem; }
+.employer-hiring-save { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.employer-hiring-save [role="status"] { color: var(--signal); font-size: .85rem; }
+.employer-hiring-preview { display: grid; gap: 12px; margin: 18px 0; }
+.employer-hiring-preview dt { color: var(--muted); font-size: .75rem; margin-bottom: 4px; }
+.employer-hiring-preview dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.employer-public-hiring { margin-top: 24px; }
+.employer-public-hiring .employer-hiring-preview { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.employer-dashboard .editable-skill-list .remove-chip-button { background: var(--signal-soft); border-color: var(--line-strong); color: var(--signal); }
+.employer-dashboard .editable-skill-list .remove-chip-button > span { display: inline-flex; align-items: center; gap: 7px; }
+.employer-dashboard .project-add-button span { color: inherit; }
+@media (max-width: 640px) { .employer-hiring-fields { grid-template-columns: 1fr; } }
+
+.employer-hiring-details textarea { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; scrollbar-gutter: stable; }
+.employer-hiring-details textarea::-webkit-scrollbar { width: 7px; }
+.employer-hiring-details textarea::-webkit-scrollbar-track { background: transparent; }
+.employer-hiring-details textarea::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 8px; }
+.employer-hiring-details textarea::-webkit-scrollbar-button { display: none; height: 0; }
+.employer-hiring-details textarea::-webkit-scrollbar-corner { background: transparent; }
+.employer-hiring-details .employer-hiring-tip { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 14px; }
+.employer-hiring-details .employer-hiring-tip > svg { flex-shrink: 0; color: var(--primary); }
+
+.profile-save-notice { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; align-items: center; gap: 9px; padding: 13px 18px; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 8px 28px rgb(0 0 0 / 20%); pointer-events: none; }
+.profile-save-notice svg { color: var(--signal); }

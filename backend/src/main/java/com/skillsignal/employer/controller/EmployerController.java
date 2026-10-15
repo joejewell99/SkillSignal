@@ -62,6 +62,7 @@ public class EmployerController {
                 request.skills(),
                 request.projects(),
                 request.posts(),
+                request.hiringDetails(),
                 request.displayed()
         );
     }

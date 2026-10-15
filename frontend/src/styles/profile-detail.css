@@ -395,8 +395,9 @@
 }
 
 .hiring-need-card {
+  background: color-mix(in srgb, var(--surface) 94%, var(--signal));
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
   display: grid;
   gap: 16px;
   padding: 18px;
@@ -406,6 +407,21 @@
   display: grid;
   gap: 8px;
 }
+
+.hiring-need-heading .profile-type { justify-self: start; padding: 5px 10px; border-radius: 999px; font-size: .7rem; }
+.hiring-need-meta { border-top: 1px solid var(--line); padding-top: 16px; }
+.employer-public-hiring .employer-hiring-preview { margin-bottom: 0; gap: 16px; }
+.employer-public-hiring .employer-hiring-preview > div { background: color-mix(in srgb, var(--muted) 5%, transparent); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.employer-public-hiring dt { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.employer-public-hiring dt svg { color: var(--signal); }
+.employer-public-hiring dd { font-weight: 600; line-height: 1.5; }
+.employer-work-description { border-left: 3px solid var(--signal); }
+.employer-work-description h2 { display: flex; align-items: center; gap: 10px; }
+.employer-work-description h2 svg { color: var(--signal); }
+.employer-work-description p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.75; margin-bottom: 0; }
+.profile-about-copy, .employer-work-paragraphs { display: grid; gap: 16px; }
+.profile-about-copy p, .employer-work-paragraphs p { margin: 0; line-height: 1.75; }
+.employer-work-paragraphs p + p { padding-top: 16px; border-top: 1px solid var(--line); }
 
 .hiring-need-card h3 {
   font-size: 1.08rem;
@@ -450,3 +466,12 @@ ol {
 
 .profile-preference-row span { font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
 .profile-preference-row span small { color: var(--muted); font-weight: 500; }
+
+.profile-message-popover { left: auto; right: 0; width: min(380px, calc(100vw - 48px)); min-width: 0; box-sizing: border-box; padding: 18px; gap: 16px; border-radius: 14px; background: var(--surface); box-shadow: 0 16px 40px rgb(0 0 0 / 28%); z-index: 30; }
+.profile-message-popover-header { align-items: flex-start; }
+.profile-message-popover-header strong { color: var(--ink); font-size: .95rem; }
+.profile-message-popover-header p { margin: 6px 0 0; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+.contact-composer-close { display: grid; place-items: center; flex-shrink: 0; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
+.profile-message-popover textarea { width: 100%; box-sizing: border-box; min-height: 130px; max-height: 240px; padding: 12px; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--bg); color: var(--ink); font: inherit; font-size: .88rem; line-height: 1.5; scrollbar-width: thin; }
+.profile-message-popover .profile-message-card-actions { justify-content: space-between; }
+.contact-message-count { color: var(--muted); font-size: .72rem; }

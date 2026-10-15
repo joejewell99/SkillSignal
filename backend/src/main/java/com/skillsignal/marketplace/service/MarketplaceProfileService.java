@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillsignal.marketplace.dto.DeveloperPreferencesResponse;
+import com.skillsignal.employer.dto.EmployerHiringDetails;
 import com.skillsignal.marketplace.dto.EmployerNeedResponse;
 import com.skillsignal.marketplace.dto.ProfileContactLinksResponse;
 import com.skillsignal.marketplace.dto.ProfileMetricsResponse;
@@ -182,6 +183,7 @@ public class MarketplaceProfileService {
             List<String> skills,
             List<ProfileProjectResponse> projects,
             List<ProfilePostResponse> posts,
+            EmployerHiringDetails hiringDetails,
             boolean displayed
     ) {
         MarketplaceProfile profile = profileRepository.findByUserId(userId)
@@ -192,6 +194,10 @@ public class MarketplaceProfileService {
         profile.setSkills(skills == null ? new ArrayList<>() : skills.stream().map(String::trim).filter(skill -> !skill.isBlank()).toList());
         profile.setProjectsJson(writeProjects(projects));
         profile.setPostsJson(writePosts(posts));
+        if (hiringDetails != null) {
+            try { profile.setPreferencesJson(objectMapper.writeValueAsString(hiringDetails)); }
+            catch (JsonProcessingException e) { throw new IllegalArgumentException("Hiring details could not be saved.", e); }
+        }
         profile.setDisplayed(displayed);
         MarketplaceProfile savedProfile = profileRepository.save(profile);
         return toResponse(savedProfile);
@@ -244,7 +250,7 @@ public class MarketplaceProfileService {
                 ? readPreferences(profile)
                 : null;
         ProfileResponse response = ProfileResponse.from(profile, projects, needs, proofQuality, readPosts(profile), readContactLinks(profile), preferences);
-        return new ProfileResponse(response.id(), response.type(), response.name(), response.title(), response.summary(), response.image(), presenceFor(profile), response.skills(), response.featured(), response.displayed(), response.acceptsConnections(), response.acceptsMessages(), response.demoProfile(), response.contactLinks(), response.preferences(), response.projects(), response.needs(), response.proofQuality(), response.posts());
+        return new ProfileResponse(response.id(), response.type(), response.name(), response.title(), response.summary(), response.image(), presenceFor(profile), response.skills(), response.featured(), response.displayed(), response.acceptsConnections(), response.acceptsMessages(), response.demoProfile(), response.contactLinks(), response.preferences(), response.projects(), response.needs(), response.proofQuality(), response.posts(), readHiringDetails(profile));
     }
 
     private String presenceFor(MarketplaceProfile profile) {
@@ -417,6 +423,12 @@ public class MarketplaceProfileService {
         } catch (JsonProcessingException exception) {
             return new DeveloperPreferencesResponse("", List.of(), "", List.of());
         }
+    }
+
+    private EmployerHiringDetails readHiringDetails(MarketplaceProfile profile) {
+        if (profile.getType() != ProfileType.EMPLOYER || profile.getPreferencesJson() == null) return null;
+        try { return objectMapper.readValue(profile.getPreferencesJson(), EmployerHiringDetails.class); }
+        catch (JsonProcessingException e) { return null; }
     }
 
     private String writePreferences(DeveloperPreferencesResponse preferences) {

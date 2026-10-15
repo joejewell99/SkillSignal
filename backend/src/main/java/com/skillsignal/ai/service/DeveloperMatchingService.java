@@ -992,7 +992,8 @@ public class DeveloperMatchingService {
                 response.projects(),
                 response.needs(),
                 response.proofQuality(),
-                response.posts()
+                response.posts(),
+                response.hiringDetails()
         );
     }
 

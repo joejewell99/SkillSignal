@@ -13,6 +13,7 @@ public record EmployerProfileUpdateRequest(
         @Size(max = 50) List<@Size(max = 60) String> skills,
         @Size(max = 30) List<@Valid ProfileProjectResponse> projects,
         @Size(max = 50) List<@Valid ProfilePostResponse> posts,
+        @Valid EmployerHiringDetails hiringDetails,
         boolean displayed
 ) {
 }

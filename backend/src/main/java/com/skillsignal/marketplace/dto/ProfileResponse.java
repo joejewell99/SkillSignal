@@ -2,6 +2,7 @@ package com.skillsignal.marketplace.dto;
 
 import com.skillsignal.marketplace.model.MarketplaceProfile;
 import java.util.List;
+import com.skillsignal.employer.dto.EmployerHiringDetails;
 
 public record ProfileResponse(
         Long id,
@@ -22,7 +23,8 @@ public record ProfileResponse(
         List<ProfileProjectResponse> projects,
         List<EmployerNeedResponse> needs,
         ProofQualityResponse proofQuality,
-        List<ProfilePostResponse> posts
+        List<ProfilePostResponse> posts,
+        EmployerHiringDetails hiringDetails
 ) {
     public static ProfileResponse from(MarketplaceProfile profile) {
         return from(profile, List.of(), List.of(), null, List.of());
@@ -85,7 +87,8 @@ public record ProfileResponse(
                 projects,
                 needs,
                 proofQuality,
-                posts
+                posts,
+                null
         );
     }
 }

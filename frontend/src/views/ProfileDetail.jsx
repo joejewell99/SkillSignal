@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Bookmark, Check, ExternalLink, ImageOff, MessageSquareText, Send, Star, UserMinus, UserPlus } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { X, Bookmark, MapPin, Building2, BriefcaseBusiness, Users, Check, ExternalLink, ImageOff, MessageSquareText, Send, Star, UserMinus, UserPlus } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { apiRequest } from '../api/client.js';
 import { useAuth } from '../state/AuthContext.jsx';
@@ -177,6 +177,26 @@ export default function ProfileDetail() {
   const [messagePreviewStatus, setMessagePreviewStatus] = useState('');
   const [isMessagePreviewStatusLeaving, setIsMessagePreviewStatusLeaving] = useState(false);
   const [isMessageComposerOpen, setIsMessageComposerOpen] = useState(false);
+  const contactPopoverRef = useRef(null);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  useEffect(() => {
+    if (!isMessageComposerOpen) return;
+    function outside(event) {
+      if (!contactPopoverRef.current?.contains(event.target)) setIsMessageComposerOpen(false);
+    }
+    function escape(event) {
+      if (event.key === 'Escape') {
+        setIsMessageComposerOpen(false);
+        contactPopoverRef.current?.querySelector('button')?.focus();
+      }
+    }
+    document.addEventListener('pointerdown', outside);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', outside);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [isMessageComposerOpen]);
   const [savedCandidateId, setSavedCandidateId] = useState(null);
   const [saveMessage, setSaveMessage] = useState('');
   const [isSaveMessageLeaving, setIsSaveMessageLeaving] = useState(false);
@@ -436,9 +456,10 @@ export default function ProfileDetail() {
 
   async function sendMessagePreview(event) {
     event.preventDefault();
-    if (!messageDraft.trim()) {
+    if (isSendingMessage || !messageDraft.trim()) {
       return;
     }
+    setIsSendingMessage(true);
     setMessagePreviewStatus('');
     setIsMessagePreviewStatusLeaving(false);
     try {
@@ -460,6 +481,8 @@ export default function ProfileDetail() {
       window.setTimeout(() => setMessagePreviewStatus(''), 2200);
     } catch (err) {
       setMessagePreviewStatus(err.message);
+    } finally {
+      setIsSendingMessage(false);
     }
   }
 
@@ -538,16 +561,19 @@ export default function ProfileDetail() {
                 <div className="profile-action-row">
                   {canSaveCandidate && (
                     <button
-                      className="primary-button"
+                      className={`secondary-button profile-connect-icon-button profile-bookmark-button ${savedCandidateId ? 'is-saved' : ''}`}
                       type="button"
                       onClick={toggleSavedCandidate}
                       disabled={isSavingCandidate}
+                      aria-label={isSavingCandidate ? 'Saving candidate' : savedCandidateId ? 'Remove saved candidate' : 'Save candidate'}
+                      aria-pressed={Boolean(savedCandidateId)}
                     >
-                      <Bookmark size={17} />
-                      <span>
-                        {isSavingCandidate
-                          ? 'Saving...'
-                          : savedCandidateId ? 'Saved' : 'Save candidate'}
+                      <span className="profile-connect-person-anchor">
+                        <Bookmark size={19} fill={savedCandidateId ? 'currentColor' : 'none'} aria-hidden="true" />
+                        {saveMessage && (() => {
+                          const isError = /fail|could not|cannot|error/i.test(saveMessage);
+                          return <span className={`profile-action-popover profile-connect-popover ${isError ? 'is-error' : 'is-confirmation'} ${isSaveMessageLeaving ? 'is-leaving' : ''}`} role="status">{!isError && <Check size={15} aria-hidden="true" />}{saveMessage}</span>;
+                        })()}
                       </span>
                     </button>
                   )}
@@ -572,9 +598,11 @@ export default function ProfileDetail() {
                     <p className="muted">This profile has no account attached to receive messages.</p>
                   )}
                   {canMessageDeveloper && (
-                    <div className="profile-message-popover-wrap">
+                    <div className="profile-message-popover-wrap" ref={contactPopoverRef}>
                       <button
                         className="secondary-button profile-message-trigger"
+                        aria-expanded={isMessageComposerOpen}
+                        aria-controls="profile-contact-composer"
                         type="button"
                         onClick={() => setIsMessageComposerOpen((current) => !current)}
                       >
@@ -582,36 +610,41 @@ export default function ProfileDetail() {
                         <span>Contact</span>
                       </button>
                       {isMessageComposerOpen && (
-                        <form className="profile-message-popover" onSubmit={sendMessagePreview}>
+                        <form id="profile-contact-composer" className="profile-message-popover" onSubmit={sendMessagePreview} aria-label="Contact profile">
                           <div className="profile-message-popover-header">
-                            <span className="message-state-badge">Message request</span>
+                            <div><strong>Contact {profile.name}</strong><p>Introduce yourself and what you would like to discuss.</p></div>
                             <button
-                              className="text-button"
+                              className="contact-composer-close"
                               type="button"
+                              aria-label="Close message"
                               onClick={() => setIsMessageComposerOpen(false)}
                             >
-                              Close
+                              <X size={18} />
                             </button>
                           </div>
                           <textarea
+                            autoFocus
+                            aria-label="Your message"
+                            maxLength={1000}
                             value={messageDraft}
                             onChange={(event) => setMessageDraft(event.target.value)}
-                            placeholder="Hi, I liked the way you explained your authentication project. Would you be open to a quick chat?"
+                            placeholder="Write a short introduction..."
                           />
                           <div className="profile-message-card-actions">
-                            <button className="primary-button" type="submit" disabled={!messageDraft.trim()}>
+                            <span className="contact-message-count">{messageDraft.length}/1000</span>
+                            <button className="primary-button" type="submit" disabled={isSendingMessage || !messageDraft.trim()}>
                               <Send size={17} />
-                              <span>Send</span>
+                              <span>{isSendingMessage ? 'Sending...' : 'Send message'}</span>
                             </button>
                           </div>
                         </form>
                       )}
                     </div>
                   )}
-                  {(messagePreviewStatus || saveMessage) && (() => {
-                    const status = messagePreviewStatus || saveMessage;
+                  {messagePreviewStatus && (() => {
+                    const status = messagePreviewStatus;
                     const isError = /fail|could not|cannot|error/i.test(status);
-                    const isLeaving = messagePreviewStatus ? isMessagePreviewStatusLeaving : isSaveMessageLeaving;
+                    const isLeaving = isMessagePreviewStatusLeaving;
                     return <div className={`profile-action-popover ${isError ? 'is-error' : 'is-confirmation'} ${isLeaving ? 'is-leaving' : ''}`} role="status">{!isError && <Check size={15} aria-hidden="true" />}{status}</div>;
                   })()}
                 </div>
@@ -632,15 +665,30 @@ export default function ProfileDetail() {
             </div>
           </header>
 
+          {isEmployerProfile && profile.hiringDetails && [profile.hiringDetails.location, profile.hiringDetails.workArrangement, profile.hiringDetails.opportunities, profile.hiringDetails.roles].some(Boolean) && (
+            <section className="workspace-panel employer-public-hiring">
+              <h2>Hiring overview</h2>
+              <dl className="employer-hiring-preview">
+                {[['Location', profile.hiringDetails.location, MapPin], ['Work arrangement', profile.hiringDetails.workArrangement, Building2], ['Opportunities', profile.hiringDetails.opportunities, BriefcaseBusiness], ['Roles', profile.hiringDetails.roles, Users]].filter(([, value]) => value).map(([label, value, Icon]) => <div key={label}><dt><Icon size={16} aria-hidden="true" />{label}</dt><dd>{value}</dd></div>)}
+              </dl>
+            </section>
+          )}
           <section className="profile-detail-grid">
             <div className="profile-detail-main">
               <article className="workspace-panel">
                 <h2>About</h2>
-                <p className="subtle">{profile.summary}</p>
+                <div className="profile-about-copy">{profile.summary?.split(/\n\s*\n/).map((paragraph, index) => <p className="subtle" key={index}>{paragraph}</p>)}</div>
               </article>
 
+              {isEmployerProfile && profile.hiringDetails?.brief && (
+                <article className="workspace-panel employer-work-description">
+                  <h2><BriefcaseBusiness size={19} aria-hidden="true" /> What you'll work on</h2>
+                  <div className="employer-work-paragraphs">{profile.hiringDetails.brief.split(/\n\s*\n/).map((paragraph, index) => <p className="subtle" key={index}>{paragraph}</p>)}</div>
+                </article>
+              )}
+
               <article className="workspace-panel">
-                <h2>{isEmployerProfile ? 'Hiring needs' : 'Project proof'}</h2>
+                <h2>{isEmployerProfile ? 'Hiring focus' : 'Project proof'}</h2>
                 {isEmployerProfile ? (
                   <EmployerNeedsList needs={needs} fallbackProjects={projects} describeIdealDeveloper={idealJuniorDevFor} />
                 ) : projects.length === 0 ? (

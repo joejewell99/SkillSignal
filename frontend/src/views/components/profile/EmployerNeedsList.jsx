@@ -13,7 +13,7 @@ export default function EmployerNeedsList({ needs = [], fallbackProjects = [], d
       }));
 
   if (normalizedNeeds.length === 0) {
-    return <p className="subtle">This employer has not published detailed hiring needs yet.</p>;
+    return <p className="subtle">This employer has not published their hiring focus yet.</p>;
   }
 
   return (
@@ -21,7 +21,7 @@ export default function EmployerNeedsList({ needs = [], fallbackProjects = [], d
       {normalizedNeeds.map((need) => (
         <article className="hiring-need-card" key={need.title}>
           <div className="hiring-need-heading">
-            <span className="profile-type employer">{need.featured ? 'Priority need' : 'Hiring need'}</span>
+            <span className="profile-type employer">{need.featured ? 'Priority focus' : 'Hiring focus'}</span>
             <h3>{need.title}</h3>
             <p>{need.problem}</p>
           </div>

@@ -412,6 +412,7 @@ export function toProfilePayload(profile, displayed = profile.isDisplayed) {
 
 export function toEmployerProfilePayload(profile, displayed = profile.isDisplayed) {
   return {
+    hiringDetails: profile.hiringDetails ?? {},
     title: profile.title,
     summary: profile.summary,
     image: profile.photo,

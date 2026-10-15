@@ -1,8 +1,10 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bookmark, BriefcaseBusiness, Camera, CheckCircle2, ExternalLink, EyeOff, ImagePlus, MessageSquareText, Pencil, Plus, Search, Send, Star, Trash2 } from 'lucide-react';
+import { Bookmark, BriefcaseBusiness, Camera, CheckCircle2, ExternalLink, EyeOff, ImagePlus, Info, MessageSquareText, Pencil, Plus, Search, Send, Star, Trash2 } from 'lucide-react';
 import { apiRequest } from '../../../api/client.js';
+import SkillIcon from '../../../ui/SkillIcon.jsx';
 import ImageWithFallback from '../../../ui/ImageWithFallback.jsx';
+import ProfileSaveNotice from './ProfileSaveNotice.jsx';
 import ConversationContextMenu from './ConversationContextMenu.jsx';
 import MessageRateLimitNotice from './MessageRateLimitNotice.jsx';
 import ChatMessage from './ChatMessage.jsx';
@@ -110,6 +112,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
     return () => { window.clearTimeout(fadeTimer); window.clearTimeout(clearTimer); };
   }, [messageStatus?.id]);
   const [profileSaveStatus, setProfileSaveStatus] = useState('');
+  const [profileSavedAt, setProfileSavedAt] = useState(0);
   const [messageFilter, setMessageFilter] = useState('all');
   const [focusInput, setFocusInput] = useState('');
   const [postInput, setPostInput] = useState('');
@@ -206,9 +209,10 @@ export default function EmployerDashboard({ user, token, selectedSection, select
         const shouldSyncStoredPosts = storedProfile.posts.length > 0 && backendPosts.length === 0;
         const nextProfile = {
           ...storedProfile,
+          hiringDetails: profileData.hiringDetails ?? storedProfile.hiringDetails ?? {},
           isDisplayed: profileData.displayed,
           title: storedProfile.title || profileData.title,
-          summary: storedProfile.summary || profileData.summary,
+          summary: profileData.summary || storedProfile.summary,
           photo: storedProfile.photo || profileData.image,
           focus: storedProfile.focus.length > 0 ? storedProfile.focus : profileData.skills,
           projects: shouldSyncStoredProjects ? storedProfile.projects : backendProjects,
@@ -377,6 +381,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
   }
 
   function updateEmployerProfile(field, value) {
+    setProfileSaveStatus('');
     setProfile((current) => ({ ...current, [field]: value }));
   }
 
@@ -426,6 +431,19 @@ export default function EmployerDashboard({ user, token, selectedSection, select
       posts: profileData.posts ?? [],
     }));
     return profileData;
+  }
+
+  async function saveProfileDetails() {
+    if (!backendData || profileSaveStatus === 'Saving') return;
+    setProfileSaveStatus('Saving');
+    try {
+      await saveEmployerProfile(profile);
+      setProfileSaveStatus('Saved');
+      setProfileSavedAt(Date.now());
+    } catch (err) {
+      setProfileSaveStatus('');
+      setError(err.message);
+    }
   }
 
   async function updateEmployerDisplayStatus(displayed) {
@@ -689,7 +707,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
     : candidateFeed;
   const dashboardTabs = [
     { id: 'profile', label: 'My Profile', count: null },
-    { id: 'needs', label: 'Needs', count: null },
+    { id: 'needs', label: 'Hiring focus', count: null },
     { id: 'proof', label: 'Messages', count: chatThreads.reduce((count, thread) => count + (thread.unreadCount ?? 0), 0) || null },
     { id: 'saved', label: 'Saved Candidates', count: null },
     { id: 'feed', label: 'Updates', count: null },
@@ -727,7 +745,15 @@ export default function EmployerDashboard({ user, token, selectedSection, select
   }, [activeThreadId, activeThread?.messages?.length]);
 
   return (
-    <section className="dashboard employer-dashboard">
+    <section className="dashboard employer-dashboard" onKeyDown={(event) => {
+      if (event.key !== 'Enter' || event.nativeEvent.isComposing || event.repeat) return;
+      const field = event.target;
+      if (!field.matches('#employer-title, #employer-summary, .employer-hiring-details input, .employer-hiring-details textarea')) return;
+      if (event.shiftKey) return;
+      event.preventDefault();
+      saveProfileDetails();
+    }}>
+      <ProfileSaveNotice savedAt={profileSavedAt} />
       <ConversationContextMenu
         menu={conversationContextMenu}
         endpoint="/api/employer/messages"
@@ -801,10 +827,10 @@ export default function EmployerDashboard({ user, token, selectedSection, select
           <section className="workspace-panel candidate-panel employer-needs-editor">
             <div className="panel-heading-row">
               <div>
-                <h2>Needs</h2>
-                <p className="subtle">Publish the problems a developer can prove they can solve.</p>
+                <h2>Hiring focus</h2>
+                <p className="subtle">Describe the projects and skills you are hiring for.</p>
               </div>
-              <button className="primary-button" type="button" onClick={() => {
+              <button className="primary-button project-add-button" type="button" onClick={() => {
                 if (isAddingNeed) {
                   resetNeedForm();
                   return;
@@ -812,7 +838,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                 setIsAddingNeed(true);
               }}>
                 <Plus size={18} />
-                <span>{isAddingNeed ? 'Cancel' : 'Requirement'}</span>
+                <span>{isAddingNeed ? 'Cancel' : 'Add requirement'}</span>
               </button>
             </div>
             {isAddingNeed && (
@@ -864,7 +890,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
             {profile.projects.length === 0 ? (
               <div className="empty-state">
                 <BriefcaseBusiness size={28} />
-                <h3>No hiring needs yet</h3>
+                <h3>No hiring focus added yet</h3>
                 <p>Add one clear requirement so developers know what proof, stack, or project experience to show you.</p>
                 <button className="secondary-button" type="button" onClick={() => setIsAddingNeed(true)}>
                   <Plus size={16} />
@@ -903,7 +929,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                       </div>
                       <div className="skill-list">
                         {(need.skills ?? []).map((skill) => (
-                          <span key={skill}>{skill}</span>
+                          <span key={skill}><SkillIcon skill={skill} />{skill}</span>
                         ))}
                       </div>
                     </div>
@@ -964,7 +990,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                         </div>
                         <div className="skill-list">
                           {(candidate.skills ?? []).slice(0, 5).map((skill) => (
-                            <span key={skill}>{skill}</span>
+                            <span key={skill}><SkillIcon skill={skill} />{skill}</span>
                           ))}
                         </div>
                       </div>
@@ -1304,7 +1330,7 @@ export default function EmployerDashboard({ user, token, selectedSection, select
 
               <section className="workspace-panel">
                 <div className="panel-heading-row">
-                  <h2>Hiring focus</h2>
+                  <h2>Skill requirements</h2>
                   <span>{profile.focus.length} added</span>
                 </div>
                 <form className="skill-entry" onSubmit={addFocus}>
@@ -1313,36 +1339,36 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                     onChange={(event) => setFocusInput(event.target.value)}
                     placeholder="React, dashboards, APIs"
                   />
-                  <button className="primary-button icon-button" type="submit" aria-label="Add hiring focus">
+                  <button className="primary-button icon-button" type="submit" aria-label="Add skill requirement">
                     <Plus size={18} />
                   </button>
                 </form>
                 <div className="editable-skill-list">
                 {profile.focus.map((item) => (
                   <button className="remove-chip-button" key={item} type="button" onClick={() => removeFocus(item)}>
-                    <span>{item}</span>
+                    <span><SkillIcon skill={item} />{item}</span>
                     <Trash2 size={14} />
                   </button>
                   ))}
                 </div>
               </section>
 
-              <section className="workspace-panel">
-                <h2>Hiring brief</h2>
-                <ul className="feature-list">
-                  <li>
-                    <CheckCircle2 size={18} />
-                    <span>Post what kind of developer you are looking for</span>
-                  </li>
-                  <li>
-                    <CheckCircle2 size={18} />
-                    <span>Review project proof before contacting</span>
-                  </li>
-                  <li>
-                    <CheckCircle2 size={18} />
-                    <span>Shortlist developers by skill evidence</span>
-                  </li>
-                </ul>
+              <section className="workspace-panel employer-hiring-details">
+                <div className="panel-heading-row"><div><h2>Hiring brief</h2><p className="subtle">Help developers understand where they would work and what they could contribute.</p></div><BriefcaseBusiness size={22} aria-hidden="true" /></div>
+                <form onSubmit={(event) => { event.preventDefault(); saveProfileDetails(); }}>
+                  <div className="employer-hiring-fields">
+                    {[
+                      ['location', 'Company location', 'City and country, e.g. London, UK', 120],
+                      ['opportunities', 'Opportunities offered', 'Internships, graduate roles, full-time positions', 240],
+                      ['roles', 'Roles you are hiring for', 'Frontend developer, backend engineer', 240],
+                    ].map(([field, label, placeholder, maxLength]) => (
+                      <label key={field}>{label}<input value={profile.hiringDetails?.[field] ?? ''} maxLength={maxLength} placeholder={placeholder} onChange={(event) => { setProfile((current) => ({ ...current, hiringDetails: { ...current.hiringDetails, [field]: event.target.value } })); setProfileSaveStatus(''); }} /></label>
+                    ))}
+                    <label>Work arrangement<select value={profile.hiringDetails?.workArrangement ?? ''} onChange={(event) => { setProfile((current) => ({ ...current, hiringDetails: { ...current.hiringDetails, workArrangement: event.target.value } })); setProfileSaveStatus(''); }}><option value="">Select arrangement</option><option>On-site</option><option>Hybrid</option><option>Remote</option><option>Flexible</option></select></label>
+                  </div>
+                  <label>What will the developer work on?<textarea rows={4} maxLength={1500} value={profile.hiringDetails?.brief ?? ''} placeholder="Describe the team's work, the first project, and the support a new hire can expect." onChange={(event) => { setProfile((current) => ({ ...current, hiringDetails: { ...current.hiringDetails, brief: event.target.value } })); setProfileSaveStatus(''); }} /></label>
+                  <aside className="preview-note employer-hiring-tip" aria-label="Hiring brief tip"><Info size={18} aria-hidden="true" /><div><strong>Writing your brief</strong><p>Include the experience level, an example task, and how you support someone joining the team.</p></div></aside>
+                </form>
               </section>
             </div>
 
@@ -1362,9 +1388,12 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                 </div>
                 <div className="skill-list">
                   {profile.focus.map((item) => (
-                    <span key={item}>{item}</span>
+                    <span key={item}><SkillIcon skill={item} />{item}</span>
                   ))}
                 </div>
+                <dl className="employer-hiring-preview">
+                  {Object.entries({ Location: profile.hiringDetails?.location, 'Work arrangement': profile.hiringDetails?.workArrangement, Opportunities: profile.hiringDetails?.opportunities, Roles: profile.hiringDetails?.roles }).filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+                </dl>
                 <div className="proof-text">
                   <p>{profile.summary || 'Add a summary so developers understand what you are hiring for.'}</p>
                 </div>
@@ -1373,6 +1402,17 @@ export default function EmployerDashboard({ user, token, selectedSection, select
                   <span>View profile</span>
                 </Link>
               </section>
+              <div className="profile-preview-actions">
+                <aside className="preview-note" aria-label="About this preview">
+                  <Info size={18} aria-hidden="true" />
+                  <div><strong>Profile preview</strong><p>Save your changes to update your company profile and hiring details. Press Enter to save. Use Shift+Enter for a new line in descriptions.</p></div>
+                </aside>
+                <button className={`primary-button profile-view-link ${profileSaveStatus === 'Saved' ? 'success-button' : ''}`} type="button" onClick={saveProfileDetails} disabled={profileSaveStatus === 'Saving' || !backendData}>
+                  <CheckCircle2 size={17} />
+                  <span>{profileSaveStatus === 'Saving' ? 'Saving...' : profileSaveStatus === 'Saved' ? 'Profile saved' : 'Save profile'}</span>
+                </button>
+                <p className="profile-save-feedback" role="status">{profileSaveStatus === 'Saved' ? 'Changes saved' : ''}</p>
+              </div>
             </aside>
           </div>
         )}
