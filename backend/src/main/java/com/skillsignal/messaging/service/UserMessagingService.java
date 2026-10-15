@@ -48,7 +48,7 @@ public class UserMessagingService {
 
     @Transactional(readOnly = true)
     public List<DeveloperConversationResponse> findInbox(Long userId) {
-        return conversationRepository.findForUser(userId).stream()
+        return conversationRepository.findInboxForUser(userId).stream()
                 .map(conversation -> toConversationResponse(conversation, userId))
                 .toList();
     }
@@ -236,6 +236,20 @@ public class UserMessagingService {
     }
 
     @Transactional
+    public DeveloperConversationResponse closeConversation(Long userId, Long conversationId) {
+        DeveloperConversation conversation = conversationForUser(userId, conversationId);
+        Instant closedAt = Instant.now();
+        if (conversation.getRequesterUserId().equals(userId)) {
+            conversation.setRequesterClosedAt(closedAt);
+        } else {
+            conversation.setReceiverClosedAt(closedAt);
+        }
+        DeveloperConversation saved = conversationRepository.save(conversation);
+        eventPublisher.publishEvent(RealtimeMessagingEvent.conversationUpdated(saved.getId(), userId));
+        return toConversationResponse(saved, userId);
+    }
+
+    @Transactional
     public void decline(Long userId, Long conversationId) {
         DeveloperConversation conversation = conversationForUser(userId, conversationId);
         if (!conversation.getReceiverUserId().equals(userId) || conversation.getStatus() != ConversationStatus.REQUEST) {
@@ -265,6 +279,8 @@ public class UserMessagingService {
         message.setImageSpoiler(imageUrl != null && imageSpoiler);
         message.setReplyToMessageId(replyToMessageId);
         messageRepository.save(message);
+        conversation.setRequesterClosedAt(null);
+        conversation.setReceiverClosedAt(null);
         if (conversation.getRequesterUserId().equals(senderUserId)) {
             conversation.setRequesterReadAt(Instant.now());
         } else {
@@ -342,8 +358,15 @@ public class UserMessagingService {
                 isBlockedForViewer(conversation, viewerUserId),
                 isMutedForViewer(conversation, viewerUserId),
                 isBlockedByPartner(conversation, viewerUserId),
-                isConversationMutedForViewer(conversation, viewerUserId)
+                isConversationMutedForViewer(conversation, viewerUserId),
+                isClosedForViewer(conversation, viewerUserId)
             );
+    }
+
+    private boolean isClosedForViewer(DeveloperConversation conversation, Long userId) {
+        return conversation.getRequesterUserId().equals(userId)
+                ? conversation.getRequesterClosedAt() != null
+                : conversation.getReceiverClosedAt() != null;
     }
 
     private void ensureMessagingAllowed(DeveloperConversation conversation, Long senderUserId) {

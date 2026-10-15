@@ -19,6 +19,7 @@ public record DeveloperConversationResponse(
         boolean blocked,
         boolean muted,
         boolean blockedByPartner,
-        boolean conversationMuted
+        boolean conversationMuted,
+        boolean closed
 ) {
 }

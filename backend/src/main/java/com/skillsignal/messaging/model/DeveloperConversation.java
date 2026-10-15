@@ -74,6 +74,12 @@ public class DeveloperConversation {
     @Column
     private Instant receiverMutedUntil;
 
+    @Column
+    private Instant requesterClosedAt;
+
+    @Column
+    private Instant receiverClosedAt;
+
     protected DeveloperConversation() {
     }
 
@@ -191,5 +197,21 @@ public class DeveloperConversation {
 
     public void setReceiverMutedUntil(Instant receiverMutedUntil) {
         this.receiverMutedUntil = receiverMutedUntil;
+    }
+
+    public Instant getRequesterClosedAt() {
+        return requesterClosedAt;
+    }
+
+    public void setRequesterClosedAt(Instant requesterClosedAt) {
+        this.requesterClosedAt = requesterClosedAt;
+    }
+
+    public Instant getReceiverClosedAt() {
+        return receiverClosedAt;
+    }
+
+    public void setReceiverClosedAt(Instant receiverClosedAt) {
+        this.receiverClosedAt = receiverClosedAt;
     }
 }

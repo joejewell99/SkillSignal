@@ -27,6 +27,14 @@ public interface DeveloperConversationRepository extends JpaRepository<Developer
 
     @Query("""
             select conversation from DeveloperConversation conversation
+            where (conversation.requesterUserId = :userId and conversation.requesterClosedAt is null)
+               or (conversation.receiverUserId = :userId and conversation.receiverClosedAt is null)
+            order by conversation.updatedAt desc
+            """)
+    List<DeveloperConversation> findInboxForUser(@Param("userId") Long userId);
+
+    @Query("""
+            select conversation from DeveloperConversation conversation
             where conversation.id = :conversationId
               and (conversation.requesterUserId = :userId or conversation.receiverUserId = :userId)
             """)

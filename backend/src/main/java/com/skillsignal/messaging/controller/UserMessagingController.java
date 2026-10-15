@@ -118,6 +118,12 @@ public class UserMessagingController {
         return messagingService.clearMuted(principal.id(), id);
     }
 
+    @PatchMapping("/{id}/close")
+    DeveloperConversationResponse closeConversation(@PathVariable Long id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return messagingService.closeConversation(principal.id(), id);
+    }
+
     @DeleteMapping("/{id}")
     void decline(@PathVariable Long id, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();

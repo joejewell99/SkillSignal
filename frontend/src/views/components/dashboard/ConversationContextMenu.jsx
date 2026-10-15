@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Eye, ShieldBan, ShieldCheck, Volume2, VolumeX } from 'lucide-react';
+import { Archive, Eye, ShieldBan, ShieldCheck, Volume2, VolumeX } from 'lucide-react';
 import { apiRequest } from '../../../api/client.js';
 
 const DURATIONS = [
@@ -8,7 +8,7 @@ const DURATIONS = [
   { value: 604800, label: '7 days' },
 ];
 
-export default function ConversationContextMenu({ menu, endpoint, token, onClose, onError, onThreadUpdated, onViewProfile }) {
+export default function ConversationContextMenu({ menu, endpoint, token, onClose, onError, onThreadUpdated, onConversationClosed, onViewProfile }) {
   const [isBusy, setIsBusy] = useState(false);
   const menuRef = useRef(null);
   const thread = menu?.thread;
@@ -44,7 +44,7 @@ export default function ConversationContextMenu({ menu, endpoint, token, onClose
 
   const partner = thread.partner;
   const left = Math.max(8, Math.min(menu.x, window.innerWidth - 260));
-  const top = Math.max(8, Math.min(menu.y, window.innerHeight - 300));
+  const top = Math.max(8, Math.min(menu.y, window.innerHeight - 360));
 
   async function updateRestriction(type, enabled, durationSeconds = null) {
     setIsBusy(true);
@@ -54,7 +54,11 @@ export default function ConversationContextMenu({ menu, endpoint, token, onClose
         method: enabled ? 'PATCH' : 'DELETE',
         ...(enabled && durationSeconds ? { body: JSON.stringify({ durationSeconds }) } : {}),
       });
-      onThreadUpdated(updatedThread);
+      if (type === 'close') {
+        onConversationClosed(thread.id);
+      } else {
+        onThreadUpdated(updatedThread);
+      }
       onClose();
       window.dispatchEvent(new Event('skillsignal:message-state-changed'));
     } catch (error) {
@@ -83,6 +87,11 @@ export default function ConversationContextMenu({ menu, endpoint, token, onClose
           <span>For {duration.label}</span>
         </button>
       ))}
+      <div className="conversation-context-menu-divider" />
+      <button type="button" role="menuitem" onClick={() => updateRestriction('close', true)} disabled={isBusy}>
+        <Archive size={15} aria-hidden="true" />
+        <span>Close conversation</span>
+      </button>
       <div className="conversation-context-menu-divider" />
       <button className={thread.blocked ? 'danger' : ''} type="button" role="menuitem" onClick={() => updateRestriction('block', !thread.blocked)} disabled={isBusy}>
         {thread.blocked ? <ShieldCheck size={15} aria-hidden="true" /> : <ShieldBan size={15} aria-hidden="true" />}

@@ -326,6 +326,22 @@
   gap: 8px;
   min-height: 42px;
   padding: 9px 13px;
+  position: relative;
+}
+
+.developer-dashboard .employer-dashboard-tabs button + button::before,
+.employer-dashboard .employer-dashboard-tabs button + button::before {
+  background: var(--line-strong);
+  content: "";
+  height: 18px;
+  left: -5px;
+  opacity: 0.9;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  z-index: 1;
 }
 
 .employer-dashboard-tabs button.active {
@@ -905,6 +921,21 @@
   gap: 10px;
   min-height: 42px;
   padding: 8px 12px;
+  position: relative;
+}
+
+.employer-message-filters button + button::before {
+  background: var(--line-strong);
+  content: "";
+  height: 18px;
+  left: -5px;
+  opacity: 0.9;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  z-index: 1;
 }
 
 .inbox-switcher button.active {

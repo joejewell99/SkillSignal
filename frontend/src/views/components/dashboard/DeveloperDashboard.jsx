@@ -145,6 +145,12 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
   const closeConversationContextMenu = React.useCallback(() => setConversationContextMenu(null), []);
 
   const handleRealtimeConversation = React.useCallback((updatedThread) => {
+    if (updatedThread.closed) {
+      setChatThreads((current) => current.filter((thread) => String(thread.id) !== String(updatedThread.id)));
+      setActiveThreadId((current) => (String(current) === String(updatedThread.id) ? '' : current));
+      window.dispatchEvent(new Event('skillsignal:message-state-changed'));
+      return;
+    }
     const isActiveThread = String(updatedThread.id) === String(activeThreadId);
     const nextThread = isActiveThread && updatedThread.unread
       ? { ...updatedThread, unread: false, unreadCount: 0 }
@@ -929,7 +935,13 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
         token={token}
         onClose={closeConversationContextMenu}
         onError={setError}
-        onThreadUpdated={(updatedThread) => setChatThreads((current) => current.map((item) => (item.id === updatedThread.id ? updatedThread : item)))}
+        onConversationClosed={(conversationId) => {
+          setChatThreads((current) => current.filter((item) => String(item.id) !== String(conversationId)));
+          setActiveThreadId((current) => (String(current) === String(conversationId) ? '' : current));
+        }}
+        onThreadUpdated={(updatedThread) => setChatThreads((current) => updatedThread.closed
+          ? current.filter((item) => String(item.id) !== String(updatedThread.id))
+          : current.map((item) => (item.id === updatedThread.id ? updatedThread : item)))}
         onViewProfile={(profileId) => profileId && navigate(`/profiles/${profileId}`)}
       />
       <header className="developer-header">
