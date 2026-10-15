@@ -210,7 +210,7 @@
 }
 
 :root[data-theme="dark"] .segmented-control button.active,
-:root[data-theme="dark"] .primary-button {
+:root[data-theme="dark"] .primary-button:not(.project-add-button) {
   background: #4f8cff;
   border-color: #4f8cff;
   color: #071017;

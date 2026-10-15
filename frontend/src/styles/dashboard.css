@@ -2571,7 +2571,39 @@
 }
 
 .project-add-button {
+  background: #12352b;
+  border: 1px solid #26785d;
+  border-radius: 999px;
+  box-shadow: none;
+  color: #8af0cf;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
   white-space: nowrap;
+}
+
+.project-add-button:hover:not(:disabled) {
+  background: #194837;
+  border-color: #3aa77d;
+  box-shadow: none;
+  color: #c0ffe9;
+}
+
+.project-add-button:focus-visible {
+  outline: none !important;
+  outline-offset: 0;
+  box-shadow: none !important;
+}
+
+.project-showcase .project-add-button:hover,
+.project-showcase .project-add-button:active {
+  box-shadow: none !important;
+}
+
+:root[data-theme="dark"] .project-add-button {
+  background: #12352b;
+  border-color: #26785d;
+  color: #8af0cf;
 }
 
 .empty-state {

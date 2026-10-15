@@ -1445,7 +1445,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
             <div className="panel-heading-row">
               <div>
                 <h2>Messages</h2>
-                <p className="subtle">Private conversations, message requests, and direct replies in one place.</p>
+                <p className="subtle">View and reply to your conversations and message requests.</p>
               </div>
               <div className="inbox-meta-pill">
                 <MessageSquareText size={16} />
@@ -1742,7 +1742,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
             <div className="panel-heading-row">
               <div>
                 <h2>Connections</h2>
-                <p className="subtle">Manage connection requests and the developers whose connected updates you can see.</p>
+                <p className="subtle">Review requests and manage the developers you’re connected with.</p>
               </div>
             </div>
             
@@ -1751,14 +1751,14 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                   <div className="connection-subsection-heading">
                     <div>
                       <h3>Incoming requests</h3>
-                      <p className="compact-empty-copy">Requests to connect and follow your updates.</p>
+                      <p className="compact-empty-copy">People who have asked to connect with you.</p>
                     </div>
                     <strong>{connectionRequests.length}</strong>
                   </div>
                   {connectionRequests.length === 0 ? (
                     <div className="empty-state compact-empty-state">
                       <UserRound size={24} />
-                      <p>No pending requests right now.</p>
+                      <p>No one has sent you a connection request yet.</p>
                     </div>
                   ) : (
                     <div className="connection-request-list">
@@ -1793,7 +1793,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                   <div className="connection-subsection-heading">
                     <div>
                       <h3>Your connections</h3>
-                      <p className="compact-empty-copy">Developers who can currently see your connected activity feed and whose updates you can see.</p>
+                      <p className="compact-empty-copy">You can see each other’s activity updates.</p>
                     </div>
                     <strong>{connections.length}</strong>
                   </div>
@@ -1830,7 +1830,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                             <div>
                               <h3>{otherDeveloper.name}</h3>
                               <p>{otherDeveloper.title}</p>
-                              <small className="compact-empty-copy">Connected. Removing this also removes both sides from each other’s connected feed.</small>
+                              <small className="compact-empty-copy">Connected</small>
                             </div>
                             <div className="connection-actions">
                               <Link className="secondary-button" to={`/profiles/${otherDeveloper.profileId}`}>
