@@ -113,7 +113,8 @@ public class DemoDeveloperSeeder implements CommandLineRunner {
             profile.setPreferencesJson(writeJson(new DeveloperPreferencesResponse(
                     seed.availability(),
                     seed.workTypes(),
-                    seed.remotePreference()
+                    seed.remotePreference(),
+                    seed.availability().toLowerCase().contains("intern") ? List.of("Internship") : List.of("Junior")
             ), "{}"));
             profile.setProjectsJson(writeJson(seed.projects(), "[]"));
             profile.setPostsJson(writeJson(seed.posts(), "[]"));

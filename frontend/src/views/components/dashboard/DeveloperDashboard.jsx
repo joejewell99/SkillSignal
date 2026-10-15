@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Camera,
@@ -32,6 +32,7 @@ import {
   emptyProject,
   formatPostDate,
   normalizeProjects,
+  normalizeDeveloperPreferences,
   readStoredDeveloperProfile,
   toProfilePayload,
 } from './profileData.js';
@@ -128,6 +129,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
   const [isComposingPost, setIsComposingPost] = useState(false);
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [profileSaveStatus, setProfileSaveStatus] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [projectSaveStatus, setProjectSaveStatus] = useState('');
   const [projectForm, setProjectForm] = useState(emptyProject);
   const [editingProjectId, setEditingProjectId] = useState(null);
@@ -204,39 +206,18 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
         const storedProfile = readStoredDeveloperProfile(storageKey);
         const backendProjects = normalizeProjects(profileData.projects);
         const backendPosts = profileData.posts ?? [];
-        const shouldSyncStoredProjects = storedProfile.projects.length > 0 && backendProjects.length === 0;
-        const shouldSyncStoredPosts = storedProfile.posts.length > 0 && backendPosts.length === 0;
-        const nextProfile = {
+        setProfile({
           ...storedProfile,
           isDisplayed: profileData.displayed,
-          title: profileData.title || storedProfile.title,
-          summary: profileData.summary || storedProfile.summary,
-          photo: profileData.image || storedProfile.photo,
-          skills: profileData.skills?.length > 0 ? profileData.skills : storedProfile.skills,
-          contactLinks: {
-            ...(storedProfile.contactLinks ?? {}),
-            ...(profileData.contactLinks ?? {}),
-          },
-          preferences: {
-            ...(storedProfile.preferences ?? {}),
-            ...(profileData.preferences ?? {}),
-          },
-          projects: backendProjects.length > 0 ? backendProjects : storedProfile.projects,
-          posts: backendPosts.length > 0 ? backendPosts : storedProfile.posts,
-        };
-        setProfile((current) => ({
-          ...current,
-          ...nextProfile,
-        }));
-        if (shouldSyncStoredProjects || shouldSyncStoredPosts) {
-          apiRequest('/api/developer/profile', {
-            token,
-            method: 'PATCH',
-            body: JSON.stringify(toProfilePayload(nextProfile, profileData.displayed)),
-          })
-            .then(setBackendData)
-            .catch((err) => setError(err.message));
-        }
+          title: profileData.title ?? '',
+          summary: profileData.summary ?? '',
+          photo: profileData.image ?? '',
+          skills: profileData.skills ?? [],
+          contactLinks: profileData.contactLinks ?? {},
+          preferences: normalizeDeveloperPreferences(profileData.preferences ?? {}),
+          projects: backendProjects,
+          posts: backendPosts,
+        });
       })
       .catch((err) => setError(err.message));
   }, [storageKey, token]);
@@ -377,10 +358,12 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
   }
 
   function updateProfile(field, value) {
+    setProfileSaveStatus('Unsaved changes');
     setProfile((current) => ({ ...current, [field]: value }));
   }
 
   function updateContactLink(field, value) {
+    setProfileSaveStatus('Unsaved changes');
     setProfile((current) => ({
       ...current,
       contactLinks: {
@@ -391,6 +374,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
   }
 
   function updatePreference(field, value) {
+    setProfileSaveStatus('Unsaved changes');
     setProfile((current) => ({
       ...current,
       preferences: {
@@ -427,6 +411,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
   }
 
   function toggleWorkType(workType) {
+    setProfileSaveStatus('Unsaved changes');
     setProfile((current) => {
       const currentTypes = current.preferences?.workTypes ?? [];
       const nextTypes = currentTypes.includes(workType)
@@ -437,6 +422,23 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
         preferences: {
           ...(current.preferences ?? {}),
           workTypes: nextTypes,
+        },
+      };
+    });
+  }
+
+  function togglePreferenceListValue(field, value) {
+    setProfileSaveStatus('Unsaved changes');
+    setProfile((current) => {
+      const currentValues = current.preferences?.[field] ?? [];
+      const nextValues = currentValues.includes(value)
+        ? currentValues.filter((item) => item !== value)
+        : [...currentValues, value];
+      return {
+        ...current,
+        preferences: {
+          ...(current.preferences ?? {}),
+          [field]: nextValues,
         },
       };
     });
@@ -578,22 +580,39 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
 
   async function saveDeveloperProfile(nextProfile, displayed = nextProfile.isDisplayed) {
     setError('');
-    const profileData = await apiRequest('/api/developer/profile', {
+    const payload = toProfilePayload(nextProfile, displayed);
+    await apiRequest('/api/developer/profile', {
       token,
       method: 'PATCH',
-      body: JSON.stringify(toProfilePayload(nextProfile, displayed)),
+      body: JSON.stringify(payload),
     });
+    const profileData = await apiRequest('/api/developer/profile', { token, cache: 'no-store' });
+    for (const field of ['availability', 'remotePreference', 'seniorityLevels', 'workTypes']) {
+      const expected = payload.preferences[field];
+      const actual = profileData.preferences?.[field];
+      const normalize = (value) => Array.isArray(value)
+        ? value.map((item) => item.trim()).filter(Boolean)
+        : (value ?? '').trim();
+      if (JSON.stringify(normalize(expected)) !== JSON.stringify(normalize(actual))) {
+        throw new Error('Your preferences could not be confirmed as saved. Please try saving again.');
+      }
+    }
+    for (const [field, value] of Object.entries(payload.contactLinks)) {
+      if ((profileData.contactLinks?.[field] ?? '').trim() !== (value ?? '').trim()) {
+        throw new Error('Your contact details could not be confirmed as saved. Please try saving again.');
+      }
+    }
     setBackendData(profileData);
     window.dispatchEvent(new CustomEvent('skillsignal:profile-updated', { detail: { email: user.email, profile: profileData } }));
     setProfile((current) => ({
       ...current,
       isDisplayed: profileData.displayed,
-      title: profileData.title ?? current.title,
-      summary: profileData.summary ?? current.summary,
-      photo: profileData.image ?? current.photo,
-      skills: profileData.skills ?? current.skills,
-      contactLinks: profileData.contactLinks ?? current.contactLinks,
-      preferences: profileData.preferences ?? current.preferences,
+      title: current.title === nextProfile.title ? (profileData.title ?? current.title) : current.title,
+      summary: current.summary === nextProfile.summary ? (profileData.summary ?? current.summary) : current.summary,
+      photo: current.photo === nextProfile.photo ? (profileData.image ?? current.photo) : current.photo,
+      skills: current.skills === nextProfile.skills ? (profileData.skills ?? current.skills) : current.skills,
+      contactLinks: current.contactLinks === nextProfile.contactLinks ? (profileData.contactLinks ?? current.contactLinks) : current.contactLinks,
+      preferences: current.preferences === nextProfile.preferences ? (profileData.preferences ?? current.preferences) : current.preferences,
       projects: normalizeProjects(profileData.projects),
       posts: profileData.posts ?? [],
     }));
@@ -703,12 +722,17 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
   }
 
   async function saveProfileDetails() {
+    if (isSavingProfile) return;
+    setIsSavingProfile(true);
+    setProfileSaveStatus('');
     try {
       await saveDeveloperProfile(profile);
-      setProfileSaveStatus('Saved');
-      window.setTimeout(() => setProfileSaveStatus(''), 1800);
+      setProfileSaveStatus('Changes saved');
     } catch (err) {
       setError(err.message);
+      setProfileSaveStatus(err.message);
+    } finally {
+      setIsSavingProfile(false);
     }
   }
 
@@ -824,8 +848,10 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
     { label: 'Add a clear profile photo', complete: Boolean(profile.photo) },
     { label: 'Add at least 3 core skills', complete: profile.skills.length >= 3 },
     {
-      label: 'Set availability and work focus',
-      complete: Boolean(profile.preferences?.availability) && (profile.preferences?.workTypes ?? []).length > 0,
+      label: 'Set opportunity preferences',
+      complete: Boolean(profile.preferences?.availability)
+        && (profile.preferences?.seniorityLevels ?? []).length > 0
+        && (profile.preferences?.workTypes ?? []).length > 0,
     },
     {
       label: 'Add professional contact links',
@@ -1021,49 +1047,72 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
               <section className="workspace-panel developer-preferences-editor">
                 <div className="panel-heading-row">
                   <div>
-                    <h2>Looking for</h2>
-                    <p className="subtle">These details appear on your full View profile page, not on the searchable profile card.</p>
+                    <h2>Opportunity preferences</h2>
+                    <p className="subtle">Tell employers what kind of work you want, which roles fit your experience, what you’d like to work on, and where you’re based.</p>
                   </div>
                 </div>
                 <div className="two-column-fields">
                   <label htmlFor="developer-availability">
-                    Availability
+                    Opportunity type
                     <select
                       id="developer-availability"
+                      required
                       value={profile.preferences?.availability ?? ''}
                       onChange={(event) => updatePreference('availability', event.target.value)}
                       onKeyDown={handleProfileFieldKeyDown}
                     >
-                      <option value="">Choose availability</option>
-                      <option value="Open to junior roles">Open to junior roles</option>
-                      <option value="Open to freelance projects">Open to freelance projects</option>
-                      <option value="Open to internships">Open to internships</option>
-                      <option value="Open to collaborations">Open to collaborations</option>
+                      <option value="Open to full-time roles">Full-time role</option>
+                      <option value="Open to part-time roles">Part-time role</option>
+                      <option value="Open to contract roles">Contract role</option>
+                      <option value="Open to freelance projects">Freelance projects</option>
+                      <option value="Open to internships">Internship</option>
+                      <option value="Open to apprenticeships">Apprenticeship</option>
+                      <option value="Open to collaborations">Collaboration</option>
                       <option value="Not currently looking">Not currently looking</option>
                     </select>
                   </label>
                   <label htmlFor="developer-remote-preference">
-                    Work preference
+                    Location and work setup
                     <input
                       id="developer-remote-preference"
                       value={profile.preferences?.remotePreference ?? ''}
                       onChange={(event) => updatePreference('remotePreference', event.target.value)}
                       onKeyDown={handleProfileFieldKeyDown}
-                      placeholder="Remote, hybrid, London, UK only"
+                      placeholder="e.g. London, UK · Remote, hybrid, or on-site"
                     />
                   </label>
                 </div>
-                <div className="work-type-picker" aria-label="Preferred work types">
-                  {['Frontend', 'Backend', 'Full-stack', 'APIs', 'Dashboards', 'Internal tools'].map((workType) => (
+                <div className="preference-choice-group">
+                  <p className="preference-choice-label">Seniority <span>Select all that fit</span></p>
+                  <div className="work-type-picker" aria-label="Seniority levels you’re interested in">
+                    {['Internship', 'Graduate', 'Junior', 'Mid-level', 'Senior', 'Lead'].map((level) => (
+                      <button
+                        key={level}
+                        className={(profile.preferences?.seniorityLevels ?? []).includes(level) ? 'active' : ''}
+                        type="button"
+                        aria-pressed={(profile.preferences?.seniorityLevels ?? []).includes(level)}
+                        onClick={() => togglePreferenceListValue('seniorityLevels', level)}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="preference-choice-group">
+                  <p className="preference-choice-label">Areas of work <span>Select all that interest you</span></p>
+                  <div className="work-type-picker" aria-label="Areas of work you’re interested in">
+                  {['Frontend', 'Backend', 'Full-stack', 'DevOps & Cloud', 'Security', 'Data & Analytics', 'AI & Machine Learning', 'QA & Testing', 'Mobile', 'APIs', 'Dashboards', 'Internal tools'].map((workType) => (
                     <button
                       key={workType}
                       className={(profile.preferences?.workTypes ?? []).includes(workType) ? 'active' : ''}
                       type="button"
+                      aria-pressed={(profile.preferences?.workTypes ?? []).includes(workType)}
                       onClick={() => toggleWorkType(workType)}
                     >
                       {workType}
                     </button>
                   ))}
+                  </div>
                 </div>
               </section>
 
@@ -1184,10 +1233,11 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                     <p>This shows the details on your searchable profile. Save your changes to update it.</p>
                   </div>
                 </aside>
-                <button className={`primary-button profile-view-link ${profileSaveStatus ? 'success-button' : ''}`} type="button" onClick={saveProfileDetails}>
+                <button className={`primary-button profile-view-link ${profileSaveStatus === 'Changes saved' ? 'success-button' : ''}`} type="button" onClick={saveProfileDetails} disabled={isSavingProfile || !backendData}>
                   <CheckCircle2 size={17} />
-                  <span>{profileSaveStatus || 'Save profile'}</span>
+                  <span>{isSavingProfile ? 'Saving...' : 'Save profile'}</span>
                 </button>
+                <p className="profile-save-feedback" role="status">{profileSaveStatus}</p>
               </div>
             </aside>
           </div>

@@ -40,7 +40,7 @@ function contactItems(contactLinks = {}) {
   ].filter((item) => item.href);
 }
 
-export default function ContactLinks({ contactLinks, compact = false, className = '' }) {
+export default function ContactLinks({ contactLinks, compact = false, showLabels = false, className = '' }) {
   const items = contactItems(contactLinks);
 
   if (items.length === 0) {
@@ -52,8 +52,9 @@ export default function ContactLinks({ contactLinks, compact = false, className 
       {items.map((item) => {
         const Icon = item.icon;
         return (
-          <a key={item.id} href={item.href} target={item.id === 'email' ? undefined : '_blank'} rel={item.id === 'email' ? undefined : 'noreferrer'} aria-label={item.label} title={item.label}>
+          <a className={`contact-link-icon--${item.id}`} key={item.id} href={item.href} target={item.id === 'email' ? undefined : '_blank'} rel={item.id === 'email' ? undefined : 'noreferrer'} aria-label={item.label}>
             {item.brand ? <SocialBrandIcon brand={item.brand} size={compact ? 17 : 19} /> : <Icon size={compact ? 17 : 19} />}
+            {showLabels && <span>{item.label}</span>}
           </a>
         );
       })}

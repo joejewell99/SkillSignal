@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bookmark, ExternalLink, Github, ImageOff, MessageSquareText, Send, Star, UserPlus } from 'lucide-react';
+import { Bookmark, Check, ExternalLink, Github, ImageOff, MessageSquareText, Send, Star, UserMinus, UserPlus } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { apiRequest } from '../api/client.js';
 import { useAuth } from '../state/AuthContext.jsx';
@@ -88,32 +88,6 @@ function normalizeProjects(projects = []) {
     .sort((first, second) => Number(Boolean(second.featured)) - Number(Boolean(first.featured)));
 }
 
-function readStoredDeveloperProfile(user) {
-  if (!user?.email) {
-    return null;
-  }
-
-  try {
-    const storedProfile = JSON.parse(localStorage.getItem(`skillsignal.developer-profile.${user.email}`));
-    if (!storedProfile) {
-      return null;
-    }
-    return {
-      name: user.name,
-      title: storedProfile.title,
-      summary: storedProfile.summary,
-      image: storedProfile.photo,
-      skills: storedProfile.skills ?? [],
-      contactLinks: storedProfile.contactLinks ?? {},
-      preferences: storedProfile.preferences ?? {},
-      projects: normalizeProjects(storedProfile.projects ?? []),
-      posts: storedProfile.posts ?? [],
-    };
-  } catch {
-    return null;
-  }
-}
-
 function formatPostDate(dateValue) {
   if (!dateValue) {
     return 'Recently';
@@ -181,23 +155,11 @@ function idealJuniorDevFor(need) {
   return 'Someone curious, reliable, quick to learn, and comfortable showing progress through small, well-explained improvements.';
 }
 
-function developerPreferenceChips(profile) {
-  if (profile?.type !== 'DEVELOPER') {
-    return [];
-  }
-
-  const preferences = profile.preferences ?? {};
-  return [
-    preferences.availability || 'Open to junior roles',
-    preferences.remotePreference || 'Remote or hybrid',
-    ...(preferences.workTypes ?? []),
-  ].filter(Boolean);
-}
-
 export default function ProfileDetail() {
   const { id } = useParams();
   const { user, token } = useAuth();
   const [profile, setProfile] = useState(null);
+  const [isOwnProfilePage, setIsOwnProfilePage] = useState(false);
   const [developerProofProjects, setDeveloperProofProjects] = useState([]);
   const [proofProjectName, setProofProjectName] = useState('');
   const [proofProjectUrl, setProofProjectUrl] = useState('');
@@ -226,12 +188,11 @@ export default function ProfileDetail() {
   const posts = profile?.posts ?? [];
   const isEmployerProfile = profile?.type === 'EMPLOYER';
   const isDeveloperProfile = profile?.type === 'DEVELOPER';
-  const preferenceChips = developerPreferenceChips(profile);
   const canSendProof = Boolean(token && user?.role === 'DEVELOPER' && isEmployerProfile);
   const shouldShowDeveloperConnection = Boolean(token && user?.role === 'DEVELOPER' && isDeveloperProfile && !connectionStatus.includes('SELF'));
   const canRequestConnection = Boolean(shouldShowDeveloperConnection && profile?.acceptsConnections);
   const canSaveCandidate = Boolean(token && user?.role === 'EMPLOYER' && isDeveloperProfile);
-  const showMessaging = Boolean(token && isDeveloperProfile && user?.role !== undefined);
+  const showMessaging = Boolean(token && isDeveloperProfile && user?.role !== undefined && !isOwnProfilePage);
   const canMessageDeveloper = Boolean(showMessaging && profile?.acceptsMessages);
 
   useEffect(() => {
@@ -241,6 +202,7 @@ export default function ProfileDetail() {
       setIsLoading(true);
       setError('');
       setProfile(null);
+      setIsOwnProfilePage(false);
 
       try {
         const isOwnPreviewRoute = id === 'me';
@@ -288,28 +250,13 @@ export default function ProfileDetail() {
         }
 
         const isOwnProfile = Boolean(ownProfile && (isOwnPreviewRoute || String(ownProfile.id) === String(id)));
-        const storedProfile = isOwnProfile && user?.role === 'DEVELOPER' ? readStoredDeveloperProfile(user) : null;
-        const storedProjects = normalizeProjects(storedProfile?.projects ?? []);
-        const storedPosts = storedProfile?.posts ?? [];
-        const nextProfile = isOwnProfile
-          ? {
-              ...ownProfile,
-              title: storedProfile?.title || ownProfile.title,
-              summary: storedProfile?.summary || ownProfile.summary,
-              image: storedProfile?.image || ownProfile.image,
-              skills: storedProfile?.skills?.length > 0 ? storedProfile.skills : ownProfile.skills ?? [],
-              contactLinks: {
-                ...(ownProfile.contactLinks ?? {}),
-                ...(storedProfile?.contactLinks ?? {}),
-              },
-              preferences: {
-                ...(ownProfile.preferences ?? {}),
-                ...(storedProfile?.preferences ?? {}),
-              },
-              projects: storedProjects.length > 0 ? storedProjects : normalizeProjects(ownProfile.projects ?? []),
-              posts: storedPosts.length > 0 ? storedPosts : ownProfile.posts ?? [],
-            }
-          : publicProfile ? { ...publicProfile, projects: normalizeProjects(publicProfile.projects ?? []), posts: publicProfile.posts ?? [] } : null;
+        setIsOwnProfilePage(isOwnProfile);
+        const sourceProfile = isOwnProfile ? ownProfile : publicProfile;
+        const nextProfile = sourceProfile ? {
+          ...sourceProfile,
+          projects: normalizeProjects(sourceProfile.projects ?? []),
+          posts: sourceProfile.posts ?? [],
+        } : null;
 
         if (!nextProfile) {
           throw new Error('Profile not found.');
@@ -375,9 +322,9 @@ export default function ProfileDetail() {
       setConnectionStatus(connection.status);
       setConnectionId(connection.id);
       setConnectionDirection('OUTGOING');
-      setConnectionMessage(connection.status === 'ACCEPTED' ? 'Connected' : 'Request sent');
-      window.setTimeout(() => setIsConnectionMessageLeaving(true), 1200);
-      window.setTimeout(() => setConnectionMessage(''), 1800);
+      setConnectionMessage(connection.status === 'ACCEPTED' ? 'Connected' : 'Connection request sent');
+      window.setTimeout(() => setIsConnectionMessageLeaving(true), 1800);
+      window.setTimeout(() => setConnectionMessage(''), 2200);
     } catch (err) {
       setConnectionMessage(err.message);
     } finally {
@@ -404,8 +351,8 @@ export default function ProfileDetail() {
       setConnectionDirection('');
       setIsMessageComposerOpen(false);
       setConnectionMessage(connectionStatus === 'ACCEPTED' ? 'Connection removed' : 'Retracted');
-      window.setTimeout(() => setIsConnectionMessageLeaving(true), 1200);
-      window.setTimeout(() => setConnectionMessage(''), 1800);
+      window.setTimeout(() => setIsConnectionMessageLeaving(true), 1800);
+      window.setTimeout(() => setConnectionMessage(''), 2200);
     } catch (err) {
       setConnectionMessage(err.message);
     } finally {
@@ -430,8 +377,8 @@ export default function ProfileDetail() {
       setConnectionStatus('ACCEPTED');
       setConnectionDirection('');
       setConnectionMessage('Connected');
-      window.setTimeout(() => setIsConnectionMessageLeaving(true), 1200);
-      window.setTimeout(() => setConnectionMessage(''), 1800);
+      window.setTimeout(() => setIsConnectionMessageLeaving(true), 1800);
+      window.setTimeout(() => setConnectionMessage(''), 2200);
     } catch (err) {
       setConnectionMessage(err.message);
     } finally {
@@ -508,8 +455,8 @@ export default function ProfileDetail() {
       setMessagePreviewStatus('Message sent');
       setMessageDraft('');
       setIsMessageComposerOpen(false);
-      window.setTimeout(() => setIsMessagePreviewStatusLeaving(true), 1200);
-      window.setTimeout(() => setMessagePreviewStatus(''), 1800);
+      window.setTimeout(() => setIsMessagePreviewStatusLeaving(true), 1800);
+      window.setTimeout(() => setMessagePreviewStatus(''), 2200);
     } catch (err) {
       setMessagePreviewStatus(err.message);
     }
@@ -567,6 +514,7 @@ export default function ProfileDetail() {
       {profile && (
         <section className="profile-detail-shell">
           <header className="profile-detail-header">
+            <RoleBadge role={isEmployerProfile ? 'employer' : 'developer'} className="profile-detail-role-badge" />
             <div className="profile-avatar-wrap profile-detail-avatar-wrap">
               <ImageWithFallback
                 src={profile.image}
@@ -576,7 +524,6 @@ export default function ProfileDetail() {
               <span className={`presence-dot profile-presence ${profile.presence?.toLowerCase().replaceAll('_', '-') ?? 'offline'}`} title={profile.presence?.replaceAll('_', ' ') ?? 'Offline'} />
             </div>
             <div className="profile-detail-copy">
-              <RoleBadge role={isEmployerProfile ? 'employer' : 'developer'} context="profile" />
               <h1>{profile.name}</h1>
               <p>{profile.title}</p>
               <div className="skill-list">
@@ -584,14 +531,8 @@ export default function ProfileDetail() {
                   <span key={skill}><SkillIcon skill={skill} />{skill}</span>
                 ))}
               </div>
+              <div className="profile-detail-links-actions">
               {isDeveloperProfile && <ContactLinks contactLinks={profile.contactLinks} className="profile-detail-contact-links" />}
-              {preferenceChips.length > 0 && (
-                <div className="profile-preference-row" aria-label="Developer preferences">
-                  {preferenceChips.map((preference) => (
-                    <span key={preference}>{preference}</span>
-                  ))}
-                </div>
-              )}
               {(shouldShowDeveloperConnection && profile.acceptsConnections) || showMessaging || canSaveCandidate ? (
                 <div className="profile-action-row">
                   {canSaveCandidate && (
@@ -611,18 +552,18 @@ export default function ProfileDetail() {
                   )}
                   {shouldShowDeveloperConnection && profile.acceptsConnections && (
                     <button
-                      className="primary-button"
+                      className={`secondary-button profile-connect-icon-button ${connectionStatus === 'PENDING' && connectionDirection === 'OUTGOING' ? 'is-pending' : ''}`}
                       type="button"
                       onClick={handleConnectionButtonClick}
                       disabled={!canRequestConnection || isConnecting}
+                      aria-label={connectionStatus === 'ACCEPTED' ? 'Remove connection' : connectionStatus === 'PENDING' && connectionDirection === 'OUTGOING' ? 'Cancel connection request' : isConnecting ? 'Sending connection request' : 'Connect'}
                     >
-                      <UserPlus size={17} />
-                      <span>
-                        {connectionStatus === 'ACCEPTED'
-                          ? isConnecting ? 'Removing...' : 'Remove connection'
-                          : connectionStatus === 'PENDING' && connectionDirection === 'OUTGOING'
-                              ? 'Cancel request'
-                          : isConnecting ? 'Sending request...' : 'Connect'}
+                      <span className="profile-connect-person-anchor">
+                        {connectionStatus === 'PENDING' && connectionDirection === 'OUTGOING' ? <UserMinus size={17} /> : <UserPlus size={17} />}
+                        {connectionMessage && (() => {
+                          const isError = /fail|could not|cannot|error/i.test(connectionMessage);
+                          return <span className={`profile-action-popover profile-connect-popover ${isError ? 'is-error' : 'is-confirmation'} ${isConnectionMessageLeaving ? 'is-leaving' : ''}`} role="status">{!isError && <Check size={15} aria-hidden="true" />}{connectionMessage}</span>;
+                        })()}
                       </span>
                     </button>
                   )}
@@ -637,7 +578,7 @@ export default function ProfileDetail() {
                         onClick={() => setIsMessageComposerOpen((current) => !current)}
                       >
                         <MessageSquareText size={17} />
-                        <span>Send message</span>
+                        <span>Contact</span>
                       </button>
                       {isMessageComposerOpen && (
                         <form className="profile-message-popover" onSubmit={sendMessagePreview}>
@@ -666,34 +607,27 @@ export default function ProfileDetail() {
                       )}
                     </div>
                   )}
-                  {connectionMessage && (
-                    <p className={
-                      connectionMessage.includes('not') || connectionMessage.includes('cannot')
-                        ? 'error'
-                        : `connection-toast ${isConnectionMessageLeaving ? 'leaving' : ''}`
-                    }>
-                      {connectionMessage}
-                    </p>
-                  )}
-                  {messagePreviewStatus && (
-                    <p className={messagePreviewStatus === 'Message sent'
-                      ? `connection-toast ${isMessagePreviewStatusLeaving ? 'leaving' : ''}`
-                      : 'error'}
-                    >
-                      {messagePreviewStatus}
-                    </p>
-                  )}
-                  {saveMessage && (
-                    <p className={
-                      saveMessage.includes('not')
-                        ? 'error'
-                        : `connection-toast ${isSaveMessageLeaving ? 'leaving' : ''}`
-                    }>
-                      {saveMessage}
-                    </p>
-                  )}
+                  {(messagePreviewStatus || saveMessage) && (() => {
+                    const status = messagePreviewStatus || saveMessage;
+                    const isError = /fail|could not|cannot|error/i.test(status);
+                    const isLeaving = messagePreviewStatus ? isMessagePreviewStatusLeaving : isSaveMessageLeaving;
+                    return <div className={`profile-action-popover ${isError ? 'is-error' : 'is-confirmation'} ${isLeaving ? 'is-leaving' : ''}`} role="status">{!isError && <Check size={15} aria-hidden="true" />}{status}</div>;
+                  })()}
                 </div>
               ) : null}
+              </div>
+              {isDeveloperProfile && (
+                <div className="profile-preference-row" aria-label="Opportunity preferences">
+                  {[
+                    ['Looking for', profile.preferences?.availability?.replace(/^Open to /, '')],
+                    ['Location', profile.preferences?.remotePreference],
+                    ['Seniority', profile.preferences?.seniorityLevels?.join(', ')],
+                    ['Areas of work', profile.preferences?.workTypes?.join(', ')],
+                  ].filter(([, value]) => value).map(([label, value]) => (
+                    <span key={label}><small>{label}</small><b>{value}</b></span>
+                  ))}
+                </div>
+              )}
             </div>
           </header>
 

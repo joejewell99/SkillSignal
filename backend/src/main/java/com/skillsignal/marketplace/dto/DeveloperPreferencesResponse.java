@@ -5,6 +5,7 @@ import java.util.List;
 public record DeveloperPreferencesResponse(
         String availability,
         List<String> workTypes,
-        String remotePreference
+        String remotePreference,
+        List<String> seniorityLevels
 ) {
 }

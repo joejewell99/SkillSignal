@@ -171,7 +171,8 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
                     profile.setPreferencesJson(writePreferences(new DeveloperPreferencesResponse(
                             "Open to junior full-stack roles",
                             List.of("Backend", "APIs", "Internal tools", "Data cleanup", "Admin workflows"),
-                            "Remote, hybrid, or UK-based"
+                            "Remote, hybrid, or UK-based",
+                            List.of("Junior")
                     )));
 
                     List<ProfileProjectResponse> existingProjects = readProjects(profile.getProjectsJson());
@@ -263,7 +264,8 @@ public class MarketplaceProfileSeeder implements CommandLineRunner {
                 new DeveloperPreferencesResponse(
                         List.of("Open to junior roles", "Available for internships", "Open to contract-to-hire", "Looking for apprenticeship-style teams").get(index % 4),
                         List.of(focus, "Internal tools", domain, "Project proof"),
-                        List.of("Remote first", "Remote or hybrid", "Hybrid preferred", "UK/EU remote hours").get(index % 4)
+                        List.of("Remote first", "Remote or hybrid", "Hybrid preferred", "UK/EU remote hours").get(index % 4),
+                        List.of(List.of("Junior"), List.of("Internship"), List.of("Mid-level"), List.of("Junior", "Mid-level")).get(index % 4)
                 ),
                 projects,
                 posts

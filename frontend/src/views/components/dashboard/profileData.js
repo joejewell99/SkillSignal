@@ -1,4 +1,4 @@
-﻿export const defaultDeveloperProfile = {
+export const defaultDeveloperProfile = {
   title: 'Junior full-stack developer',
   summary: '',
   photo: '',
@@ -11,14 +11,29 @@
     websiteUrl: '',
   },
   preferences: {
-    availability: 'Open to junior roles',
+    availability: 'Open to full-time roles',
     workTypes: ['Frontend', 'Full-stack'],
     remotePreference: 'Remote or hybrid',
+    seniorityLevels: [],
   },
   connectionLabels: {},
   projects: [],
   posts: [],
 };
+
+export function normalizeDeveloperPreferences(preferences = {}) {
+  const normalized = { ...defaultDeveloperProfile.preferences, ...preferences };
+  const legacy = normalized.availability || '';
+  normalized.seniorityLevels = preferences.seniorityLevels ?? [];
+  if (legacy.toLowerCase().includes('junior')) {
+    if (!normalized.seniorityLevels.length) normalized.seniorityLevels = ['Junior'];
+    normalized.availability = 'Open to full-time roles';
+  } else if (legacy === 'Available for internships') {
+    normalized.availability = 'Open to internships';
+  }
+  if (!normalized.availability) normalized.availability = 'Open to full-time roles';
+  return normalized;
+}
 
 export const defaultEmployerProfile = {
   title: 'Hiring team',
@@ -296,8 +311,7 @@ export function readStoredDeveloperProfile(storageKey) {
         ...(parsedProfile.contactLinks ?? {}),
       },
       preferences: {
-        ...defaultDeveloperProfile.preferences,
-        ...(parsedProfile.preferences ?? {}),
+        ...normalizeDeveloperPreferences(parsedProfile.preferences ?? {}),
         workTypes: parsedProfile.preferences?.workTypes ?? defaultDeveloperProfile.preferences.workTypes,
       },
       connectionLabels: parsedProfile.connectionLabels ?? {},
@@ -377,7 +391,7 @@ export function toProfilePayload(profile, displayed = profile.isDisplayed) {
     image: profile.photo,
     skills: profile.skills,
     contactLinks: profile.contactLinks ?? defaultDeveloperProfile.contactLinks,
-    preferences: profile.preferences ?? defaultDeveloperProfile.preferences,
+    preferences: normalizeDeveloperPreferences(profile.preferences ?? {}),
     projects: profile.projects.map((project) => ({
       name: project.name,
       description: project.description,

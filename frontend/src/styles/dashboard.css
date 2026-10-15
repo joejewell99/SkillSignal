@@ -2122,6 +2122,33 @@
   gap: 16px;
 }
 
+.profile-save-feedback { color: var(--muted); font-size: .85rem; margin: 0; overflow-wrap: anywhere; }
+
+.preference-choice-group { padding-top: 18px; border-top: 1px solid var(--line); }
+.developer-preferences-editor .work-type-picker button { font-weight: 600; user-select: none; }
+@media (max-width: 640px) { .profile-save-bar { top: 64px; flex-wrap: wrap; } }
+
+.preference-choice-group {
+  display: grid;
+  gap: 9px;
+}
+
+.preference-choice-label {
+  align-items: baseline;
+  color: var(--ink);
+  display: flex;
+  flex-wrap: wrap;
+  font-weight: 800;
+  gap: 8px;
+  margin: 0;
+}
+
+.preference-choice-label span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
 .work-type-picker,
 .developer-preference-summary {
   display: flex;

@@ -411,23 +411,27 @@ public class MarketplaceProfileService {
             return new DeveloperPreferencesResponse(
                     defaultIfNull(preferences.availability()),
                     preferences.workTypes() == null ? List.of() : preferences.workTypes(),
-                    defaultIfNull(preferences.remotePreference())
+                    defaultIfNull(preferences.remotePreference()),
+                    preferences.seniorityLevels() == null ? List.of() : preferences.seniorityLevels()
             );
         } catch (JsonProcessingException exception) {
-            return new DeveloperPreferencesResponse("", List.of(), "");
+            return new DeveloperPreferencesResponse("", List.of(), "", List.of());
         }
     }
 
     private String writePreferences(DeveloperPreferencesResponse preferences) {
         try {
             DeveloperPreferencesResponse sanitized = preferences == null
-                    ? new DeveloperPreferencesResponse("", List.of(), "")
+                    ? new DeveloperPreferencesResponse("", List.of(), "", List.of())
                     : new DeveloperPreferencesResponse(
                             defaultIfNull(preferences.availability()).trim(),
                             preferences.workTypes() == null
                                     ? List.of()
                                     : preferences.workTypes().stream().map(String::trim).filter(item -> !item.isBlank()).toList(),
-                            defaultIfNull(preferences.remotePreference()).trim()
+                            defaultIfNull(preferences.remotePreference()).trim(),
+                            preferences.seniorityLevels() == null
+                                    ? List.of()
+                                    : preferences.seniorityLevels().stream().map(String::trim).filter(item -> !item.isBlank()).toList()
                     );
             return objectMapper.writeValueAsString(sanitized);
         } catch (JsonProcessingException exception) {
