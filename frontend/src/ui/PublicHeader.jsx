@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, ChevronRight, LayoutDashboard, LogOut, Settings, X } from 'lucide-react';
+import { Bell, ChevronRight, LayoutDashboard, LogOut, Settings, X, MessageSquare, Mail, UserPlus, UserCheck } from 'lucide-react';
 import { useAuth } from '../state/AuthContext.jsx';
 import { apiRequest } from '../api/client.js';
 import ImageWithFallback from './ImageWithFallback.jsx';
@@ -216,6 +216,11 @@ function notificationPreview(value) {
   return preview.length > 90 ? `${preview.slice(0, 87).trimEnd()}...` : preview;
 }
 
+function notificationTitle(title) {
+  const match = title.match(/^(.*?)( sent (?:\d+ new messages?|you a message request)| wants to connect| accepted your connection)$/);
+  return match ? <><span className="notification-sender-name">{match[1]}</span>{match[2]}</> : title;
+}
+
 function belongsToConversation(notification, conversationId) {
   return String(notification?.threadId ?? '') === conversationId
     || notification?.id === `message-request-${conversationId}`
@@ -239,7 +244,6 @@ export default function PublicHeader() {
   const previousAttentionCountRef = useRef(null);
   const isRefreshingAttentionRef = useRef(false);
   const dismissedNotificationIdsRef = useRef(readDismissedNotificationIds(user));
-  const notificationCloseTimerRef = useRef(null);
   const notificationsRef = useRef(notifications);
   const clearedConversationIdsRef = useRef(new Set());
   notificationsRef.current = notifications;
@@ -500,7 +504,6 @@ export default function PublicHeader() {
     document.addEventListener('mousedown', closeMenus);
     document.addEventListener('keydown', closeMenusOnEscape);
     return () => {
-      window.clearTimeout(notificationCloseTimerRef.current);
       document.removeEventListener('mousedown', closeMenus);
       document.removeEventListener('keydown', closeMenusOnEscape);
     };
@@ -570,16 +573,6 @@ export default function PublicHeader() {
     dismissNotifications(notifications.map((notification) => notification.id));
   }
 
-  function keepNotificationsOpen() {
-    window.clearTimeout(notificationCloseTimerRef.current);
-    setIsNotificationsOpen(true);
-  }
-
-  function closeNotificationsAfterPointerLeaves() {
-    window.clearTimeout(notificationCloseTimerRef.current);
-    notificationCloseTimerRef.current = window.setTimeout(() => setIsNotificationsOpen(false), 180);
-  }
-
   async function updatePresence(presence) {
     const previousPresence = selectedPresence;
     setSelectedPresence(presence);
@@ -609,13 +602,12 @@ export default function PublicHeader() {
             <div
               className="header-notifications"
               ref={notificationMenuRef}
-              onMouseEnter={keepNotificationsOpen}
-              onMouseLeave={closeNotificationsAfterPointerLeaves}
             >
               <button
                 className="header-notifications-trigger"
                 type="button"
-                aria-label={`Open notifications${attentionCount > 0 ? `, ${attentionCount} unread` : ''}`}
+                aria-label={`${isNotificationsOpen ? 'Close' : 'Open'} notifications${attentionCount > 0 ? `, ${attentionCount} unread` : ''}`}
+                aria-controls="header-notifications-panel"
                 aria-expanded={isNotificationsOpen}
                 aria-haspopup="dialog"
                 onClick={() => setIsNotificationsOpen((isOpen) => !isOpen)}
@@ -624,7 +616,7 @@ export default function PublicHeader() {
                 {attentionCount > 0 ? <strong className="header-message-count">{attentionCount > 99 ? '99+' : attentionCount}</strong> : null}
               </button>
               {isNotificationsOpen ? (
-                <section className="header-notifications-panel" role="dialog" aria-label="Notifications">
+                <section id="header-notifications-panel" className="header-notifications-panel" role="dialog" aria-label="Notifications">
                   <div className="header-notifications-heading">
                     <strong>Notifications</strong>
                     {attentionCount > 0 ? <span>{attentionCount > 99 ? '99+' : attentionCount} new</span> : null}
@@ -637,10 +629,18 @@ export default function PublicHeader() {
                   {notifications.length > 0 ? (
                     <div className="header-notifications-list">
                       {notifications.slice(0, 6).map((notification) => (
-                        <article className="header-notification-item" key={notification.id}>
+                        <article className={`header-notification-item notification-${notification.type}`} key={notification.id}>
                           <Link to={notification.href} onClick={(event) => openNotification(event, notification)}>
-                            <strong>{notification.title}</strong>
-                            <span>{notification.detail}</span>
+                            <span className="notification-type-icon" aria-hidden="true">
+                              {notification.type === 'connection-request' ? <UserPlus size={18} />
+                                : notification.type === 'connection-accepted' ? <UserCheck size={18} />
+                                  : notification.type === 'message-request' ? <Mail size={18} />
+                                    : <MessageSquare size={18} />}
+                            </span>
+                            <span className="notification-copy">
+                              <strong>{notificationTitle(notification.title)}</strong>
+                              <span className="notification-preview">{notification.detail}</span>
+                            </span>
                           </Link>
                           <button className="header-notification-dismiss" type="button" onClick={() => dismissNotifications([notification.id])} aria-label={`Clear notification: ${notification.title}`}>
                             <X size={14} aria-hidden="true" />
@@ -649,10 +649,14 @@ export default function PublicHeader() {
                       ))}
                     </div>
                   ) : (
-                    <p className="header-notifications-empty">You are all caught up.</p>
+                    <div className="header-notifications-empty">
+                      <div className="header-notifications-empty-icon"><Bell size={24} aria-hidden="true" /></div>
+                      <strong>You're all caught up</strong>
+                      <p>New messages and requests will appear here.</p>
+                    </div>
                   )}
                   <Link className="header-notifications-all" to={user.role === 'EMPLOYER' ? '/dashboard?section=proof' : '/dashboard?section=inbox'} onClick={() => setIsNotificationsOpen(false)}>
-                    View all messages
+                    View all messages <ChevronRight size={16} aria-hidden="true" />
                   </Link>
                 </section>
               ) : null}
