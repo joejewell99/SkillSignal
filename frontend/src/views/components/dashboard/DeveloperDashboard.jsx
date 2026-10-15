@@ -830,13 +830,6 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
     }
   }
 
-  const completionItems = [
-    { label: 'Photo', complete: Boolean(profile.photo) },
-    { label: 'Skills', complete: profile.skills.length >= 3 },
-    { label: 'Projects', complete: profile.projects.length > 0 },
-  ];
-  const completion = Math.round((completionItems.filter((item) => item.complete).length / completionItems.length) * 100);
-  const proofQuality = backendData?.proofQuality;
   const posts = profile.posts ?? [];
   const visibleOwnPosts = feedWindow === 'recent'
     ? posts.filter((post) => isWithinLastDays(post.createdAt, 7))
@@ -871,6 +864,9 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
       complete: profile.projects.some((project) => (project.description ?? '').trim().length >= 80),
     },
   ];
+  const readinessScore = Math.round((qualityChecklist.filter((item) => item.complete).length / qualityChecklist.length) * 100);
+  const readinessStage = Math.min(3, Math.floor(readinessScore / 25));
+  const readinessStageLabels = ['Getting started', 'In progress', 'Nearly ready', 'Ready to share'];
   const dashboardTabs = [
     { id: 'profile', label: 'My Profile', count: null },
     { id: 'projects', label: 'Projects', count: null },
@@ -971,11 +967,17 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
               onChange={(event) => updateDisplayStatus(event.target.checked)}
             />
           </label>
-          <div className="profile-readiness" aria-label="Profile readiness">
-            <strong>{proofQuality?.score ?? completion}%</strong>
-            <span>{proofQuality?.label ?? 'profile ready'}</span>
-            <div className="readiness-bar">
-              <span style={{ width: `${proofQuality?.score ?? completion}%` }} />
+          <div className={`profile-readiness readiness-stage-${readinessStage}`} aria-label={`Profile readiness ${readinessScore} percent, ${readinessStageLabels[readinessStage]}`}>
+            <div className="readiness-heading">
+              <span>Profile readiness</span>
+              <strong>{readinessScore}%</strong>
+            </div>
+            <div className="readiness-progress" role="img" aria-label={`${readinessScore} percent complete`}>
+              {[0, 1, 2, 3].map((step) => (
+                <span className="readiness-progress-step" key={step}>
+                  <span style={{ width: `${Math.max(0, Math.min(25, readinessScore - step * 25)) * 4}%` }} />
+                </span>
+              ))}
             </div>
           </div>
         </div>
@@ -993,6 +995,7 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
             {tab.count !== null && <strong>{tab.count}</strong>}
           </button>
         ))}
+        <span className="dashboard-tabs-hint">Manage your profile, work and connections</span>
       </nav>
 
       <section className="employer-workspace developer-workspace">
@@ -1001,14 +1004,16 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
             <div className="employer-profile-editor-column">
               <section className="workspace-panel profile-editor">
                 <h2>Profile summary</h2>
-                <label htmlFor="developer-summary">
+                <label className="summary-field" htmlFor="developer-summary">
                   Summary
                   <textarea
                     id="developer-summary"
                     value={profile.summary}
-                    onChange={(event) => updateProfile('summary', event.target.value)}
+                    maxLength={500}
+                    onChange={(event) => updateProfile('summary', event.target.value.slice(0, 500))}
                     placeholder="Describe the kind of developer you are, what you build, and what roles you are looking for."
                   />
+                  {profile.summary.length >= 350 && <span className="summary-character-count">{profile.summary.length}/500</span>}
                 </label>
               </section>
 
@@ -1029,10 +1034,8 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                     <Plus size={18} />
                   </button>
                 </form>
-                {skillInput.trim() && getSkillRecognition(skillInput) !== 'recognized' && (
-                  <p className={`skill-recognition-note ${getSkillRecognition(skillInput) === 'off-topic' ? 'is-warning' : ''}`}>
-                    {getSkillRecognition(skillInput) === 'off-topic' ? 'This looks off-topic. Add a technology, tool, method, or area of experience.' : 'This skill is not recognized yet, but it may be a valid niche term.'}
-                  </p>
+                {skillInput.trim() && getSkillRecognition(skillInput) === 'off-topic' && (
+                  <p className="skill-recognition-note is-warning">This looks off-topic. Add a technology, tool, method, or area of experience.</p>
                 )}
                 <div className="editable-skill-list">
                   {profile.skills.map((skill) => (
@@ -1177,10 +1180,6 @@ export default function DeveloperDashboard({ user, token, selectedSection, selec
                     <h2>Profile quality</h2>
                     <p className="subtle">Use this as a quick QA check before employers review your work.</p>
                   </div>
-                  <Link className="secondary-button profile-view-action" to="/profiles/me">
-                    <ExternalLink size={16} />
-                    <span>View profile</span>
-                  </Link>
                 </div>
                 <ul className="feature-list quality-checklist">
                   {qualityChecklist.map((item) => (

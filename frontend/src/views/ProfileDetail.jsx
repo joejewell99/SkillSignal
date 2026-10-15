@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bookmark, Check, ExternalLink, Github, ImageOff, MessageSquareText, Send, Star, UserMinus, UserPlus } from 'lucide-react';
+import { Bookmark, Check, ExternalLink, ImageOff, MessageSquareText, Send, Star, UserMinus, UserPlus } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { apiRequest } from '../api/client.js';
 import { useAuth } from '../state/AuthContext.jsx';
@@ -7,6 +7,7 @@ import PublicFooter from '../ui/PublicFooter.jsx';
 import PublicHeader from '../ui/PublicHeader.jsx';
 import ImageWithFallback from '../ui/ImageWithFallback.jsx';
 import SkillIcon from '../ui/SkillIcon.jsx';
+import SocialBrandIcon from '../ui/SocialBrandIcon.jsx';
 import ContactLinks from './components/profile/ContactLinks.jsx';
 import EmployerNeedsList from './components/profile/EmployerNeedsList.jsx';
 
@@ -686,7 +687,7 @@ export default function ProfileDetail() {
                             <div className="project-links">
                               {project.githubUrl && (
                                 <a href={project.githubUrl} target="_blank" rel="noreferrer">
-                                  <Github size={16} />
+                                  <SocialBrandIcon brand="github" size={16} />
                                   <span>Code</span>
                                 </a>
                               )}

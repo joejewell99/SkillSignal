@@ -334,6 +334,21 @@
   color: var(--ink);
 }
 
+.dashboard-tabs-hint {
+  align-self: center;
+  border-left: 1px solid var(--line);
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: 0.84rem;
+  margin-left: auto;
+  padding: 8px 14px 8px 18px;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .dashboard-tabs-hint { display: none; }
+}
+
 .employer-dashboard-tabs strong {
   align-items: center;
   background: color-mix(in srgb, var(--primary) 12%, var(--surface));
@@ -528,38 +543,64 @@
 }
 
 .profile-readiness {
+  --readiness-color: #fb7185;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
   display: grid;
-  flex: 0 0 180px;
-  gap: 6px;
-  padding: 16px;
+  flex: 0 0 220px;
+  gap: 10px;
+  padding: 14px 16px;
 }
 
-.profile-readiness strong {
-  color: var(--primary);
-  font-size: 2rem;
-  line-height: 1;
+.profile-readiness.readiness-stage-1 { --readiness-color: #fb923c; }
+.profile-readiness.readiness-stage-2 { --readiness-color: #facc15; }
+.profile-readiness.readiness-stage-3 { --readiness-color: #34d399; }
+
+.readiness-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.profile-readiness span {
+.readiness-heading > span {
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 800;
   text-transform: uppercase;
 }
 
-.readiness-bar {
+.readiness-heading > strong {
+  color: var(--readiness-color);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.readiness-progress {
+  display: grid;
+  gap: 5px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.readiness-progress-step {
   background: var(--line);
   border-radius: 999px;
-  height: 9px;
+  height: 7px;
   overflow: hidden;
 }
 
-.readiness-bar span {
-  background: linear-gradient(90deg, var(--primary), var(--signal));
+.readiness-progress-step > span {
+  background: var(--readiness-color);
+  border-radius: inherit;
   display: block;
   height: 100%;
+  transition: width .25s ease;
+}
+
+.readiness-stage-label {
+  color: var(--readiness-color);
+  font-size: .88rem;
+  line-height: 1.2;
 }
 
 .developer-layout {
@@ -593,6 +634,17 @@
 .project-form textarea {
   min-height: 132px;
   resize: vertical;
+}
+
+.profile-editor label.summary-field { position: relative; }
+.profile-editor .summary-field textarea { padding-bottom: 30px; }
+.profile-editor .summary-character-count {
+  color: var(--muted);
+  bottom: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  position: absolute;
+  right: 12px;
 }
 
 .feed-toolbar,

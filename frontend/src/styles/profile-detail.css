@@ -319,6 +319,15 @@
   padding-top: 0;
 }
 
+.profile-feed-panel .feed-author > img,
+.profile-feed-panel .feed-author > .profile-placeholder {
+  aspect-ratio: 1;
+  flex: 0 0 44px;
+  height: 44px;
+  object-fit: cover;
+  width: 44px;
+}
+
 .public-feed-post p {
   color: var(--ink);
   line-height: 1.6;
